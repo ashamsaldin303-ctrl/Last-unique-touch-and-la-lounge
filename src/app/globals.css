@@ -1,0 +1,2170 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   LAST UNIQUE TOUCH — Multi-brand design system
+   Copied from the original repo and refined.
+   3 brands switched via `data-brand` on <html>:
+   - lut       : warm ivory + copper gold (WCAG AA on white)
+   - lalounge  : charcoal plum + magenta
+   - birthday  : white + birthday gold + deep purple
+   ============================================================ */
+
+:root {
+  /* === Core palette (LUT default) === */
+  --c-ink: #0a0a0a;
+  --c-paper: #ffffff;
+  --c-paper-warm: #faf6ef;
+
+  /* === LUT brand gold === */
+  --c-gold: #8b6b3d;
+  --c-gold-soft: #b8915a;
+  --c-brass: #a9812e;
+
+  /* === Brand accents === */
+  --c-lut: #8b6b3d;
+  --c-lalounge: #e6007e;
+  --c-birthday: #f5b914;
+
+  /* === Neutrals === */
+  --c-taupe: #999999;
+  --c-taupe-dark: #666666;
+  --c-line: #e0d9c8;
+
+  /* === shadcn tokens === */
+  --radius: 0.625rem;
+  --background: #faf6ef;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+  --primary: #8b6b3d;
+  --primary-foreground: #ffffff;
+  --secondary: #f5efe2;
+  --secondary-foreground: #0a0a0a;
+  --muted: #f0e9da;
+  --muted-foreground: #666666;
+  --accent: #a9812e;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --border: #e0d9c8;
+  --input: #e0d9c8;
+  --ring: #8b6b3d;
+  --chart-1: #8b6b3d;
+  --chart-2: #0a0a0a;
+  --chart-3: #e6007e;
+  --chart-4: #f5b914;
+  --chart-5: #999999;
+}
+
+/* ============ LUT (default brand) ============ */
+:root,
+:root[data-brand='lut'] {
+  --primary: #8b6b3d;
+  --accent: #a9812e;
+  --ring: #8b6b3d;
+  --gold: #8b6b3d;
+  --lut: #8b6b3d;
+  --color-gold: #8b6b3d;
+  --color-brand: #8b6b3d;
+  --color-lut: #8b6b3d;
+  --background: #faf6ef;
+  --foreground: #0a0a0a;
+  --color-background: #faf6ef;
+  --color-foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0a0a0a;
+  --border: #e0d9c8;
+  --input: #e0d9c8;
+  --color-border: #e0d9c8;
+  --color-input: #e0d9c8;
+  --secondary: #f5efe2;
+  --muted: #f0e9da;
+  --muted-foreground: #666666;
+  /* Fonts — LUT: Amiri (ar display) / Cormorant (latin display) / Tajawal body */
+  --font-display: var(--font-cormorant), var(--font-amiri), serif;
+  --font-body: var(--font-tajawal), system-ui, sans-serif;
+}
+
+/* ============ LA LOUNGE ============ */
+:root[data-brand='lalounge'] {
+  --primary: #e6007e;
+  --primary-foreground: #ffffff;
+  --accent: #c9a24b; /* deco gold */
+  --ring: #e6007e;
+  --gold: #e6007e;
+  --lut: #e6007e;
+  --color-gold: #e6007e;
+  --color-brand: #e6007e;
+  --color-lut: #e6007e;
+  --background: #150912;
+  --foreground: #faf6ef;
+  --color-background: #150912;
+  --color-foreground: #faf6ef;
+  --card: #1f0e1a;
+  --card-foreground: #faf6ef;
+  --color-card: #1f0e1a;
+  --color-card-foreground: #faf6ef;
+  --popover: #1f0e1a;
+  --popover-foreground: #faf6ef;
+  --color-popover: #1f0e1a;
+  --color-popover-foreground: #faf6ef;
+  --border: #2a1525;
+  --input: #2a1525;
+  --color-border: #2a1525;
+  --color-input: #2a1525;
+  --secondary: #241020;
+  --secondary-foreground: #faf6ef;
+  --muted: #241020;
+  --muted-foreground: #b59aa8;
+  --font-display: var(--font-cormorant), var(--font-amiri), serif;
+  --font-body: var(--font-tajawal), system-ui, sans-serif;
+}
+
+/* ============ YOUR BIRTHDAY ============ */
+:root[data-brand='birthday'] {
+  --c-birthday-bg: #020204;
+  --c-birthday-card: #09090f;
+  --c-birthday-gold: #ffcc00;
+  --c-birthday-deep: #4a235a;
+  --c-birthday-red: #e32636;
+  --c-birthday-pink: #ffb6c1;
+  --c-birthday-yellow: #ffd700;
+  --c-birthday-gold-light: #ffd147;
+  --c-birthday-gold-dark: #c9950e;
+  --c-birthday-orange: #f97316;
+  --primary: #f5b914;
+  --primary-foreground: #1a1a2e;
+  --accent: #4b1858;
+  --ring: #f5b914;
+  --gold: #f5b914;
+  --lut: #f5b914;
+  --color-gold: #f5b914;
+  --color-brand: #f5b914;
+  --color-lut: #f5b914;
+  --background: #ffffff;
+  --foreground: #4b1858;
+  --color-background: #ffffff;
+  --color-foreground: #4b1858;
+  --card: #ffffff;
+  --card-foreground: #4b1858;
+  --color-card: #ffffff;
+  --color-card-foreground: #4b1858;
+  --popover: #ffffff;
+  --popover-foreground: #4b1858;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #4b1858;
+  --border: #f5c6d9;
+  --input: #f5c6d9;
+  --color-border: #f5c6d9;
+  --color-input: #f5c6d9;
+  --secondary: #fdf3d7;
+  --secondary-foreground: #4b1858;
+  --muted: #fdf3d7;
+  --muted-foreground: #8a6fa0;
+  /* Fonts — Birthday: Lalezar (ar display) / Baloo 2 (latin display) */
+  --font-display: var(--font-lalezar), var(--font-baloo), var(--font-amiri), cursive;
+  --font-body: var(--font-tajawal), var(--font-baloo), system-ui, sans-serif;
+  /* Legacy font aliases used by the original your-birthday-view inline
+     styles — mapped to the playful birthday set. */
+  --font-birthday-arabic: var(--font-lalezar), var(--font-amiri), cursive;
+  --font-birthday-headline: var(--font-baloo), var(--font-cormorant), sans-serif;
+  --font-birthday-sub: var(--font-baloo), var(--font-tajawal), sans-serif;
+}
+
+/* ============ DARK MODE per brand ============ */
+.dark:root[data-brand='lut'],
+:root[data-brand='lut'].dark {
+  --background: #0a0a0a;
+  --foreground: #faf6ef;
+  --color-background: #0a0a0a;
+  --color-foreground: #faf6ef;
+  --card: #161410;
+  --card-foreground: #faf6ef;
+  --popover: #161410;
+  --popover-foreground: #faf6ef;
+  --secondary: #211d16;
+  --secondary-foreground: #faf6ef;
+  --muted: #211d16;
+  --muted-foreground: #999999;
+  --border: #2a2418;
+  --input: #2a2418;
+  --color-card: #161410;
+  --color-card-foreground: #faf6ef;
+  --color-border: #2a2418;
+  --color-input: #2a2418;
+}
+
+.dark:root[data-brand='birthday'],
+:root[data-brand='birthday'].dark {
+  --background: #4b1858;
+  --foreground: #faf6ef;
+  --color-background: #4b1858;
+  --color-foreground: #faf6ef;
+  --card: #5b2568;
+  --card-foreground: #faf6ef;
+  --popover: #5b2568;
+  --popover-foreground: #faf6ef;
+  --border: #6b3578;
+  --input: #6b3578;
+  --color-card: #5b2568;
+  --color-card-foreground: #faf6ef;
+  --color-border: #6b3578;
+  --color-input: #6b3578;
+}
+
+.dark:root[data-brand='lalounge'],
+:root[data-brand='lalounge'].dark {
+  --background: #0a0408;
+  --color-background: #0a0408;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Brand custom colors (fixed hex) */
+  --color-ink: #0a0a0a;
+  --color-paper: #ffffff;
+  --color-paper-warm: #faf6ef;
+  --color-brass: #a9812e;
+  --color-gold: var(--color-brand);
+  --color-brand: #8b6b3d;
+  --color-copper: #8b6f47;
+  --color-lut: #8b6b3d;
+  --color-lalounge: #e6007e;
+  --color-birthday: #f5b914;
+  --color-taupe: #999999;
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+
+* {
+  border-color: var(--color-border);
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+::selection {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+
+/* Custom scrollbar — brand-aware */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--color-primary) 45%, transparent);
+  border-radius: 999px;
+  border: 2px solid var(--color-background);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
+}
+
+/* Focus visible — accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   TYPOGRAPHY UTILITIES
+   ============================================================ */
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.eyebrow {
+  font-size: 0.65rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(120deg, #b8915a 0%, #e5c878 35%, #8b6b3d 70%, #b8915a 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gold-shimmer 6s linear infinite;
+}
+
+@keyframes gold-shimmer {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* ============================================================
+   HERO ENTRANCE ANIMATIONS (staggered)
+   ============================================================ */
+
+@keyframes hero-down {
+  from {
+    opacity: 0;
+    transform: translateY(-28px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.animate-hero-down {
+  animation: hero-down 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-hero-in {
+  animation: hero-in 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-hero-up {
+  animation: hero-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ============================================================
+   HOME — cosmic hero background layers
+   ============================================================ */
+
+.hero-bg-gradient {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--c-gold) 14%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 100%, color-mix(in srgb, var(--c-lalounge) 8%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 10% 90%, color-mix(in srgb, var(--c-birthday) 7%, transparent) 0%, transparent 50%),
+    #050505;
+}
+
+.hero-bg-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 75%);
+}
+
+.hero-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.5;
+  animation: orb-float 14s ease-in-out infinite;
+}
+.hero-orb-1 {
+  width: 420px;
+  height: 420px;
+  top: -10%;
+  left: -5%;
+  background: color-mix(in srgb, var(--c-gold) 30%, transparent);
+}
+.hero-orb-2 {
+  width: 360px;
+  height: 360px;
+  bottom: -12%;
+  right: -6%;
+  background: color-mix(in srgb, var(--c-lalounge) 22%, transparent);
+  animation-delay: -5s;
+}
+.hero-orb-3 {
+  width: 280px;
+  height: 280px;
+  top: 40%;
+  left: 55%;
+  background: color-mix(in srgb, var(--c-birthday) 16%, transparent);
+  animation-delay: -9s;
+}
+
+@keyframes orb-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(40px, -30px) scale(1.08);
+  }
+  66% {
+    transform: translate(-30px, 24px) scale(0.94);
+  }
+}
+
+/* Floating gold particles (CSS-only, GPU-light) */
+.particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.particle {
+  position: absolute;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c-gold) 65%, white);
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--c-gold) 45%, transparent);
+  animation: particle-rise linear infinite;
+  opacity: 0;
+}
+
+@keyframes particle-rise {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: var(--p-opacity, 0.7);
+  }
+  92% {
+    opacity: var(--p-opacity, 0.7);
+  }
+  100% {
+    transform: translateY(-105vh) translateX(var(--p-drift, 20px));
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   EXPERIENCE CARDS (home brand selector)
+   ============================================================ */
+
+@keyframes holo-chamber {
+  from {
+    opacity: 0;
+    transform: translateX(-40px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.holo-chamber-anim {
+  animation: holo-chamber 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.holo-chamber-anim:dir(rtl),
+[dir='rtl'] .holo-chamber-anim {
+  animation-name: holo-chamber-rtl;
+}
+@keyframes holo-chamber-rtl {
+  from {
+    opacity: 0;
+    transform: translateX(40px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes holo-image {
+  0% {
+    transform: scale(0.3) rotate(-12deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+.holo-image-anim {
+  animation: holo-image 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes bridge {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+.bridge-anim {
+  animation: bridge 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.4s both;
+  transform-origin: left center;
+}
+[dir='rtl'] .bridge-anim {
+  transform-origin: right center;
+}
+
+@keyframes plate {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.plate-anim {
+  animation: plate 1s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+[dir='rtl'] .plate-anim {
+  animation-name: plate-rtl;
+}
+@keyframes plate-rtl {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scroll-aware card exit/enter */
+.card-scroll-anim {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.5s;
+}
+.card-scroll-enter {
+  transform: translateY(0);
+  opacity: 1;
+}
+.card-scroll-exit {
+  transform: translateY(-60px);
+  opacity: 0;
+}
+
+/* Mobile card slide-in stagger */
+@keyframes mobile-card-slide {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.mobile-card-slide {
+  animation: mobile-card-slide 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--card-idx, 0) * 0.15s);
+}
+
+/* ============================================================
+   GLASS & SURFACES
+   ============================================================ */
+
+.glass-dark {
+  background: color-mix(in srgb, #0a0a0a 72%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-card {
+  background: color-mix(in srgb, var(--color-card) 82%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 14%, var(--color-border));
+}
+
+/* Luxury card hover lift */
+.lux-card {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.5s, border-color 0.5s;
+}
+.lux-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 24px 48px -16px color-mix(in srgb, var(--color-primary) 28%, rgba(0, 0, 0, 0.35));
+  border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+}
+
+/* Gold hairline divider with center diamond */
+.gold-divider {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary) 55%, transparent), transparent);
+}
+.gold-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  width: 7px;
+  height: 7px;
+  background: var(--color-primary);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-primary) 60%, transparent);
+}
+
+/* Brand gradient CTA button */
+.btn-lux {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  /* emil: explicit properties, ease-out, press feedback at 0.97 */
+  transition: box-shadow 0.4s var(--ease-out-strong), transform 0.3s var(--ease-out-strong);
+}
+.btn-lux::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.7s var(--ease-out-strong);
+}
+.btn-lux:hover::before {
+  transform: translateX(120%);
+}
+.btn-lux:hover {
+  box-shadow: 0 12px 32px -8px color-mix(in srgb, var(--color-primary) 55%, transparent);
+  transform: translateY(-2px);
+}
+.btn-lux:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ============================================================
+   PAGE TRANSITION
+   ============================================================ */
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+.page-enter {
+  animation: page-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ============================================================
+   MARQUEE (infinite brand strip)
+   ============================================================ */
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes marquee-rtl {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.marquee-track {
+  animation: marquee 30s linear infinite;
+}
+[dir='rtl'] .marquee-track {
+  animation-name: marquee-rtl;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ============================================================
+   SHIMMER / SKELETON
+   ============================================================ */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-muted) 88%, transparent) 25%,
+    color-mix(in srgb, var(--color-muted) 60%, var(--color-card)) 50%,
+    color-mix(in srgb, var(--color-muted) 88%, transparent) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* ============================================================
+   MISC ANIMATIONS
+   ============================================================ */
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-float-soft {
+  animation: float-soft 5s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 40%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 14px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.animate-pulse-ring {
+  animation: pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Navbar slide-in on first load */
+@keyframes navbar-in {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.navbar-slide-in {
+  animation: navbar-in 0.8s var(--ease-out-strong) 0.1s both;
+}
+
+/* Scroll reveal utility (used with IntersectionObserver).
+   Per impeccable: the reveal enhances an already-visible default;
+   if IntersectionObserver is unavailable, content shows instantly. */
+.reveal {
+  opacity: 0;
+  transform: translateY(36px);
+  transition:
+    opacity 0.9s var(--ease-out-strong),
+    transform 0.9s var(--ease-out-strong);
+  transition-delay: var(--reveal-delay, 0s);
+}
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* Direction variants (Reveal v2) — start/end follow the reading direction */
+.reveal.reveal-down {
+  transform: translateY(-36px);
+}
+.reveal.reveal-start {
+  transform: translateX(-40px);
+}
+[dir='rtl'] .reveal.reveal-start {
+  transform: translateX(40px);
+}
+.reveal.reveal-end {
+  transform: translateX(40px);
+}
+[dir='rtl'] .reveal.reveal-end {
+  transform: translateX(-40px);
+}
+.reveal.reveal-scale {
+  transform: translateY(14px) scale(0.94);
+}
+.reveal.reveal-none {
+  transform: none;
+}
+@media print {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .clip-reveal-img {
+    clip-path: none !important;
+  }
+}
+
+/* ============================================================
+   UPGRADE KIT — visible polish layer
+   (shine sweeps, glow borders, gradient pans, scrollbars)
+   Motion tokens per Emil Kowalski's design engineering:
+   named easing curves, sub-300ms interactions, scale(0.97) press.
+   ============================================================ */
+
+/* --- Named easing curves (emil-design-eng) ---
+   Strong ease-out for entrances/UI; strong ease-in-out for
+   on-screen movement. Never ease-in for UI (feels sluggish). */
+:root {
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* --- Typographic refinement (impeccable) ---
+   Balanced headings; pretty paragraphs (no orphans). */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+p {
+  text-wrap: pretty;
+}
+
+/* --- Press feedback (emil: buttons must feel responsive) ---
+   Applies to any pressable element via the .press class. */
+.press {
+  transition: transform 160ms var(--ease-out-strong);
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* --- Clip-path image reveal (emil: reveal from bottom) ---
+   Starts hidden from bottom, reveals on the .revealed observer
+   state. Pairs with the shared Reveal component. Also transitions
+   transform so hover zooms keep working on the same element. */
+.clip-reveal-img {
+  clip-path: inset(0 0 100% 0);
+  transition:
+    clip-path 700ms var(--ease-out-strong),
+    transform 700ms var(--ease-out-strong);
+}
+.revealed .clip-reveal-img,
+.clip-reveal-img.revealed {
+  clip-path: inset(0 0 0 0);
+}
+
+/* --- Gold shine sweep (buttons & cards) --- */
+@keyframes shine-sweep {
+  0% {
+    transform: translateX(-150%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(250%) skewX(-18deg);
+  }
+}
+.shine-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.shine-sweep::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.22) 45%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0.22) 55%,
+    transparent 100%
+  );
+  transform: translateX(-150%) skewX(-18deg);
+  pointer-events: none;
+}
+.shine-sweep:hover::after,
+.shine-sweep:focus-visible::after {
+  animation: shine-sweep 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- Glow border card (gold, animated pan) --- */
+@keyframes glow-pan {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.glow-border {
+  position: relative;
+}
+.glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    130deg,
+    color-mix(in srgb, var(--color-primary) 55%, transparent),
+    transparent 30%,
+    transparent 70%,
+    color-mix(in srgb, var(--color-primary) 35%, transparent)
+  );
+  background-size: 220% 220%;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.glow-border:hover::before {
+  opacity: 1;
+  animation: glow-pan 2.8s ease infinite;
+}
+
+/* --- Lift + glow on hover (cards) ---
+   300ms per emil's interaction duration table. */
+.card-lift {
+  transition:
+    transform 300ms var(--ease-out-strong),
+    box-shadow 300ms var(--ease-out-strong),
+    border-color 300ms ease;
+}
+.card-lift:hover {
+  transform: translateY(-8px);
+  box-shadow:
+    0 22px 44px -16px rgba(0, 0, 0, 0.45),
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 22%, transparent),
+    0 0 34px -10px color-mix(in srgb, var(--color-primary) 38%, transparent);
+}
+
+/* --- Animated gradient text (pan) --- */
+@keyframes gradient-pan {
+  0%,
+  100% {
+    background-position: 0% center;
+  }
+  50% {
+    background-position: 100% center;
+  }
+}
+.text-pan-gold {
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    #e5c878 25%,
+    var(--color-primary) 50%,
+    #e5c878 75%,
+    var(--color-primary) 100%
+  );
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-pan 7s ease infinite;
+}
+
+/* --- Icon ring pulse (service icon circles) --- */
+@keyframes icon-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-primary) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 14px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+.icon-ring:hover,
+.icon-ring:focus-visible {
+  animation: icon-ring 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* --- Floating decorative bob --- */
+@keyframes bob-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-bob {
+  animation: bob-y 4.5s ease-in-out infinite;
+}
+
+/* --- Progress bar (scroll) --- */
+.scroll-progress-bar {
+  transform-origin: 0 50%;
+}
+[dir='rtl'] .scroll-progress-bar {
+  transform-origin: 100% 50%;
+}
+
+/* --- Marquee v2: gradient word + pulsing dot --- */
+.marquee-v2 .marquee-word {
+  transition: opacity 0.4s ease, letter-spacing 0.4s ease;
+}
+.marquee-v2:hover .marquee-word {
+  opacity: 0.9;
+  letter-spacing: 0.38em;
+}
+@keyframes dot-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
+}
+.animate-dot-pulse {
+  animation: dot-pulse 2.2s ease-in-out infinite;
+}
+
+/* --- Custom scrollbar (WebKit + Firefox) --- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-primary) 55%, transparent) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary) 60%, transparent),
+    color-mix(in srgb, var(--color-primary) 30%, transparent)
+  );
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary) 85%, transparent),
+    color-mix(in srgb, var(--color-primary) 45%, transparent)
+  );
+  background-clip: content-box;
+}
+
+/* --- Number counter tabular + pop-in --- */
+@keyframes stat-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-stat-pop {
+  animation: stat-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* --- Underline draw for section headings --- */
+@keyframes line-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.line-draw-start,
+.line-draw-end {
+  transform-origin: center;
+  animation: line-draw 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
+}
+
+/* --- Glass panel (reusable for overlays over 3D backgrounds) --- */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* --- Horizontal snap scroller (collection strips) --- */
+.snap-strip {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 0.75rem;
+  scrollbar-width: none;
+}
+.snap-strip::-webkit-scrollbar {
+  display: none;
+}
+.snap-strip > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+/* ============================================================
+   LEGENDARY LAYER v2 — the "خرافي" upgrade system.
+   Micro-interactions, ambient signatures & motion polish.
+   Every effect is transform/opacity based (GPU-safe) and
+   honored by the global prefers-reduced-motion switch below.
+   ============================================================ */
+
+/* --- Gold text selection (brand signature) --- */
+::selection {
+  background: color-mix(in srgb, var(--color-primary) 32%, transparent);
+  color: var(--color-foreground);
+}
+
+/* --- Unified gold focus-visible ring (a11y + luxury) --- */
+:where(a, button, [role='button'], [tabindex]):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 75%, transparent);
+  outline-offset: 3px;
+}
+
+/* --- link-slide: hairline that grows from the reading edge --- */
+.link-slide {
+  position: relative;
+  text-decoration: none;
+}
+.link-slide::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  inset-inline: 0;
+  height: 1px;
+  background: linear-gradient(
+    to inline-end,
+    color-mix(in srgb, var(--color-primary) 85%, transparent),
+    transparent
+  );
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 320ms var(--ease-out-strong);
+}
+[dir='rtl'] .link-slide::after {
+  transform-origin: right center;
+}
+.link-slide:hover::after,
+.link-slide:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* --- link-shift: content nudges along the reading direction --- */
+.link-shift {
+  transition: padding 280ms var(--ease-out-strong), color 280ms ease;
+}
+.link-shift:hover,
+.link-shift:focus-visible {
+  padding-inline-start: 0.375rem;
+}
+[dir='rtl'] .link-shift:hover,
+[dir='rtl'] .link-shift:focus-visible {
+  padding-inline-start: 0;
+  padding-inline-end: 0.375rem;
+}
+
+/* --- input-glow: golden focus halo for form fields --- */
+.input-glow {
+  transition:
+    border-color 240ms ease,
+    box-shadow 320ms var(--ease-out-strong),
+    background-color 240ms ease;
+}
+.input-glow:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
+}
+.input-glow:focus,
+.input-glow:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-primary) 65%, var(--color-border));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 16%, transparent),
+    0 0 26px -8px color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+/* --- Shimmer sweep (image/skeleton loading placeholders) --- */
+@keyframes shimmer-pan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.img-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.img-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    color-mix(in srgb, var(--color-primary) 9%, rgba(255, 255, 255, 0.55)) 50%,
+    transparent 75%
+  );
+  animation: shimmer-pan 1.5s var(--ease-in-out-strong) infinite;
+  pointer-events: none;
+}
+.img-shimmer[data-loaded='true']::before {
+  display: none;
+}
+[data-brand='lalounge'] .img-shimmer::before,
+.dark .img-shimmer::before {
+  background: linear-gradient(
+    100deg,
+    transparent 25%,
+    color-mix(in srgb, var(--color-primary) 12%, rgba(255, 255, 255, 0.08)) 50%,
+    transparent 75%
+  );
+}
+
+/* --- Word-by-word masked reveal (PageHeader / hero titles) --- */
+@keyframes word-rise {
+  0% {
+    transform: translateY(115%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.word-mask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-block-end: 0.08em;
+  margin-block-end: -0.08em;
+}
+.word-mask > span {
+  display: inline-block;
+  transform: translateY(115%);
+  will-change: transform;
+}
+.revealed .word-mask > span {
+  animation: word-rise 750ms var(--ease-out-strong) both;
+  animation-delay: calc(160ms + var(--word-idx, 0) * 80ms);
+}
+
+/* --- Smart navbar: hide on scroll-down, return on scroll-up --- */
+.nav-smart {
+  transition:
+    transform 520ms var(--ease-in-out-strong),
+    background-color 420ms ease,
+    padding 420ms ease,
+    box-shadow 420ms ease;
+}
+.nav-smart.nav-hidden {
+  transform: translateY(-110%);
+}
+
+/* --- CTA arrow that slides forward on hover (direction-aware) --- */
+.cta-arrow {
+  transition: transform 300ms var(--ease-out-strong);
+}
+.group:hover .cta-arrow {
+  transform: translateX(4px);
+}
+[dir='rtl'] .group:hover .cta-arrow {
+  transform: translateX(-4px);
+}
+
+/* --- Toast luxury treatment (over the Radix/shadcn logic) --- */
+@keyframes toast-spring-in {
+  0% {
+    transform: translateY(26px) scale(0.96);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(-3px) scale(1.012);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes toast-spring-out {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(12px) scale(0.97);
+    opacity: 0;
+  }
+}
+.toast-lux {
+  position: relative;
+  border-start-start-radius: 0.375rem;
+  border-end-start-radius: 0.375rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 32%, var(--color-border));
+  background: color-mix(in srgb, var(--color-card) 94%, transparent);
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  box-shadow:
+    0 18px 44px -14px rgba(0, 0, 0, 0.4),
+    0 0 28px -12px color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+.toast-lux::before {
+  content: '';
+  position: absolute;
+  inset-block: 10%;
+  inset-inline-start: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-primary),
+    transparent
+  );
+  pointer-events: none;
+}
+[data-state='open'].toast-lux {
+  animation: toast-spring-in 520ms var(--ease-out-strong) both;
+}
+[data-state='closed'].toast-lux {
+  animation: toast-spring-out 300ms var(--ease-out-strong) both;
+}
+/* Swipe-dismiss: fade only (Radix drives the translate fling) so the
+   keyframe transform never fights the swipe offset. */
+@keyframes toast-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+.toast-lux[data-swipe='end'] {
+  animation: toast-fade-out 320ms ease both;
+}
+/* Destructive variant overrides the gold identity */
+.toast-lux.toast-destructive {
+  background: var(--color-destructive);
+  border-color: color-mix(in srgb, var(--color-destructive) 70%, transparent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.toast-lux.toast-destructive::before {
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.65), transparent);
+}
+
+/* --- Footer: flowing gold hairline on the top edge --- */
+@keyframes hairline-flow {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.footer-hairline {
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-primary) 75%, transparent) 28%,
+    #e5c878 50%,
+    color-mix(in srgb, var(--color-primary) 75%, transparent) 72%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  animation: hairline-flow 9s ease infinite;
+}
+
+/* --- Price emphasis pop (product cards) --- */
+@keyframes price-pop {
+  0% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.price-pop {
+  animation: price-pop 500ms var(--ease-out-strong) both;
+}
+
+/* --- Cursor glow (desktop pointer:fine only) — signature effect --- */
+.cursor-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  width: 480px;
+  height: 480px;
+  margin: -240px 0 0 -240px;
+  border-radius: 999px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-primary) 12%, transparent) 0%,
+    transparent 62%
+  );
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 600ms ease;
+  will-change: transform;
+}
+.cursor-glow.cursor-glow-active {
+  opacity: 1;
+}
+
+/* --- Icon micro-float for decorative accents --- */
+@keyframes micro-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+.animate-micro-float {
+  animation: micro-float 5s ease-in-out infinite;
+}
+
+/* --- Stagger group: children rise in sequence (JS sets --stagger-idx) --- */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 640ms var(--ease-out-strong),
+    transform 640ms var(--ease-out-strong);
+  transition-delay: calc(var(--stagger-idx, 0) * 70ms);
+}
+.revealed .stagger-item,
+.stagger-item.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   CATALOG LAYER — legendary upgrades for the products catalog
+   & product-detail pages (ambient backdrop, gold seal badges,
+   spotlight gallery, concierge card, luxury pills/CTA,
+   quick-view veil, receipt leader dots, finial).
+   All effects are transform/opacity/color based (GPU-safe),
+   logical-property based (RTL-safe) and covered by the global
+   prefers-reduced-motion switch below.
+   ============================================================ */
+
+/* --- Ambient catalog backdrop (decorative, behind content) ---
+   Two very soft gold radials give the flat ivory page atmosphere
+   without touching the brand background tokens. */
+.catalog-ambient {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.catalog-ambient::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -18%;
+  top: -24%;
+  width: 56rem;
+  height: 56rem;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-primary) 9%, transparent) 0%,
+    transparent 62%
+  );
+}
+.catalog-ambient::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: -16%;
+  top: 6%;
+  width: 46rem;
+  height: 46rem;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-gold) 7%, transparent) 0%,
+    transparent 60%
+  );
+}
+
+/* --- Category pill (luxury tag) ---
+   Inactive: hairline gold ring + gold text. Hover: tinted fill.
+   The active background is a separate sliding element (layoutId). */
+.pill-lux {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+  color: color-mix(in srgb, var(--color-primary) 88%, var(--color-foreground));
+  background: transparent;
+  transition:
+    border-color 280ms var(--ease-out-strong),
+    color 280ms ease,
+    box-shadow 280ms var(--ease-out-strong),
+    transform 200ms var(--ease-out-strong);
+}
+.pill-lux:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  box-shadow: 0 6px 18px -10px color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+.pill-lux:active {
+  transform: scale(0.97);
+}
+/* The framer-motion element that slides between active pills */
+.pill-lux-active {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-primary) 92%, var(--color-foreground)),
+    var(--color-gold) 55%,
+    color-mix(in srgb, var(--color-primary) 88%, var(--color-foreground))
+  );
+  box-shadow:
+    0 8px 22px -8px color-mix(in srgb, var(--color-primary) 55%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+/* --- Gold seal badge (3D viewer + premium markers) --- */
+.seal-gold {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: linear-gradient(
+    135deg,
+    var(--color-gold),
+    color-mix(in srgb, var(--color-gold) 55%, #fff8e6) 42%,
+    color-mix(in srgb, var(--color-primary) 82%, var(--color-foreground))
+  );
+  color: #fff;
+  box-shadow:
+    0 6px 16px -6px color-mix(in srgb, var(--color-primary) 60%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  transition: transform 300ms var(--ease-out-strong), box-shadow 300ms var(--ease-out-strong);
+}
+.seal-gold:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow:
+    0 10px 24px -8px color-mix(in srgb, var(--color-primary) 70%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* --- Out-of-stock veil (frosted, elegant) --- */
+.stock-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-foreground) 38%, transparent);
+  backdrop-filter: blur(3px) saturate(0.72);
+  -webkit-backdrop-filter: blur(3px) saturate(0.72);
+}
+.stock-veil > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--color-gold) 65%, transparent);
+  background: color-mix(in srgb, var(--color-card) 88%, transparent);
+  color: var(--color-foreground);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45);
+}
+
+/* --- Quick-view veil (product card image hover) --- */
+.veil-quick {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: color-mix(in srgb, var(--color-foreground) 26%, transparent);
+  backdrop-filter: blur(2.5px);
+  -webkit-backdrop-filter: blur(2.5px);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  opacity: 0;
+  transition: opacity 320ms var(--ease-out-strong);
+  pointer-events: none;
+}
+.veil-quick > * {
+  transform: translateY(8px);
+  transition: transform 320ms var(--ease-out-strong);
+}
+.group:hover .veil-quick,
+.group:focus-visible .veil-quick {
+  opacity: 1;
+}
+.group:hover .veil-quick > *,
+.group:focus-visible .veil-quick > * {
+  transform: translateY(0);
+}
+[data-brand='lalounge'] .veil-quick,
+.dark .veil-quick {
+  background: color-mix(in srgb, #0a0a0a 42%, transparent);
+}
+
+/* --- Card gold hairline (bottom edge reveal on hover) --- */
+.card-hairline {
+  position: absolute;
+  bottom: 0;
+  inset-inline: 0;
+  height: 2px;
+  transform: scaleX(0);
+  transform-origin: center;
+  background: linear-gradient(
+    to inline-end,
+    transparent,
+    var(--color-gold),
+    color-mix(in srgb, var(--color-gold) 40%, transparent),
+    transparent
+  );
+  transition: transform 420ms var(--ease-out-strong);
+  pointer-events: none;
+  z-index: 4;
+}
+.group:hover .card-hairline,
+.group:focus-visible .card-hairline {
+  transform: scaleX(1);
+}
+[dir='rtl'] .card-hairline {
+  transform-origin: center;
+}
+
+/* --- Price display (hero price in detail + refined card price) --- */
+.price-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+/* --- Spotlight gallery (product detail main image) ---
+   Layered ambient: soft radial glow behind the frame + inset gold
+   ring + deep layered shadow. The inner .gallery-spot follows the
+   cursor via --mx/--my for a moving spotlight veil. */
+.spotlight-gallery {
+  position: relative;
+  border-radius: var(--radius);
+}
+.spotlight-gallery::before {
+  content: '';
+  position: absolute;
+  /* Blur paints the halo OUTSIDE the box without creating scrollable
+     overflow (filter = ink overflow only) — keeps mobile 0-overflow. */
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse 75% 65% at center,
+    color-mix(in srgb, var(--color-gold) 20%, transparent) 0%,
+    transparent 70%
+  );
+  filter: blur(26px);
+  pointer-events: none;
+}
+.spotlight-frame {
+  position: relative;
+  z-index: 1;
+  box-shadow:
+    0 30px 60px -24px color-mix(in srgb, var(--color-primary) 35%, rgba(0, 0, 0, 0.4)),
+    0 8px 20px -12px rgba(0, 0, 0, 0.18);
+}
+.gallery-spot {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(
+    320px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in srgb, #fff 20%, transparent) 0%,
+    color-mix(in srgb, var(--color-gold) 10%, transparent) 18%,
+    transparent 55%
+  );
+  opacity: 0;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+}
+.group\/gallery:hover .gallery-spot {
+  opacity: 1;
+}
+
+/* --- Gallery slide arrows (reveal on hover, direction-aware) --- */
+.spotlight-arrow {
+  opacity: 0;
+  transition:
+    opacity 320ms var(--ease-out-strong),
+    background-color 240ms ease,
+    transform 240ms var(--ease-out-strong);
+}
+.group\/gallery:hover .spotlight-arrow,
+.spotlight-arrow:focus-visible {
+  opacity: 1;
+}
+.spotlight-arrow:hover {
+  background-color: color-mix(in srgb, #0a0a0a 62%, transparent);
+}
+.spotlight-arrow:active {
+  transform: scale(0.94);
+}
+
+/* --- Thumbnail frames --- */
+.thumb-frame {
+  transition:
+    transform 260ms var(--ease-out-strong),
+    border-color 260ms ease,
+    box-shadow 260ms var(--ease-out-strong),
+    opacity 260ms ease;
+}
+.thumb-frame:hover {
+  transform: translateY(-2px);
+}
+.thumb-frame[aria-current='true'] {
+  border-color: var(--color-gold);
+  box-shadow:
+    0 0 0 1px var(--color-gold),
+    0 8px 18px -10px color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+
+/* --- Concierge card (rental picker summary) --- */
+.concierge-card {
+  position: relative;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-card) 96%, color-mix(in srgb, var(--color-gold) 12%, transparent)) 0%,
+      var(--color-card) 38%
+    );
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 22px 44px -20px color-mix(in srgb, var(--color-primary) 30%, rgba(0, 0, 0, 0.22));
+}
+.concierge-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  inset-inline: 8%;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to inline-end,
+    transparent,
+    var(--color-gold),
+    transparent
+  );
+  pointer-events: none;
+}
+[data-brand='lalounge'] .concierge-card,
+.dark .concierge-card {
+  background: color-mix(in srgb, var(--color-card) 96%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 22px 44px -20px rgba(0, 0, 0, 0.6);
+}
+
+/* --- Metallic gold CTA (add-to-cart) --- */
+.btn-gold-cta {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    color-mix(in srgb, var(--color-gold) 80%, var(--color-primary)) 45%,
+    var(--color-primary) 100%
+  );
+  color: var(--color-primary-foreground);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 0 color-mix(in srgb, var(--color-foreground) 22%, transparent),
+    0 12px 28px -10px color-mix(in srgb, var(--color-primary) 60%, transparent);
+  transition:
+    box-shadow 380ms var(--ease-out-strong),
+    transform 240ms var(--ease-out-strong),
+    filter 240ms ease;
+}
+.btn-gold-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 32%,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent 68%
+  );
+  transform: translateX(-130%);
+  transition: transform 700ms var(--ease-out-strong);
+  pointer-events: none;
+}
+[dir='rtl'] .btn-gold-cta::after {
+  transform: translateX(130%);
+}
+.btn-gold-cta:hover:not(:disabled) {
+  filter: brightness(1.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -2px 0 color-mix(in srgb, var(--color-foreground) 22%, transparent),
+    0 18px 38px -12px color-mix(in srgb, var(--color-primary) 72%, transparent);
+  transform: translateY(-2px);
+}
+.btn-gold-cta:hover:not(:disabled)::after {
+  transform: translateX(130%);
+}
+[dir='rtl'] .btn-gold-cta:hover:not(:disabled)::after {
+  transform: translateX(-130%);
+}
+.btn-gold-cta:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+.btn-gold-cta:disabled {
+  opacity: 0.55;
+}
+
+/* --- Receipt leader dots (price summary rows) --- */
+.leader-dots {
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  height: 1em;
+  margin-inline: 0.5rem;
+  border-bottom: 1px dotted color-mix(in srgb, var(--color-primary) 40%, transparent);
+  transform: translateY(-0.25em);
+}
+
+/* --- Value flip (animated totals) --- */
+.value-flip {
+  animation: value-flip 460ms var(--ease-out-strong);
+}
+@keyframes value-flip {
+  0% {
+    transform: translateY(7px);
+    opacity: 0.25;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* --- Search toolbar (unified filter panel) --- */
+.search-jewel .lucide-search,
+.search-jewel svg {
+  transition: color 260ms ease, transform 260ms var(--ease-out-strong);
+}
+.search-jewel:focus-within .lucide-search,
+.search-jewel:focus-within svg {
+  color: var(--color-primary);
+  transform: scale(1.08);
+}
+.search-jewel:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, var(--color-border));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 14%, transparent),
+    0 10px 26px -14px color-mix(in srgb, var(--color-primary) 55%, transparent);
+}
+.search-jewel {
+  transition:
+    border-color 260ms ease,
+    box-shadow 320ms var(--ease-out-strong);
+}
+
+/* --- Trust badge glass edge (top gold hairline) --- */
+.trust-edge {
+  position: relative;
+  overflow: hidden;
+}
+.trust-edge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  inset-inline: 0;
+  height: 2px;
+  background: linear-gradient(
+    to inline-end,
+    transparent,
+    color-mix(in srgb, var(--color-gold) 85%, transparent),
+    transparent
+  );
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 420ms var(--ease-out-strong);
+}
+.trust-edge:hover::before,
+.trust-edge:focus-visible::before {
+  transform: scaleX(1);
+}
+.trust-edge:hover {
+  transform: translateY(-4px);
+}
+
+/* --- Breadcrumb lux (gold separators, hover slide) --- */
+.crumb-lux {
+  transition: color 240ms ease, transform 240ms var(--ease-out-strong);
+}
+.crumb-lux:hover {
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+/* --- Finial (end-of-page ornament) --- */
+.finial-diamond {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, var(--color-gold), var(--color-primary));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-gold) 55%, transparent);
+}
+.finial-diamond::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border: 1px solid color-mix(in srgb, var(--color-gold) 45%, transparent);
+  transform: rotate(0deg);
+}
+
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .word-mask > span,
+  .stagger-item {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .cursor-glow {
+    display: none !important;
+  }
+  .nav-smart,
+  .nav-smart.nav-hidden {
+    transform: none !important;
+  }
+}
+
+
+/* ================================================================
+   SKILL.md DESIGN KIT — Task 16
+   Distilled from top GitHub design skills (taste-skill v2, hallmark,
+   high-end-visual-design, redesign-existing-projects, and Anthropic's
+   official frontend-design). Rules applied: tokens instead of inline
+   hexes · tabular-nums · Double-Bezel nested containers · tinted
+   shadows (single light source) · fixed grain overlay · Arabic
+   display leading ≥ 1.15 · press physics · fluid easing curve.
+   globals.css stays append-only — these merge via the cascade.
+   ================================================================ */
+
+:root {
+  --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* La Lounge sheet/ink — were repeated inline hexes across 5 pages */
+:root[data-brand='lalounge'] {
+  --ll-sheet: #fdfcff;
+  --ll-ink: #1a1a2e;
+}
+
+/* True glassmorphism: edge refraction on existing glass panels
+   (later-in-file merge — appends inner highlight + crisper hairline) */
+.glass-panel {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* --- Double-Bezel (Doppelrand) nested container architecture ---
+   Outer shell (bezel-card) + inner core (bezel-core) with concentric
+   radii: outer 12px − padding 6px = inner 6px (rounded-md).
+   Physical, machined feel — never place premium media flat. */
+.bezel-card {
+  /* NOTE: no `position` here — unlayered CSS would beat layered Tailwind
+     utilities (e.g. `sticky top-24` on the checkout receipt). */
+  padding: 0.375rem; /* 6px — concentric gap */
+  border-radius: 0.75rem; /* 12px */
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+.bezel-core {
+  border-radius: 0.375rem; /* 6px — concentric with the shell */
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.14);
+  background: var(--card);
+}
+
+/* Ivory/light variant — product plates on LUT's paper background.
+   Brass-tinted shadow (light source: top, consistent brand-wide). */
+.bezel-card--light {
+  background: color-mix(in srgb, var(--color-gold) 6%, transparent);
+  border-color: color-mix(in srgb, var(--color-gold) 24%, transparent);
+  box-shadow: 0 22px 55px -22px rgba(139, 107, 61, 0.32);
+}
+.bezel-card--light .bezel-core {
+  background: var(--card);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.55);
+}
+
+/* --- Tinted shadows (hue of the surface, never generic black) --- */
+.shadow-brass {
+  box-shadow: 0 18px 45px -18px rgba(139, 107, 61, 0.3);
+}
+.shadow-magenta {
+  box-shadow: 0 18px 45px -16px rgba(230, 0, 126, 0.3);
+}
+.shadow-bday-gold {
+  box-shadow: 0 18px 45px -16px rgba(201, 149, 14, 0.32);
+}
+
+/* --- Fixed film-grain overlay (paper feel on ivory, cinematic on
+   dark). Fixed + pointer-events-none only — zero interaction cost,
+   one paint, no scroll repaint. --- */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.032;
+  background-repeat: repeat;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+/* Respect transparency reduction */
+@media (prefers-reduced-transparency: reduce) {
+  body::after {
+    display: none;
+  }
+}
+
+/* --- La Lounge CTA: tokenized + press physics ---
+   Replaces repeated bg-[#E6007E] inline hexes on 5 pages. */
+.btn-ll-cta {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  box-shadow: 0 12px 40px -8px rgba(230, 0, 126, 0.35);
+  transition:
+    background-color 200ms var(--ease-fluid),
+    box-shadow 200ms var(--ease-fluid),
+    transform 160ms var(--ease-fluid);
+}
+.btn-ll-cta:hover {
+  background: color-mix(in srgb, var(--primary) 90%, #000000);
+}
+.btn-ll-cta:active {
+  transform: scale(0.97);
+}
+
+/* --- Skill kit · reduced motion: grain is static (safe), bezels are
+   static (safe). Keep this block free of any new animation. --- */
+@media (prefers-reduced-motion: reduce) {
+  .btn-ll-cta {
+    transition: none;
+  }
+}
+
+/* rebuild-trigger: skill-kit v2 final */

@@ -1,0 +1,110 @@
+// Prisma schema — copied from the original repo
+// (github.com/Akrout111/Last-unique-touch-and-la-lounge) and kept as-is
+// so the rebuilt site stores exactly the same data model.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== Multi-tenant: Brands (SQLite has no enums — stored as Strings) =====
+
+// ===== Categories =====
+model Category {
+  id        String    @id @default(cuid())
+  brand     String    @default("LUT")
+  slug      String
+  nameAr    String
+  nameEn    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+
+  @@unique([brand, slug], name: "category_brand_slug_unique")
+  @@index([brand, slug])
+}
+
+// ===== Products (Rental only — no sales) =====
+model Product {
+  id                String    @id @default(cuid())
+  brand             String    @default("LUT")
+  slug              String
+  nameAr            String
+  nameEn            String
+  descriptionAr     String
+  descriptionEn     String
+  rentalPricePerDay Float
+  securityDeposit   Float
+  images            String // JSON array of URLs
+  model3dUrl        String?
+  stock             Int       @default(1)
+  isActive          Boolean   @default(true)
+  categoryId        String
+  category          Category  @relation(fields: [categoryId], references: [id])
+  bookings          Booking[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([brand, slug], name: "product_brand_slug_unique")
+  @@index([brand, categoryId])
+  @@index([brand, isActive])
+}
+
+// ===== Bookings =====
+model Booking {
+  id            String        @id @default(cuid())
+  brand         String        @default("LUT")
+  productId     String?
+  product       Product?      @relation(fields: [productId], references: [id])
+  startDate     DateTime
+  endDate       DateTime
+  status        String        @default("PENDING")
+  customerName  String
+  customerPhone String
+  customerEmail String
+  quantity      Int           @default(1)
+  totalAmount   Float
+  currency      String        @default("KWD")
+  address       String?
+  city          String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([brand, createdAt])
+  @@index([productId, startDate, endDate])
+  @@index([status])
+  @@index([brand, startDate])
+  @@index([customerEmail])
+}
+
+// ===== Contact Messages =====
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  brand     String   @default("LUT")
+  createdAt DateTime @default(now())
+
+  @@index([brand, createdAt])
+  @@index([email])
+}
+
+// ===== Security Event Log =====
+model SecurityLog {
+  id        String   @id @default(cuid())
+  event     String
+  ip        String?
+  userId    String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([event, createdAt])
+}
