@@ -625,3 +625,22 @@ Stage Summary:
 - مرافقات: atlas.html (المصدر) + atlas-cover-preview.jpg + build_pdf.py + capture-all.sh + shots-pc/-mobile (PNG أصلية) + shots-*-jpg
 - البنية: غلاف → دليل قراءة → فهرس PC → فهرس Mobile → الجزء 01 PC (6 أقسام × 27 مساراً) → الجزء 02 Mobile → ختام؛ كل صفحة تحمل رأس المسار وتذييلاً برقم الصفحة ومؤشر i/n لكل مقطع
 - رحلة الشراء موثقة بصرياً بالكامل بحالات حقيقية (طلب فعلي أُنشئ ودُفع في بيئة التطوير)
+
+---
+Task ID: 23
+Agent: main (Z.ai Code)
+Task: تسليم أطلس الموقع البصري للمستخدم — نسخة تحميل محلية + دفع إلى GitHub (ملف في الريبو + Release)
+
+Work Log:
+- حدّدت موقع الملف النهائي: visual-audit/LUT-Visual-Atlas.pdf (160 صفحة، 13.8MB، بصمة SHA-256 مطابقة عبر النسختين)
+- نسخت الـ PDF إلى download/LUT-Visual-Atlas.pdf — مجلد الملفات المولّدة الذي يستطيع المستخدم تحميله منه مباشرة من البيئة
+- عدّلت .gitignore: استثناء صريح !/visual-audit/LUT-Visual-Atlas.pdf (المسار المرقّم فقط يُتتبع، لقطات PNG وHTML تظل مستبعدة) + تجاهل /download/*.pdf لمنع تكرار 14MB في الريبو
+- اكتشفت أن الفرع المحلي متقدم على origin/main بـ 4 كوميتات (سجلات worklog + سكربتات الأطلس) لم تُدفع في الجلسة السابقة → ستُدفع جميعاً مع كوميت الـ PDF الجديد
+- أنشأت كوميت "feat: publish visual atlas PDF (160 pages — PC + Mobile)" يضم الـ PDF + .gitignore + سجل المهمة
+- دفعت عبر http.extraHeader مؤقت (التوكن لا يُخزّن في .git/config ولا في أي ملف متتبع)
+- أنشأت GitHub Release "Visual Atlas v1" (tag: visual-atlas-v1) عبر REST API ورفعت الـ PDF كمورد مرفق — رابط تحميل مباشر بنقرة واحدة
+- تحققت بعد الدفع عبر API: الملف حي في شجرة الريبو + المورد في الـ Release قابل للتنزيل (HTTP 200)
+
+Stage Summary:
+- ثلاثة مسارات وصول للـ PDF: ① download/LUT-Visual-Atlas.pdf محلياً في البيئة ② visual-audit/LUT-Visual-Atlas.pdf في الريبو على GitHub ③ مورد الـ Release برابط تحميل مباشر
+- الريبو محدّث الآن بكل الكوميتات (245+ ملف) والأطلس منشور رسمياً

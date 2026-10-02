@@ -59,11 +59,13 @@ server.log
 /tool-results/
 *.pid
 .claude/settings.local.json
-# visual-audit generated artifacts (PDF, screenshots, previews) — scripts stay tracked
-/visual-audit/*.pdf
+# visual-audit generated artifacts (screenshots, previews) — scripts + final PDF stay tracked
 /visual-audit/*.html
 /visual-audit/*.jpg
 /visual-audit/shots-pc/
 /visual-audit/shots-mobile/
 /visual-audit/shots-pc-jpg/
 /visual-audit/shots-mobile-jpg/
+!/visual-audit/LUT-Visual-Atlas.pdf
+# sandbox download folder: keep placeholder only, PDFs live in visual-audit/ in the repo
+/download/*.pdf
