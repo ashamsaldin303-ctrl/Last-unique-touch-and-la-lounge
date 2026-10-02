@@ -69,3 +69,7 @@ server.log
 !/visual-audit/LUT-Visual-Atlas.pdf
 # sandbox download folder: keep placeholder only, PDFs live in visual-audit/ in the repo
 /download/*.pdf
+
+# download folder: keep placeholder README only (prompt copy is untracked)
+/download/*
+!/download/README.md
