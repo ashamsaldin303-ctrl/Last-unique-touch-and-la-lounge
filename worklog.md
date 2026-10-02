@@ -597,3 +597,30 @@ Stage Summary:
 - الفرع: main (تاريخ نظيف، commit واحد: c4f4ccd)، عام، مع قاعدة بيانات مزروعة db/custom.db
 - المستبعد عمداً: لقطات الشاشة الداخلية و tool-results (ملفات عمل وليست جزءاً من المشروع)
 - التوكن لم يُخزَّن في أي ملف متتبع؛ أُزيل من .git/config بعد الدفع
+
+---
+Task ID: 15
+Agent: main (Z.ai Code)
+Task: التقاط لقطات شاشة كاملة للموقع (PC + Mobile) وتجميعها في PDF منسق للتحليل البصري بالـ AI
+
+Work Log:
+- حمّلت مهارتي agent-browser و pdf وقرأت البريفات (creative-fixed-canvas + creative-flow + fonts + قواعد full-bleed/@page)
+- حدّدت 27 مساراً من src/app/page.tsx (route switch) وأضفت منتجات لكل علامة: gold-floor-lamp / red-carpet / led-dance-floor + home-en
+- اختبرت دورة "أضف للسلة": حقول التاريخ #rental-start/#rental-end عبر native setter + أحداث input/change (React controlled) ثم النقر
+- كتبت visual-audit/capture-all.sh: التقاط مقطعي (pre-scroll لتفعيل حركات whileInView والصور lazy ثم التقاط viewport-by-viewport بتراكب ~90px) + دعم subsets
+- واجهت مشكلتين: ① قاتل عمليات خلفية في البيئة (السكربت يموت رغم setsid) → الحل: تشغيل أمامي بقطع chunks < 9 دقائق؛ ② pagedjs غير مثبت → --nopaged (ترقيم Chromium الأصلي — أنسب أصلاً للصفحات الثابتة)
+- PC: 105 لقطات 1440×900 (بأجزاء 6 قطع)؛ Mobile: 161 لقطة 375×812 (بـ 10 قطع)
+- رحلة الشراء الكاملة التُقطت بحالة حقيقية في كل جزء: سلة فارغة → تواريخ إيجار + أضف للسلة → سلة ممتلئة → نموذج checkout (نظيف ثم معبّأ ومُرسل عبر POST /api/orders) → payment (نظيف ثم بطاقة معبأة ومدفوعة) → success
+- صفر أخطاء console عبر كل المسارات (سجل shots-*/console-errors.log فارغ من الأخطاء)
+- كتبت build_pdf.py: PNG→JPEG q82 + توليد HTML عربي RTL ثابت A4 (794×1123): غلاف فاخر داكن+ذهبي، دليل قراءة، فهرسان (PC/Mobile)، فاصلَا جزء، 6 فواصل أقسام، صفحات صور 2-up (PC متراكبة عمودياً/جوال جنباً لجنب)، صفحة ختام
+- أصلحت خلل prefix في segment_list (home كان يلتقط home-en) بـ regex دقيق
+- تحقق poster_validate: تحذير COVER_TEXT_OVERLAP إيجابية كاذبة (cover_validate فحص الوثيقة كاملة 160 صفحة وخالف توثيقه "cover-only" — الفوارق المكتشفة 10-21px فصل لا تراكب)
+- صيّرت عبر html2pdf-next.js --nopaged: 160 صفحة، 13.8MB، ثم meta.set (عنوان/مؤلف/موضوع عربية)
+- pdf_qa.py: PASS كامل 11/11 (خطوط مدمجة Tajawal+Amiri، لا صفحات فارغة، لا تجاوز، full-bleed، هوامش متناظرة)
+- تحقق VLM لـ 7 صفحات (غلاف/فهرس/دليل/فواصل/PC/جوال): 9.5/10 مرتين — عربية سليمة RTL، صور مؤطرة، لا عيوب
+
+Stage Summary:
+- الملف النهائي: visual-audit/LUT-Visual-Atlas.pdf (160 صفحة، 13.8MB، 266 لقطة: 105 PC + 161 جوال)
+- مرافقات: atlas.html (المصدر) + atlas-cover-preview.jpg + build_pdf.py + capture-all.sh + shots-pc/-mobile (PNG) + shots-*-jpg
+- البنية: غلاف → دليل قراءة → فهرس PC → فهرس Mobile → الجزء 01 PC (6 أقسام) → الجزء 02 Mobile → ختام؛ صفحة = مسار/لقطتان مع مؤشر i/n ورأس وتذييل برقم الصفحة
+- rحلة الشراء موثقة بصرياً بالكامل بحالات حقيقية (طلب فعلي أُنشئ ودُفع في بيئة التطوير)

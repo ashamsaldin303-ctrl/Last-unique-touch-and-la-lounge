@@ -59,3 +59,11 @@ server.log
 /tool-results/
 *.pid
 .claude/settings.local.json
+# visual-audit generated artifacts (PDF, screenshots, previews) — scripts stay tracked
+/visual-audit/*.pdf
+/visual-audit/*.html
+/visual-audit/*.jpg
+/visual-audit/shots-pc/
+/visual-audit/shots-mobile/
+/visual-audit/shots-pc-jpg/
+/visual-audit/shots-mobile-jpg/
