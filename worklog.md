@@ -329,7 +329,7 @@ Stage Summary:
 - كل المسارات التفاعلية (حجز، سلة، تواصل، لغات) تعمل بدون أخطاء
 
 ---
-Task ID: 15
+Task ID: 14
 Agent: main (Z.ai Code)
 Task: تحليل وتطبيق مهارات التصميم الثلاث من GitHub (brianyu18/presto): impeccable + design-taste-frontend + emil-design-eng
 
@@ -364,7 +364,7 @@ Stage Summary:
 - مرجع القرارات المهم: حظر eyebrow/"النص المتدرج" وscale(0) من المهارات، لكن العناصر الأصلية من الريبو (hero eyebrow الأصلي، أزرار birthday الذهبية المتدرجة كخلفيات وليست نصاً) محفوظة لأن هوية الأصل تتفق مع قاعدة identity-preservation في impeccable
 
 ---
-Task ID: 14
+Task ID: 15
 Agent: main (Z.ai Code)
 Task: التقاط لقطات شاشة لكل صفحات الموقع (23 صفحة) على PC وMobile، تحليلها بدقة عالية بالـ VLM، اكتشاف الأخطاء وإصلاحها
 
@@ -472,7 +472,7 @@ Stage Summary:
 - الدروس: (1) لقطات full-page تكذب على الخلفيات fixed — تحقق دائماً بلقطات viewport حية؛ (2) flood-fill اللون لا يصلح لمنتجات شبه شفافة (المادة نفسها بلون الخلفية) — rembg بـ alpha-matting هو الأداة الصحيحة؛ (3) double-fork + setsid هو الطريق الوحيد لعملية خلفية تبقى حية بعد انتهاء أمر Bash؛ (4) توليد صور بخلفية موحدة بلون مميز للمنتج (كهرمان/شمبانيا) يجعل القص نظيفاً
 
 ---
-Task ID: 15 (3D backgrounds — quality/smoothness audit & fix)
+Task ID: 19 (3D backgrounds — quality/smoothness audit & fix)
 Agent: main (Z.ai Code)
 Task: أجاب على سؤال المستخدم "هل الخلفية الـ 3D في المواقع الثلاثة الأساسية تحتاج إلى تحسين في الجودة أو السلاسة؟" — قياس فعلي عبر agent-browser (FPS) + تحليل الكود + إصلاح كل عنق زجاجة مكتشف.
 
@@ -520,7 +520,7 @@ Stage Summary (النتائج المقاسة):
   والسلاسة قفزت. الأجهزة الحقيقية (GPU) تحتفظ بالجودة الكاملة (MSAA + نيبولا + 60Hz).
 
 ---
-Task ID: 16 (GitHub design SKILL.md research + application)
+Task ID: 20 (GitHub design SKILL.md research + application)
 Agent: main (Z.ai Code)
 Task: بحث المستخدم عن SKILL.md متخصصة في التصميم في ريبوهات GitHub وتطبيقها على الموقع بأفضل شكل ("اريد منك ان تبحث على الانترنت في ريبوز على الجيت هاب لتبحث عن SkillMDs متخصصة في الديزاين...").
 
@@ -575,7 +575,7 @@ Stage Summary:
 - لم يُمس: خلفيات 3D، الأزرق (محظور)، بنية الصفحات، الرسائل i18n (لا تغييرات نصية)
 
 ---
-Task ID: 14
+Task ID: 21
 Agent: main (Z.ai Code)
 Task: إنشاء ريبو جديد على GitHub ودفع المشروع كاملاً إليه
 
@@ -599,7 +599,7 @@ Stage Summary:
 - التوكن لم يُخزَّن في أي ملف متتبع؛ أُزيل من .git/config بعد الدفع
 
 ---
-Task ID: 17
+Task ID: 22
 Agent: main (Z.ai Code)
 Task: التقاط لقطات شاشة كاملة للموقع (PC + Mobile) وتجميعها في PDF منسق للتحليل البصري بالـ AI
 
@@ -618,7 +618,7 @@ Work Log:
 - صيّرت عبر html2pdf-next.js --nopaged: 160 صفحة، 13.8MB، ثم meta.set (عنوان/مؤلف/موضوع عربية)
 - pdf_qa.py: PASS كامل 11/11 (خطوط مدمجة Tajawal+Amiri، لا صفحات فارغة، لا تجاوز، full-bleed، هوامش متناظرة)
 - تحقق VLM لـ 7 صفحات (غلاف/فهرس/دليل/فواصل/PC/جوال): 9.5/10 مرتين — عربية سليمة RTL، صور مؤطرة، لا عيوب
-- نظّفت worklog من تشويش rebase (تكرارات أقسام) وأعدت الترقيم: قسم الأطلس = Task 17
+- نظّفت worklog من تشويش rebase (تكرارات أقسام) وأعدت الترقيم النهائي: قسم الأطلس = Task 22 (بعد حل تصادم ترقيم الجلسات)
 
 Stage Summary:
 - الملف النهائي: visual-audit/LUT-Visual-Atlas.pdf (160 صفحة، 13.8MB، 266 لقطة: 105 PC + 161 جوال)
