@@ -5,6 +5,9 @@
 
 export type Brand = 'LUT' | 'LA_LOUNGE' | 'YOUR_BIRTHDAY'
 
+/** Catalog-wide brand filter value ('ALL' = unified storefront). */
+export type BrandFilter = Brand | 'ALL'
+
 export interface CategoryDTO {
   id: string
   brand: string
@@ -15,7 +18,8 @@ export interface CategoryDTO {
 
 export interface ProductDTO {
   id: string
-  brand: string
+  /** Prisma brand enum — 'LUT' | 'LA_LOUNGE' | 'YOUR_BIRTHDAY'. */
+  brand: Brand
   slug: string
   nameAr: string
   nameEn: string
@@ -50,7 +54,7 @@ export function localizedDescription(p: { descriptionAr: string; descriptionEn: 
 }
 
 export async function fetchProducts(opts: {
-  brand: Brand
+  brand: BrandFilter
   category?: string
   search?: string
   sort?: ProductSort
@@ -66,8 +70,14 @@ export async function fetchProducts(opts: {
   return res.json()
 }
 
-export async function fetchProductBySlug(slug: string, brand: Brand): Promise<ProductDTO | null> {
-  const res = await fetch(`/api/products/slug/${encodeURIComponent(slug)}?brand=${brand}`)
+/**
+ * Fetch a product by slug across ALL brands (brand param optional).
+ * The storefronts link products by slug only — the product's own brand
+ * drives theming and the related-products rail.
+ */
+export async function fetchProductBySlug(slug: string, brand?: Brand): Promise<ProductDTO | null> {
+  const qs = brand ? `?brand=${brand}` : ''
+  const res = await fetch(`/api/products/slug/${encodeURIComponent(slug)}${qs}`)
   if (!res.ok) return null
   const data = await res.json()
   return data.product ?? null

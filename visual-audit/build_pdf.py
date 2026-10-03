@@ -56,7 +56,7 @@ SECTIONS = [
          routes=[("products", "كل المنتجات", "#/ar/products"),
                  ("product-lut", "منتج — أباجورة ذهبية أرضية", "#/ar/products/gold-floor-lamp"),
                  ("product-lalounge", "منتج — السجادة الحمراء VIP", "#/ar/products/red-carpet"),
-                 ("product-birthday", "منتج — رقصصة LED", "#/ar/products/led-dance-floor"),
+                 ("product-birthday", "منتج — رقصة LED", "#/ar/products/led-dance-floor"),
                  ("cart-empty", "السلة (فارغة)", "#/ar/cart"),
                  ("cart-filled", "السلة (مع منتج)", "#/ar/cart"),
                  ("checkout", "إتمام الطلب", "#/ar/checkout"),

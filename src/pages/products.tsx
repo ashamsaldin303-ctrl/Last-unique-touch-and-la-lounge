@@ -18,6 +18,7 @@ import { useI18n, useResultCount } from '@/lib/i18n'
 import {
   fetchProducts,
   localizedName,
+  type BrandFilter,
   type CategoryDTO,
   type ProductDTO,
   type ProductSort,
@@ -41,6 +42,15 @@ import { cn } from '@/lib/utils'
 const SORTS: ProductSort[] = ['newest', 'price-asc', 'price-desc']
 const PAGE_SIZE_SKELETON = 8
 
+/* Brand filter chips (audit quick-win: isolate storefronts in the unified
+   catalog). 'LUT' stays the default so the gold identity opens the shop. */
+const BRAND_FILTERS: Array<{ value: BrandFilter; labelKey: string }> = [
+  { value: 'LUT', labelKey: 'products.brandFilter.lut' },
+  { value: 'ALL', labelKey: 'products.brandFilter.all' },
+  { value: 'LA_LOUNGE', labelKey: 'products.brandFilter.lalounge' },
+  { value: 'YOUR_BIRTHDAY', labelKey: 'products.brandFilter.birthday' },
+]
+
 export default function ProductsPage() {
   const { t, locale } = useI18n()
   const resultCount = useResultCount()
@@ -49,6 +59,7 @@ export default function ProductsPage() {
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<string | undefined>(undefined)
+  const [brand, setBrand] = useState<BrandFilter>('LUT')
   const [sort, setSort] = useState<ProductSort>('newest')
   const [page, setPage] = useState(1)
 
@@ -73,7 +84,7 @@ export default function ProductsPage() {
     const id = ++requestIdRef.current
     setLoading(true)
     setError(false)
-    fetchProducts({ brand: 'LUT', category, search, sort, page })
+    fetchProducts({ brand, category, search, sort, page })
       .then((res) => {
         if (requestIdRef.current !== id) return
         setData(res)
@@ -84,7 +95,7 @@ export default function ProductsPage() {
         setError(true)
         setLoading(false)
       })
-  }, [category, search, sort, page])
+  }, [brand, category, search, sort, page])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/filter sync sets the loading flag before the async fetch (data-fetch pattern)
@@ -108,6 +119,7 @@ export default function ProductsPage() {
     setSearchInput('')
     setSearch('')
     setCategory(undefined)
+    setBrand('LUT')
     setSort('newest')
     setPage(1)
   }, [])
@@ -168,6 +180,29 @@ export default function ProductsPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Brand pills — storefront switcher (audit quick-win) */}
+            <div
+              className="mb-3 flex flex-wrap items-center gap-2"
+              role="group"
+              aria-label={t('products.brandFilter.label')}
+            >
+              <span className="text-[0.6875rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                {t('products.brandFilter.label')}
+              </span>
+              {BRAND_FILTERS.map((bf) => (
+                <CategoryPill
+                  key={bf.value}
+                  active={brand === bf.value}
+                  label={t(bf.labelKey)}
+                  onClick={() => {
+                    setBrand(bf.value)
+                    setCategory(undefined)
+                    setPage(1)
+                  }}
+                />
+              ))}
             </div>
 
             {/* Category pills */}

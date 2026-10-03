@@ -17,12 +17,23 @@ export function parseDateParts(iso: string): Date | null {
   return isNaN(date.getTime()) ? null : date
 }
 
-/** Locale-aware date display (ar → Arabic script, en → Latin). */
+/**
+ * Locale → Gulf-friendly date region. Kuwaiti users read day-first dates:
+ * 'ar-KW' renders Arabic-script day/month/year and 'en-GB' renders
+ * dd/mm/yyyy — both avoid the en-US month-first layout flagged in the
+ * visual audit (mm/dd/yyyy is unintuitive for event scheduling in Kuwait).
+ */
+const DATE_REGIONS: Record<string, string> = {
+  ar: 'ar-KW',
+  en: 'en-GB',
+}
+
+/** Locale-aware date display (ar → Arabic script, en → dd/mm/yyyy). */
 export function formatDate(iso: string, locale: string): string {
   const date = parseDateParts(iso)
   if (!date) return iso
   try {
-    return date.toLocaleDateString(locale)
+    return date.toLocaleDateString(DATE_REGIONS[locale] ?? locale)
   } catch {
     return iso
   }

@@ -51,7 +51,10 @@ export default function ProductDetailPage({ slug }: { slug: string }) {
     setProduct(null)
     setRelated([])
 
-    fetchProductBySlug(slug, 'LUT').then((result) => {
+    // Slug-only lookup: the catalog spans all three brands (LUT / LA_LOUNGE /
+    // YOUR_BIRTHDAY) and links by slug — fencing the fetch to 'LUT' made
+    // red-carpet & led-dance-floor 404. Theming follows the product's own brand.
+    fetchProductBySlug(slug).then((result) => {
       if (requestIdRef.current !== id || cancelled) return
       if (!result) {
         setNotFound(true)
@@ -60,8 +63,8 @@ export default function ProductDetailPage({ slug }: { slug: string }) {
       }
       setProduct(result)
       setLoading(false)
-      // Related products load in the background.
-      fetchRelatedProducts(result.id, 'LUT').then((list) => {
+      // Related products load in the background — same brand as the product.
+      fetchRelatedProducts(result.id, result.brand).then((list) => {
         if (requestIdRef.current !== id) return
         setRelated(list)
       })
@@ -71,6 +74,16 @@ export default function ProductDetailPage({ slug }: { slug: string }) {
       cancelled = true
     }
   }, [slug])
+
+  /* Align the page's brand theme with the product's own brand (the route
+     resolver defaults /products/* to 'lut'). BrandThemeSetter re-applies the
+     path-derived brand on the next navigation, so no cleanup is needed. */
+  useEffect(() => {
+    if (!product) return
+    const brandKey =
+      product.brand === 'LA_LOUNGE' ? 'lalounge' : product.brand === 'YOUR_BIRTHDAY' ? 'birthday' : 'lut'
+    document.documentElement.dataset.brand = brandKey
+  }, [product])
 
   if (loading) return <ProductDetailSkeleton />
 

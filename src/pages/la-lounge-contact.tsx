@@ -121,7 +121,7 @@ export default function LaLoungeContactPage() {
   ]
 
   const inputClass =
-    'h-11 bg-[#160a11] border-primary/25 text-foreground placeholder:text-muted-foreground/60 focus-visible:border-primary/60 focus-visible:ring-primary/40'
+    'h-11 bg-[#1d0f17] border-primary/45 text-foreground placeholder:text-muted-foreground/60 focus-visible:border-primary/80 focus-visible:ring-primary/30'
 
   return (
     <div className="flex-1 bg-background text-foreground">

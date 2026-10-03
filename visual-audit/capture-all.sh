@@ -45,6 +45,15 @@ cap() { # cap <name> <url> [waitms]
   agent-browser eval "window.scrollTo({top: 0, behavior: 'instant'})" >/dev/null 2>&1
   agent-browser wait 900 >/dev/null 2>&1
 
+  # Re-measure page height AFTER the pre-scroll pass: the first measurement
+  # can race a delayed SPA swap under 3D load (stale DOM → inflated height →
+  # clamped duplicate bottom shots). Freeze on the settled value.
+  PH2=$(agent-browser eval "Math.max(document.documentElement.scrollHeight, document.body.scrollHeight)" 2>/dev/null | tail -n1 | tr -dc '0-9')
+  if [ -n "$PH2" ] && [ "$PH2" -ge "$H" ] 2>/dev/null && [ "$PH2" -lt "$PH" ]; then
+    PH=$PH2
+    maxy=$(( PH - H )); [ $maxy -lt 0 ] && maxy=0
+  fi
+
   # capture pass: top → bottom (viewport segments, slight overlap)
   i=0; y=0
   while true; do

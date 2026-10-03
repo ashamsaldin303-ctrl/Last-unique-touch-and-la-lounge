@@ -173,13 +173,31 @@ export default function CheckoutPage() {
         return
       }
 
-      // Success: clear the cart, remember the order, go to the success page.
+      // Success: clear the cart, remember the order (with an items snapshot
+      // so the payment screen can show what is being paid for), then continue
+      // to the PAYMENT step — the original repo's flow is checkout → payment
+      // → success, and skipping payment orphaned that whole trust screen.
       sessionStorage.setItem(
         LAST_ORDER_KEY,
-        JSON.stringify({ orderId: result.orderId, total: result.total ?? totals.total })
+        JSON.stringify({
+          orderId: result.orderId,
+          total: result.total ?? totals.total,
+          items: items.map((item: CartItem) => ({
+            productId: item.productId,
+            slug: item.slug,
+            nameAr: item.nameAr,
+            nameEn: item.nameEn,
+            image: item.image,
+            startDate: item.startDate,
+            endDate: item.endDate,
+            quantity: item.quantity,
+            days: item.days,
+            total: item.total,
+          })),
+        })
       )
       clear()
-      navigate('/checkout/success')
+      navigate('/checkout/payment')
     } catch {
       const message = t('checkout.errors.internal_error')
       setErrorMessage(message)

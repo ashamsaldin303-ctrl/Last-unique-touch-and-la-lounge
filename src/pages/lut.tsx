@@ -233,6 +233,15 @@ export default function LutPage() {
         </div>
       </div>
 
+      {/* === Legibility scrim — progressive dark veil between the fixed 3D
+          tunnel (z-0) and the content sections (z-10). Keeps section
+          headings and card copy readable over the golden helix rings
+          (audit: contrast collapsed where glow sat behind text). === */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-[82vh] bottom-0 z-[5] bg-gradient-to-b from-ink/0 via-ink/65 to-ink/90"
+      />
+
       {/* === Services section — revealed on scroll === */}
       <div className="relative z-10 py-20 px-4 bg-transparent">
         <div className="max-w-5xl mx-auto">

@@ -21,14 +21,17 @@ import {
   Info,
   Loader2,
   Lock,
+  Package,
   Phone,
   ShieldCheck,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useRouter } from '@/lib/router'
-import { formatKwd } from '@/lib/products'
+import { formatKwd, localizedName } from '@/lib/products'
+import { formatDate } from '@/components/shop/format'
 import { useCart, cartTotals } from '@/lib/cart-store'
 import { useCartHydrated } from '@/components/shop/use-cart-hydrated'
+import Image from 'next/image'
 import { Reveal } from '@/components/shared/reveal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,11 +40,29 @@ import { cn } from '@/lib/utils'
 
 const LAST_ORDER_KEY = 'lut_last_order'
 
+/** Displayed processing duration before routing to the success page. */
+const PAY_DONE_DELAY = 3_400
+
 type Phase = 'form' | 'processing' | 'done'
+
+/** Items snapshot written by the checkout step alongside the order. */
+interface OrderItemSnapshot {
+  productId: string
+  slug: string
+  nameAr: string
+  nameEn: string
+  image: string
+  startDate: string
+  endDate: string
+  quantity: number
+  days: number
+  total: number
+}
 
 interface LastOrder {
   orderId: string
   total: number
+  items?: OrderItemSnapshot[]
 }
 
 export default function PaymentPage() {
@@ -75,7 +96,11 @@ export default function PaymentPage() {
         const parsed = JSON.parse(raw) as Partial<LastOrder>
         if (parsed.orderId) {
           // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot sync from the sessionStorage external store on mount
-          setOrder({ orderId: parsed.orderId, total: Number(parsed.total) || 0 })
+          setOrder({
+            orderId: String(parsed.orderId),
+            total: Number(parsed.total) || 0,
+            items: Array.isArray(parsed.items) ? (parsed.items as OrderItemSnapshot[]) : [],
+          })
         }
       }
     } catch {
@@ -106,7 +131,7 @@ export default function PaymentPage() {
     // Simulated gateway round-trip — this is a display-only flow.
     timersRef.current.push(
       setTimeout(() => setPhase('done'), 2200),
-      setTimeout(() => navigate('/checkout/success'), 3400)
+      setTimeout(() => navigate('/checkout/success'), PAY_DONE_DELAY)
     )
   }, [phase, navigate])
 
@@ -119,6 +144,10 @@ export default function PaymentPage() {
       </div>
     )
   }
+
+  /* Items snapshot from the checkout step — the cart itself is cleared by
+     the time this screen mounts, so the summary reads from the order. */
+  const orderItems = order?.items ?? []
 
   const cartTotalsValue = hydrated ? cartTotals(items) : null
   const displayTotal = cartTotalsValue && cartTotalsValue.total > 0 ? cartTotalsValue.total : order.total
@@ -153,6 +182,51 @@ export default function PaymentPage() {
               <CreditCard className="size-8 text-primary" aria-hidden="true" />
             </div>
           </Reveal>
+
+          {/* Order items summary (audit: keep the paid-for items visible on
+              the payment screen — anchors the purchase decision visually). */}
+          {orderItems.length > 0 && (
+            <Reveal delay={0.04}>
+              <ul className="divide-y divide-border/70 rounded-md border border-border bg-card">
+                {orderItems.map((item, idx) => (
+                  <li
+                    key={`${item.productId}-${item.startDate}-${idx}`}
+                    className="flex items-center gap-3 p-3 sm:gap-4 sm:p-4"
+                  >
+                    <div className="relative size-14 shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:size-16">
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={localizedName(item, locale)}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <Package className="absolute inset-0 m-auto size-5 text-muted-foreground" aria-hidden="true" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {localizedName(item, locale)}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {t('cart.item.period', {
+                          start: formatDate(item.startDate, locale),
+                          end: formatDate(item.endDate, locale),
+                          days: item.days,
+                        })}
+                        {item.quantity > 1 ? ` · × ${item.quantity}` : ''}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+                      {formatKwd(item.total)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+          )}
 
           {/* Card form — display only */}
           <Reveal delay={0.08}>

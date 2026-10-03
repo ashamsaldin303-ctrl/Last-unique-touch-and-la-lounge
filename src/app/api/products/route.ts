@@ -18,13 +18,19 @@ const PER_PAGE = 12
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
-    const brand = searchParams.get('brand') ?? 'LUT'
+    // 'ALL' (or omitted brand filter) returns every brand's storefront in
+    // one catalog — used by the unified products page brand filter.
+    const brandParam = searchParams.get('brand') ?? 'LUT'
+    const brand = brandParam === 'ALL' ? undefined : brandParam
     const category = searchParams.get('category') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const sort = searchParams.get('sort') ?? 'newest'
     const page = Math.max(1, Number(searchParams.get('page') ?? '1'))
 
-    const where: Record<string, unknown> = { brand, isActive: true }
+    const where: Record<string, unknown> = {
+      ...(brand ? { brand } : {}),
+      isActive: true,
+    }
     if (category && category !== 'all') where.category = { slug: category }
 
     const products = await db.product.findMany({
@@ -55,13 +61,23 @@ export async function GET(req: NextRequest) {
 
     const total = await db.product.count({
       where: {
-        brand,
+        ...(brand ? { brand } : {}),
         isActive: true,
         ...(category && category !== 'all' ? { category: { slug: category } } : {}),
       },
     })
 
-    const categories = await db.category.findMany({ where: { brand } })
+    // Category facets: when browsing a single brand show that brand's
+    // categories; for the unified catalog aggregate them all (unique by id).
+    const categoryRows = brand
+      ? await db.category.findMany({ where: { brand } })
+      : await db.category.findMany()
+    const seen = new Set<string>()
+    const categories = categoryRows.filter((c) => {
+      if (seen.has(c.id)) return false
+      seen.add(c.id)
+      return true
+    })
 
     return NextResponse.json({
       products: filtered.map((p) => ({

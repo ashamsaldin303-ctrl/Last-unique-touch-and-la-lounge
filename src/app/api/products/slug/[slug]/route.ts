@@ -17,10 +17,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   try {
     const { slug } = await params
     const { searchParams } = new URL(req.url)
-    const brand = searchParams.get('brand') ?? 'LUT'
+    // Brand is OPTIONAL: the product catalog spans all three storefronts, so
+    // a slug lookup must not be fenced to one brand (red-carpet / led-dance-
+    // floor live under LA_LOUNGE / YOUR_BIRTHDAY). When a brand IS supplied it
+    // still narrows the lookup (used by brand-scoped storefronts).
+    const brand = searchParams.get('brand')
 
     const product = await db.product.findFirst({
-      where: { slug, brand, isActive: true },
+      where: { slug, ...(brand ? { brand } : {}), isActive: true },
       include: { category: true },
     })
 
