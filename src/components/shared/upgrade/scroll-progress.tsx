@@ -26,9 +26,13 @@ export function ScrollProgress() {
         className="scroll-progress-bar absolute inset-0 bg-gradient-to-r from-primary/70 via-primary to-primary/70"
       />
       {/* Comet head riding the leading edge */}
+      {/* v45: centered with a LOGICAL offset (marginInlineStart) instead of
+          the physical -translate-x-1/2 — in RTL the comet's right edge
+          anchors at the fill edge, so translateX(-50%) left it a full 40px
+          behind; the logical margin centers it in both directions. */}
       <motion.div
-        style={{ insetInlineStart: cometX, opacity: cometOpacity }}
-        className="absolute top-1/2 w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/40 blur-[10px]"
+        style={{ insetInlineStart: cometX, marginInlineStart: '-1.25rem', opacity: cometOpacity }}
+        className="absolute top-1/2 w-10 h-10 -translate-y-1/2 rounded-full bg-primary/40 blur-[10px]"
       />
     </div>
   )

@@ -20,9 +20,32 @@ const MIN_CORES_FOR_3D = 2
  */
 const MIN_MEMORY_GB_FOR_3D = 2
 
+/**
+ * Probe-result cache. Stored on globalThis (survives dev hot-reloads, which
+ * re-evaluate this module) because every probe creates a fresh <canvas> +
+ * WebGL context and browsers cap live contexts (~16) — repeated probes from
+ * multiple components on SPA route changes would churn contexts for values
+ * that are static for the lifetime of the page.
+ */
+interface ProbeCache {
+  shouldEnable3D?: boolean
+  deviceTier?: DeviceTier
+  softwareRenderer?: boolean
+}
+const probeCache: ProbeCache =
+  ((globalThis as typeof globalThis & { __lutDeviceProbes?: ProbeCache })
+    .__lutDeviceProbes ??= {})
+
 export function shouldEnable3D(): boolean {
   if (typeof window === 'undefined') return false
+  // Memoized (see ProbeCache above).
+  if (probeCache.shouldEnable3D === undefined) {
+    probeCache.shouldEnable3D = shouldEnable3DProbe()
+  }
+  return probeCache.shouldEnable3D
+}
 
+function shouldEnable3DProbe(): boolean {
   // Respect reduced-motion preference
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
     return false
@@ -37,6 +60,8 @@ export function shouldEnable3D(): boolean {
     const loseExt = gl.getExtension('WEBGL_lose_context')
     loseExt?.loseContext()
   } catch {
+    // Older browsers / locked-down environments where getContext() itself
+    // throws — deliberately silent, the false return IS the fallback.
     return false
   }
 
@@ -75,7 +100,14 @@ export type DeviceTier = 'low' | 'mid' | 'high'
  */
 export function getDeviceTier(): DeviceTier {
   if (typeof window === 'undefined') return 'low'
+  // Memoized (see ProbeCache above).
+  if (probeCache.deviceTier === undefined) {
+    probeCache.deviceTier = getDeviceTierProbe()
+  }
+  return probeCache.deviceTier
+}
 
+function getDeviceTierProbe(): DeviceTier {
   // Respect reduced-motion preference
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
     return 'low'
@@ -89,6 +121,7 @@ export function getDeviceTier(): DeviceTier {
     const loseExt = gl.getExtension('WEBGL_lose_context')
     loseExt?.loseContext()
   } catch {
+    // Same intentional swallow as shouldEnable3D() — 'low' is the fallback.
     return 'low'
   }
 
@@ -130,7 +163,14 @@ export function isReducedMotion(): boolean {
  */
 export function isSoftwareRenderer(): boolean {
   if (typeof window === 'undefined') return false
+  // Memoized (see ProbeCache above).
+  if (probeCache.softwareRenderer === undefined) {
+    probeCache.softwareRenderer = isSoftwareRendererProbe()
+  }
+  return probeCache.softwareRenderer
+}
 
+function isSoftwareRendererProbe(): boolean {
   try {
     const canvas = document.createElement('canvas')
     const gl = (canvas.getContext('webgl2') || canvas.getContext('webgl')) as
@@ -147,6 +187,8 @@ export function isSoftwareRenderer(): boolean {
     loseExt?.loseContext()
     return /swiftshader|llvmpipe|softpipe|software|basic render|mesa offscreen/i.test(renderer)
   } catch {
+    // Probe failure is treated as software rendering — conservative true
+    // makes the 3D background pick its cheapest strategy, never a crash.
     return true
   }
 }

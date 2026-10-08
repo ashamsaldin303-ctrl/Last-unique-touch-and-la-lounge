@@ -12,7 +12,7 @@
  */
 
 import { useRef, type ReactNode, type MouseEvent } from 'react'
-import { motion, useMotionValue, useSpring } from 'framer-motion'
+import { motion, useMotionValue, useReducedMotion, useSpring } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 interface MagneticButtonProps {
@@ -37,13 +37,16 @@ export function MagneticButton({
   disabled = false,
 }: MagneticButtonProps) {
   const ref = useRef<HTMLButtonElement>(null)
+  const prefersReducedMotion = useReducedMotion()
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const springX = useSpring(x, { stiffness: 180, damping: 16, mass: 0.4 })
   const springY = useSpring(y, { stiffness: 180, damping: 16, mass: 0.4 })
 
   const onMove = (e: MouseEvent<HTMLButtonElement>) => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    // Skip the magnetic transform entirely when the user prefers reduced motion
+    // (reactive hook — also catches mid-session preference changes on re-render).
+    if (prefersReducedMotion) return
     const el = ref.current
     if (!el) return
     const rect = el.getBoundingClientRect()
@@ -67,7 +70,7 @@ export function MagneticButton({
       onMouseMove={onMove}
       onMouseLeave={onLeave}
       style={{ x: springX, y: springY }}
-      whileTap={{ scale: 0.97 }}
+      whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
       transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
       aria-label={ariaLabel}
       className={cn(

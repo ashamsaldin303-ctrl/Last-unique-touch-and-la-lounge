@@ -29,6 +29,9 @@ export function CursorGlow() {
     let y = 0
     let rafId = 0
     let running = false
+    // v45: snap to the first pointer position so the aura doesn't visibly
+    // fly in from the top-left corner before the lerp catches up.
+    let hasMoved = false
 
     const loop = () => {
       // Lerp factor keeps the aura trailing behind the pointer.
@@ -52,6 +55,11 @@ export function CursorGlow() {
 
     const onPointerMove = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse') return
+      if (!hasMoved) {
+        hasMoved = true
+        x = e.clientX
+        y = e.clientY
+      }
       targetX = e.clientX
       targetY = e.clientY
       el.classList.add('cursor-glow-active')

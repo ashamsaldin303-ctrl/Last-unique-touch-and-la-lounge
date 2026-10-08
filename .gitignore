@@ -51,8 +51,34 @@ test
 prompt
 
 server.log
+
+# dev server logs + rotated/pre-restart variants (dev.log*, *.bak)
+dev.log*
+*.bak
+
+# live SQLite database (untracked — runtime data with customer PII; a fresh
+# checkout creates it via `bun run db:push` + `bun run db:seed` / db:setup)
+/db/
+
 # Skills directory
 /skills/
+
+# one-off dev/audit artifacts — local-only, never tracked
+/examples/
+/scripts-tmp/
+
+# scripts/ one-off audit & image-surgery artifacts (local-only; only start-dev-daemon.py is tracked)
+/scripts/audit-capture.sh
+/scripts/audit-i18n-3d.mjs
+/scripts/audit-vlm.mjs
+/scripts/capture-products.sh
+/scripts/cut-generated.py
+/scripts/fix-dark-images.py
+/scripts/overflow-check.mjs
+/scripts/products-vlm.mjs
+/scripts/recut.py
+/scripts/targeted-checks.mjs
+/scripts/vlm-audit.mjs
 
 # internal dev artifacts (audit screenshots, tool outputs, pid files)
 /screenshots/
@@ -73,3 +99,4 @@ server.log
 # download folder: keep placeholder README only (prompt copy is untracked)
 /download/*
 !/download/README.md
+agent-ctx/

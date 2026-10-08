@@ -89,6 +89,9 @@ const DUST_FRAGMENT = `
 `;
 
 // ============أنماط CSS ============
+// (Only `container` survives — the old mobileView/controls/btn/overlay
+// entries were leftovers from the source HTML conversion and were never
+// referenced by the component.)
 const styles = {
   container: {
     zIndex: 0,
@@ -100,59 +103,8 @@ const styles = {
     height: '100%',
     transition: 'all 0.8s cubic-bezier(0.22, 1, 0.36, 1)',
     overflow: 'hidden',
-    background: '#030108',
+    background: '#0E0D0B',
   },
-  mobileView: {
-    width: '390px',
-    height: '844px',
-    top: '50%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    border: '10px solid #0a0a0a',
-    borderRadius: '45px',
-    boxShadow: '0 0 80px rgba(245, 185, 20, 0.15), 0 0 150px rgba(0,0,0,0.9)',
-  },
-  controls: (visible: boolean) => ({
-    position: 'fixed' as 'fixed',
-    bottom: '40px',
-    left: '50%',
-    transform: visible 
-      ? 'translateX(-50%) translateY(0) scale(1)' 
-      : 'translateX(-50%) translateY(40px) scale(0.9)',
-    zIndex: 2000,
-    display: 'flex',
-    gap: '15px',
-    background: 'rgba(10, 5, 20, 0.6)',
-    backdropFilter: 'blur(15px)',
-    padding: '12px 20px',
-    borderRadius: '50px',
-    border: '1px solid rgba(245, 185, 20, 0.3)',
-    opacity: visible ? 1 : 0,
-    filter: visible ? 'blur(0px)' : 'blur(8px)',
-    transition: 'opacity 1.5s ease-out, transform 1.5s cubic-bezier(0.22, 1, 0.36, 1), filter 1.5s ease-out',
-  }),
-  btn: (active: boolean) => ({
-    padding: '8px 25px',
-    background: active ? 'linear-gradient(135deg, #f5b914, #d8b4fe)' : 'transparent',
-    border: `1px solid ${active ? 'transparent' : 'rgba(255, 255, 255, 0.2)'}`,
-    color: active ? '#050308' : '#d8b4fe',
-    borderRadius: '30px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 600,
-    fontFamily: 'Segoe UI, sans-serif',
-    boxShadow: active ? '0 0 20px rgba(245, 185, 20, 0.4)' : 'none',
-    transition: 'all 0.3s ease',
-  }),
-  overlay: (zIndex: number, background: string, opacity?: number, mixBlendMode?: string): React.CSSProperties => ({
-    position: 'fixed' as const,
-    inset: 0,
-    pointerEvents: 'none' as const,
-    zIndex,
-    background,
-    opacity,
-    mixBlendMode: mixBlendMode as 'overlay' | 'screen' | undefined,
-  })
 };
 
 // ============ المكون الرئيسي ============
@@ -185,7 +137,19 @@ const CosmicBackground: React.FC = () => {
     let dustMat: THREE.ShaderMaterial;
     let dustGeo: THREE.BufferGeometry;
     let glowTex: THREE.CanvasTexture;
-    let rings: any[] = [];
+    // One orbital ring bundle: group + ring materials + pearl points data.
+    type OrbitRing = {
+      grp: THREE.Group;
+      rMat: THREE.MeshBasicMaterial;
+      gMat: THREE.MeshBasicMaterial;
+      ogMat: THREE.MeshBasicMaterial;
+      pGeo: THREE.BufferGeometry;
+      pMat: THREE.PointsMaterial;
+      pPos: Float32Array;
+      pVel: Float32Array;
+      baseOpacity: number;
+    };
+    let rings: OrbitRing[] = [];
     
     let mouseX = 0, mouseY = 0, tMX = 0, tMY = 0;
     let introProgress = 0;
@@ -206,8 +170,8 @@ const CosmicBackground: React.FC = () => {
         : Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2);
 
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x030108);
-      scene.fog = new THREE.FogExp2(0x030108, 0.0);
+      scene.background = new THREE.Color(0x0E0D0B);
+      scene.fog = new THREE.FogExp2(0x0E0D0B, 0.0);
 
       camera = new THREE.PerspectiveCamera(85, width / height, 0.1, 1000);
       camera.position.set(0, 5, 90);
@@ -219,18 +183,18 @@ const CosmicBackground: React.FC = () => {
       renderer.toneMappingExposure = 1.8;
       container.appendChild(renderer.domElement);
 
-      scene.add(new THREE.AmbientLight(0x1a0d2e, 0.8));
+      scene.add(new THREE.AmbientLight(0x2A2418, 0.8));
       const gl = new THREE.PointLight(0xf5b914, 2.0, 150); gl.position.set(20, 15, 10); scene.add(gl);
-      const pl = new THREE.PointLight(0x7e22ce, 1.8, 120); pl.position.set(-20, -15, -5); scene.add(pl);
+      const pl = new THREE.PointLight(0xC9A24B, 1.8, 120); pl.position.set(-20, -15, -5); scene.add(pl);
 
       // Nebula (skipped entirely on software rasterizers — see the
       // isSoftware note at the top of the effect).
       const nebGroup = new THREE.Group(); scene.add(nebGroup);
       nebMats = [];
       const nebCfgs = isSoftware ? [] : [
-        { c1: new THREE.Color(0x2e1065), c2: new THREE.Color(0x7e22ce), c3: new THREE.Color(0x1e1b4b), op: 0.09, pos: [0, 0, -40], rot: 0, sc: [60, 40, 1] },
+        { c1: new THREE.Color(0x3A2F1A), c2: new THREE.Color(0xC9A25E), c3: new THREE.Color(0x2A2418), op: 0.09, pos: [0, 0, -40], rot: 0, sc: [60, 40, 1] },
         { c1: new THREE.Color(0x451a03), c2: new THREE.Color(0xf5b914), c3: new THREE.Color(0x78350f), op: 0.07, pos: [15, 10, -35], rot: 0.3, sc: [50, 35, 1] },
-        { c1: new THREE.Color(0x1e1b4b), c2: new THREE.Color(0x4c1d95), c3: new THREE.Color(0x0f0a1e), op: 0.08, pos: [-20, -10, -45], rot: -0.2, sc: [55, 38, 1] }
+        { c1: new THREE.Color(0x3A2F1A), c2: new THREE.Color(0x8B6B3D), c3: new THREE.Color(0x0E0D0B), op: 0.08, pos: [-20, -10, -45], rot: -0.2, sc: [55, 38, 1] }
       ];
       nebCfgs.forEach(cfg => {
         const geo = new THREE.PlaneGeometry(1, 1, 1, 1);
@@ -248,7 +212,7 @@ const CosmicBackground: React.FC = () => {
       // Stars (software rasterizers use the trimmed counts — additive
       // glow quads are fill-rate bound in CPU rasterization).
       const starGroup = new THREE.Group(); scene.add(starGroup);
-      const palettes = [new THREE.Color(0xffffff), new THREE.Color(0xfef08a), new THREE.Color(0xf5b914), new THREE.Color(0xd8b4fe)];
+      const palettes = [new THREE.Color(0xF5EFE4), new THREE.Color(0xE5C878), new THREE.Color(0xC9A25E), new THREE.Color(0xf5b914)];
       const density = isSoftware ? (isMobile ? 0.7 : 0.45) : 1;
       const starLayers = [
         { count: Math.round((isMobile ? 500 : 1200) * density), zRange: [-80, -20], size: [0.6, 1.8], layer: 0 },
@@ -324,9 +288,9 @@ const CosmicBackground: React.FC = () => {
       rings = [
         createOrbit(18, 0xf5b914, 0.2, Math.PI / 3, Math.PI / 6, 0),
         createOrbit(30, 0xc9a24b, 0.14, -Math.PI / 4, Math.PI / 4, 0),
-        createOrbit(24, 0x7e22ce, 0.1, Math.PI / 5, -Math.PI / 3, 0)
+        createOrbit(24, 0x8B6B3D, 0.1, Math.PI / 5, -Math.PI / 3, 0)
       ];
-      rings.forEach((r: any) => orbitGroup.add(r.grp));
+      rings.forEach((r) => orbitGroup.add(r.grp));
 
       introProgress = 0;
 
@@ -353,11 +317,27 @@ const CosmicBackground: React.FC = () => {
       // so once it leaves the viewport every rendered frame is invisible
       // wasted GPU/CPU work. (Also stops the clock so resuming does not
       // jump the time-based drift.)
+      // v45: cancel the rAF itself when hidden (the previous version kept
+      // scheduling frames and merely skipped the work — the main thread
+      // still woke ~60×/s for the rest of the session; mirrors
+      // birthday-visualizer's IntersectionObserver pattern).
       let heroVisible = true;
+      let running = true; // animate loop currently scheduled
       const io = new IntersectionObserver(
         (entries) => {
           const visible = entries[0]?.isIntersecting ?? true;
-          if (visible && !heroVisible) clock.getDelta(); // swallow hidden time
+          if (visible) {
+            if (!heroVisible) clock.getDelta(); // swallow hidden time
+            if (!running) {
+              running = true;
+              animate();
+            }
+          } else if (running) {
+            // Paused — cancel the in-flight rAF so the main thread can sleep.
+            running = false;
+            cancelAnimationFrame(animId);
+            animId = 0;
+          }
           heroVisible = visible;
         },
         { threshold: 0 },
@@ -403,7 +383,7 @@ const CosmicBackground: React.FC = () => {
           (scene.fog as THREE.FogExp2).density = 0.014 * eased;
 
           const ringScale = 0.75 + (0.25 * eased);
-          rings.forEach((ring: any) => {
+          rings.forEach((ring) => {
             ring.grp.scale.set(ringScale, ringScale, 1);
             ring.rMat.opacity = ring.baseOpacity * eased;
             ring.gMat.opacity = (ring.baseOpacity * 0.12) * eased;
@@ -430,7 +410,7 @@ const CosmicBackground: React.FC = () => {
         rings[1].grp.rotation.z = -t * 0.009;
         rings[2].grp.rotation.z = t * 0.007;
 
-        rings.forEach((ring: any) => {
+        rings.forEach((ring) => {
           const pos = ring.pGeo.attributes.position.array as Float32Array;
           for (let i = 0; i < ring.pPos.length / 3; i++) {
             const a = (t * ring.pVel[i] * 0.15) + (i / (ring.pPos.length / 3)) * Math.PI * 2;
@@ -451,19 +431,55 @@ const CosmicBackground: React.FC = () => {
         io.disconnect();
         cancelAnimationFrame(animId);
         try { container.removeChild(renderer.domElement); } catch (e) {}
-        scene.traverse((obj: any) => {
-          if (obj.geometry) obj.geometry.dispose();
-          if (obj.material) {
-            if (obj.material.map) obj.material.map.dispose();
-            obj.material.dispose();
+        scene.traverse((obj) => {
+          const node = obj as unknown as {
+            geometry?: THREE.BufferGeometry;
+            material?: THREE.Material | THREE.Material[];
+          };
+          if (node.geometry) node.geometry.dispose();
+          if (node.material) {
+            // Only textured materials (PointsMaterial etc.) expose `.map`.
+            const mat = (Array.isArray(node.material) ? node.material[0] : node.material) as
+              THREE.Material & { map?: THREE.Texture | null };
+            if (mat.map) mat.map.dispose();
+            if (Array.isArray(node.material)) node.material.forEach((m) => m.dispose());
+            else node.material.dispose();
           }
         });
         renderer.dispose();
       };
     };
 
-    const cleanup = initScene();
-    return cleanup;
+    // v45: contain WebGL construction failure (probe-pass-then-create-fail
+    // is a real path: GPU process reset, >16 live contexts, driver
+    // blocklist races). A throw inside useEffect would blank the whole
+    // home page — instead dispose the partial scene and render nothing
+    // (the CSS fallback layers behind the canvas remain visible).
+    // Nested closure — TS cannot track cross-function definite assignment.
+    const disposePartials = () => {
+      if (scene) {
+        scene.traverse((obj) => {
+          const node = obj as unknown as {
+            geometry?: THREE.BufferGeometry;
+            material?: THREE.Material | THREE.Material[];
+          };
+          if (node.geometry) node.geometry.dispose();
+          if (Array.isArray(node.material)) node.material.forEach((m) => m.dispose());
+          else if (node.material) node.material.dispose();
+        });
+      }
+      if (renderer) {
+        renderer.dispose();
+        try { container.removeChild(renderer.domElement); } catch (e) {}
+      }
+    };
+    try {
+      return initScene();
+    } catch (err) {
+      console.warn('CosmicBackground: WebGL setup failed — static fallback retained:', err);
+      disposePartials();
+      return;
+    }
   }, []);
 
   return (

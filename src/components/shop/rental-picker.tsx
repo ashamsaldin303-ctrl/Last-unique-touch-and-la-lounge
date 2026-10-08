@@ -1,12 +1,15 @@
 'use client'
 
 /**
- * RentalPicker — the product page's rental section: native start/end date
- * inputs (styled), debounced availability check with colored status
- * badges, quantity stepper capped at the actually-bookable stock, live
- * price summary and the add-to-cart action (toast + view-cart link).
- * CATALOG LAYER: concierge summary card with receipt leader dots, a
- * tweened total that counts between values, and a metallic gold CTA.
+ * RentalPicker — the product page's rental section (Task 26 redesign).
+ *
+ * The rental-period selection itself now lives in DurationSelector
+ * («عقد الأيام» — preset chips + framed date fields + the jeweler's
+ * days-strand, brand-adaptive). This component keeps everything that
+ * made the original flow solid: debounced availability check with
+ * colored status badges, quantity stepper capped at the actually
+ * bookable stock, concierge price summary with receipt leader dots,
+ * tweened total, and the add-to-cart action (toast + view-cart link).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -18,45 +21,12 @@ import { useCart } from '@/lib/cart-store'
 import { useToast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/ui/toast'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { QuantityStepper } from '@/components/shop/quantity-stepper'
+import { DurationSelector, useTweenedNumber } from '@/components/shop/duration-selector'
 import { rentalDays, rentalPriceCalc, todayIso } from '@/components/shop/format'
 import { cn } from '@/lib/utils'
 
-type AvailabilityState = 'idle' | 'checking' | 'available' | 'unavailable' | 'error'
-
-/** Tween a number between changes (cubic ease-out; reduced-motion safe). */
-function useTweenedNumber(value: number, duration = 520): number {
-  const [display, setDisplay] = useState(value)
-  const prevRef = useRef(value)
-
-  useEffect(() => {
-    const from = prevRef.current
-    const to = value
-    if (from === to) return
-    prevRef.current = to
-
-    // Reduced motion: jump straight to the target (rAF so no sync setState).
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const id = requestAnimationFrame(() => setDisplay(to))
-      return () => cancelAnimationFrame(id)
-    }
-
-    const start = performance.now()
-    let raf = 0
-    const tick = (now: number) => {
-      const p = Math.min((now - start) / duration, 1)
-      const eased = 1 - Math.pow(1 - p, 3)
-      setDisplay(from + (to - from) * eased)
-      if (p < 1) raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [value, duration])
-
-  return display
-}
+type AvailabilityState = 'idle' | 'checking' | 'available' | 'unavailable' | 'error' | 'past'
 
 export function RentalPicker({ product }: { product: ProductDTO }) {
   const { t, locale } = useI18n()
@@ -75,6 +45,10 @@ export function RentalPicker({ product }: { product: ProductDTO }) {
   const [checkedKey, setCheckedKey] = useState<string | null>(null)
   const [added, setAdded] = useState(false)
   const addedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /* Sequence guard (Task 3-e follow-up): a stale availability response
+     resolving after a newer check started must never write its result —
+     it would show the OLD dates' verdict under the CURRENT key. */
+  const checkSeqRef = useRef(0)
 
   useEffect(() => {
     return () => {
@@ -83,6 +57,11 @@ export function RentalPicker({ product }: { product: ProductDTO }) {
   }, [])
 
   const days = startDate && endDate ? rentalDays(startDate, endDate) : 0
+  /* Past-date guard: the native input `min` only greys the picker UI — a
+     typed past date still fires onChange. Block it locally (zero-padded
+     ISO strings compare chronologically). The server independently
+     rejects past windows (400 invalid_dates); this is UX, not the guard. */
+  const isPastStart = Boolean(startDate) && startDate < today
   const priceCalc = useMemo(
     () => rentalPriceCalc(product.rentalPricePerDay, product.securityDeposit, days, quantity),
     [product.rentalPricePerDay, product.securityDeposit, days, quantity]
@@ -96,10 +75,12 @@ export function RentalPicker({ product }: { product: ProductDTO }) {
 
   const runCheck = useCallback(async () => {
     const key = `${startDate}|${endDate}|${quantity}`
+    const seq = ++checkSeqRef.current
     setAvailability('checking')
     setCheckedKey(key)
     try {
       const result = await checkAvailability(product.id, startDate, endDate, quantity)
+      if (checkSeqRef.current !== seq) return // superseded — a newer check is in flight
       const stock =
         typeof result.availableStock === 'number' && result.availableStock >= 0
           ? result.availableStock
@@ -113,37 +94,36 @@ export function RentalPicker({ product }: { product: ProductDTO }) {
         setQuantity((q) => Math.min(q, ceiling))
       }
     } catch {
+      if (checkSeqRef.current !== seq) return
       setAvailableStock(null)
       setAvailability('error')
     }
   }, [product.id, startDate, endDate, quantity])
 
-  /* Debounced check — only scheduled when both dates are valid. The
-     "select dates" state is DERIVED (no sync setState in the effect body):
-     while dates are incomplete the badge below falls back to idle. */
+  /* Debounced check — only scheduled when both dates are valid and the
+     window starts today or later. The "select dates" state is DERIVED (no
+     sync setState in the effect body): while dates are incomplete the badge
+     below falls back to idle. */
   useEffect(() => {
-    if (!startDate || !endDate || days < 1) return
+    if (!startDate || !endDate || days < 1 || isPastStart) return
     const timer = setTimeout(runCheck, 400)
     return () => clearTimeout(timer)
-  }, [startDate, endDate, days, runCheck])
+  }, [startDate, endDate, days, isPastStart, runCheck])
 
   const datesValid = Boolean(startDate && endDate) && days >= 1
   const isStale = checkedKey !== currentKey
-  const shownAvailability: AvailabilityState = !datesValid
-    ? 'idle'
-    : isStale
-      ? 'checking'
-      : availability
+  const shownAvailability: AvailabilityState = isPastStart
+    ? 'past'
+    : !datesValid
+      ? 'idle'
+      : isStale
+        ? 'checking'
+        : availability
   const maxQty = Math.max(1, (datesValid ? availableStock : null) ?? product.stock)
-  const canAdd = !isOutOfStock && datesValid && shownAvailability === 'available'
+  const canAdd = !isOutOfStock && datesValid && !isPastStart && shownAvailability === 'available'
 
   /* Tweened total — counts between values as dates/quantity change. */
   const tweenedTotal = useTweenedNumber(priceCalc.total)
-
-  const handleStartChange = (value: string) => {
-    setStartDate(value)
-    if (endDate && value && value > endDate) setEndDate('')
-  }
 
   const handleAddToCart = () => {
     if (!canAdd || !datesValid) return
@@ -178,52 +158,26 @@ export function RentalPicker({ product }: { product: ProductDTO }) {
     addedTimeoutRef.current = setTimeout(() => setAdded(false), 2400)
   }
 
-  const dateInput =
-    'h-11 bg-background text-foreground [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100'
-
   return (
     <section className="space-y-5" aria-labelledby="rental-heading">
       <div className="flex items-center gap-3">
-        <span className="h-px w-6 bg-gold/50" aria-hidden="true" />
+        <span className="h-px w-6 bg-primary/50" aria-hidden="true" />
         <h2 id="rental-heading" className="text-base font-semibold text-foreground">
           {t('product.rental.title')}
         </h2>
       </div>
 
       <div className="space-y-4">
-        {/* Date inputs */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="rental-start" className="text-muted-foreground">
-              {t('product.rental.startDate')}
-            </Label>
-            <Input
-              id="rental-start"
-              type="date"
-              value={startDate}
-              min={today}
-              max="2100-12-31"
-              disabled={isOutOfStock}
-              onChange={(e) => handleStartChange(e.target.value)}
-              className={dateInput}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="rental-end" className="text-muted-foreground">
-              {t('product.rental.endDate')}
-            </Label>
-            <Input
-              id="rental-end"
-              type="date"
-              value={endDate}
-              min={startDate || today}
-              max="2100-12-31"
-              disabled={isOutOfStock}
-              onChange={(e) => setEndDate(e.target.value)}
-              className={dateInput}
-            />
-          </div>
-        </div>
+        {/* Rental period — the days-strand selector (brand-adaptive) */}
+        <DurationSelector
+          idPrefix="rental"
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          minIso={today}
+          disabled={isOutOfStock}
+        />
 
         {/* Availability status — live region for screen readers */}
         <div aria-live="polite" role="status" aria-busy={shownAvailability === 'checking'}>
@@ -241,18 +195,23 @@ export function RentalPicker({ product }: { product: ProductDTO }) {
             onIncrease={() => setQuantity((q) => Math.min(maxQty, q + 1))}
             decreaseLabel={t('product.quantity.decrease')}
             increaseLabel={t('product.quantity.increase')}
+            valueLabel={t('product.quantity.label')}
           />
           <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="inline-block size-1 rotate-45 bg-gold/60" aria-hidden="true" />
-            {t('product.quantity.label')}: {product.stock}
+            <span className="inline-block size-1 rotate-45 bg-primary/60" aria-hidden="true" />
+            {/* Once a fresh availability check exists, show the window's
+                bookable stock — product.stock can exceed it for the chosen
+                dates (stepper already caps at the fresh value). */}
+            {t('product.quantity.label')}:{' '}
+            {!isStale && availableStock !== null ? availableStock : product.stock}
           </span>
         </div>
 
         {/* Price summary — concierge card */}
         <div className="concierge-card space-y-3.5 rounded-lg p-4 sm:p-5">
           <div className="flex items-center gap-3">
-            <span className="h-px w-6 bg-gold/60" aria-hidden="true" />
-            <span className="eyebrow text-[0.6875rem] tracking-[0.18em] text-gold">
+            <span className="h-px w-6 bg-primary/60" aria-hidden="true" />
+            <span className="eyebrow text-[0.6875rem] tracking-[0.18em] text-primary">
               {t('product.priceSummary.title')}
             </span>
           </div>
@@ -265,15 +224,18 @@ export function RentalPicker({ product }: { product: ProductDTO }) {
               <span className="shrink-0 font-semibold tabular-nums text-foreground">{priceCalc.days}</span>
             </div>
 
-            {/* Rental row */}
+            {/* Rental row — before dates are picked the ×0 formula reads as
+                a broken quantity; show a friendly hint instead */}
             <div className="flex items-baseline gap-2">
               <span className="text-muted-foreground">
-                {t('product.priceSummary.rental', {
-                  rate: formatKwd(product.rentalPricePerDay),
-                  days: priceCalc.days,
-                  qty: quantity,
-                  amount: formatKwd(priceCalc.rental),
-                })}
+                {priceCalc.days < 1
+                  ? t('product.priceSummary.rentalPending')
+                  : t('product.priceSummary.rental', {
+                      rate: formatKwd(product.rentalPricePerDay),
+                      days: priceCalc.days,
+                      qty: quantity,
+                      amount: formatKwd(priceCalc.rental),
+                    })}
               </span>
             </div>
 
@@ -291,9 +253,9 @@ export function RentalPicker({ product }: { product: ProductDTO }) {
 
           {/* Total divider */}
           <div className="flex items-center gap-3" aria-hidden="true">
-            <span className="h-px flex-1 bg-gradient-to-r from-transparent via-gold/40 to-gold/60" />
-            <span className="size-1.5 rotate-45 bg-gold/70" />
-            <span className="h-px flex-1 bg-gradient-to-l from-transparent via-gold/40 to-gold/60" />
+            <span className="h-px flex-1 bg-gradient-to-r from-transparent via-primary/40 to-primary/60" />
+            <span className="size-1.5 rotate-45 bg-primary/70" />
+            <span className="h-px flex-1 bg-gradient-to-l from-transparent via-primary/40 to-primary/60" />
           </div>
 
           <div className="flex items-baseline justify-between gap-3">
@@ -352,6 +314,13 @@ function AvailabilityBadge({ state }: { state: AvailabilityState }) {
     'inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors'
 
   switch (state) {
+    case 'past':
+      return (
+        <span className={cn(base, 'border-amber-600/30 bg-amber-500/10 text-amber-700')}>
+          <AlertCircle className="size-4" aria-hidden="true" />
+          {t('checkout.errors.invalid_dates')}
+        </span>
+      )
     case 'checking':
       return (
         <span className={cn(base, 'border-primary/30 bg-primary/10 text-primary')}>

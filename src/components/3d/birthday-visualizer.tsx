@@ -15,13 +15,9 @@ import { shouldEnable3D } from '@/lib/device-capabilities'
  * Performance: shouldEnable3D() guard + IntersectionObserver + frameloop gating + dispose.
  */
 
-/** Minimal structural type for the post-processing composer we use. */
-type Composer = {
-  render: () => void
-  setSize: (w: number, h: number) => void
-  addPass: (...args: never[]) => void
-  dispose: () => void
-}
+/** The post-processing composer we use — typed from the imported class so
+ * addPass calls are checked against the real signature (no double casts). */
+type Composer = InstanceType<typeof EffectComposer>
 
 export function BirthdayVisualizer() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -81,34 +77,43 @@ export function BirthdayVisualizer() {
     camera.position.set(0, 5, 35)
 
     // === RENDERER ===
-    const renderer = new THREE.WebGLRenderer({
-      antialias: !isMobile, // Disable AA on mobile for performance
-      alpha: true,
-      powerPreference: 'high-performance',
-      stencil: false,
-      depth: true,
-    })
-    renderer.setSize(container.clientWidth, container.clientHeight)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2))
-    renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.2
-    container.appendChild(renderer.domElement)
+    // v45: contain WebGL context-creation failure — shouldEnable3D()
+    // probes first, but probe-pass-then-create-fail is a real path (GPU
+    // process reset, >16 live contexts, driver blocklist races). A throw
+    // inside useEffect would blank the page, so render nothing instead.
+    let renderer: THREE.WebGLRenderer
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: !isMobile, // Disable AA on mobile for performance
+        alpha: true,
+        powerPreference: 'high-performance',
+        stencil: false,
+        depth: true,
+      })
+      renderer.setSize(container.clientWidth, container.clientHeight)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2))
+      renderer.toneMapping = THREE.ACESFilmicToneMapping
+      renderer.toneMappingExposure = 1.2
+      container.appendChild(renderer.domElement)
+    } catch (err) {
+      console.warn('BirthdayVisualizer: WebGL renderer init failed, skipping 3D scene:', err)
+      return
+    }
     rendererRef.current = renderer
 
     // === POST PROCESSING (Bloom) — desktop only ===
     let composer: Composer | null = null
     if (!isMobile) {
       try {
-        composer = new EffectComposer(renderer) as Composer
-        const renderPass = new RenderPass(scene, camera)
-        composer.addPass(renderPass as unknown as never)
+        composer = new EffectComposer(renderer)
+        composer.addPass(new RenderPass(scene, camera))
         const bloomPass = new UnrealBloomPass(
           new THREE.Vector2(container.clientWidth, container.clientHeight),
           1.8, // strength
           0.4, // radius
           0.7, // threshold
         )
-        composer.addPass(bloomPass as unknown as never)
+        composer.addPass(bloomPass)
         composerRef.current = composer
       } catch (err) {
         console.warn(
@@ -133,14 +138,14 @@ export function BirthdayVisualizer() {
     pinkLight.position.set(20, 10, 15)
     scene.add(pinkLight)
 
-    const cyanLight = new THREE.PointLight(birthdayGoldDark, 80, 80)
-    cyanLight.position.set(0, -5, 20)
-    scene.add(cyanLight)
+    const goldLight = new THREE.PointLight(birthdayGoldDark, 80, 80)
+    goldLight.position.set(0, -5, 20)
+    scene.add(goldLight)
 
     const orangeLight = new THREE.PointLight(birthdayOrange, 60, 80)
     orangeLight.position.set(10, 20, -10)
     scene.add(orangeLight)
-    disposablesRef.current.push(purpleLight, pinkLight, cyanLight, orangeLight)
+    disposablesRef.current.push(purpleLight, pinkLight, goldLight, orangeLight)
 
     // === VINYL RECORDS (spinning) ===
     const vinyls: THREE.Group[] = []
@@ -484,8 +489,9 @@ export function BirthdayVisualizer() {
       // NOTE: getDelta() must be called BEFORE getElapsedTime() —
       // getElapsedTime() internally calls getDelta(), so calling it first
       // would make the subsequent getDelta() return ~0.
-      const delta = clock.getDelta()
-      const time = clock.elapsedTime
+      // Clamped so a multi-minute tab-away delta can't spin the scene.
+      const delta = Math.min(clock.getDelta(), 0.05)
+      const time = clock.getElapsedTime()
 
       // Smooth mouse
       mouse.x += (targetMouse.x - mouse.x) * 0.05
@@ -597,6 +603,21 @@ export function BirthdayVisualizer() {
     }
     window.addEventListener('mousemove', onMouseMove)
 
+    // v45: also pause when the tab itself is hidden — the browser stops
+    // firing rAF, but an explicit cancel + restart (gated on isInView so
+    // the off-screen IO pause still wins) keeps the clock from lurching
+    // on return. Mirrors birthday-3d-background's visibilitychange pattern.
+    const onVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animationIdRef.current)
+        animationIdRef.current = 0
+      } else if (isInView && animationIdRef.current === 0) {
+        clock.getDelta() // swallow the hidden time
+        animate()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
     animate()
 
     // === RESIZE HANDLER (debounced) ===
@@ -621,6 +642,7 @@ export function BirthdayVisualizer() {
       visibilityObserver.disconnect()
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('resize', onResize)
+      document.removeEventListener('visibilitychange', onVisibility)
       clearTimeout(resizeTimer)
 
       // Dispose all resources (only geometries/materials actually have dispose —

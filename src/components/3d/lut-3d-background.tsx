@@ -113,37 +113,76 @@ export default function Lut3DBackground() {
     )
     camera.position.set(5, 5, 15)
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      powerPreference: 'high-performance',
-    })
-    const isMobileViewport = window.innerWidth < 768
-    // v42 smoothness fix: mobile caps at 1.5 (the bloom pass makes each
-    // rendered pixel notably more expensive; a 3×-DPR phone at 2.0 is
-    // fill-rate bound while a wireframe-thin tube shows no extra detail).
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileViewport ? 1.5 : 2.0))
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 0.9
-    renderer.outputColorSpace = THREE.SRGBColorSpace
+    // v45: contain WebGL/renderer/composer construction failure —
+    // shouldEnable3D() probes first, but probe-pass-then-create-fail is a
+    // real path (GPU process reset, >16 live contexts, driver blocklist
+    // races). On failure the partials are disposed and the effect bails,
+    // leaving the static gradient fallback visible instead of throwing out
+    // of useEffect and blanking the page (mirrors la-lounge's try/catch,
+    // plus partial disposal).
+    function buildWebGLCore(): {
+      renderer: THREE.WebGLRenderer
+      pmremGenerator: THREE.PMREMGenerator
+      envRT: THREE.WebGLRenderTarget
+      composer: EffectComposer
+      bloomPass: UnrealBloomPass
+    } | null {
+      // Closure narrowing guard — the outer `if (!canvas) return` above
+      // does not flow into nested function declarations.
+      if (!canvas) return null
+      let renderer: THREE.WebGLRenderer | undefined
+      let pmremGenerator: THREE.PMREMGenerator | undefined
+      let envRT: THREE.WebGLRenderTarget | undefined
+      let composer: EffectComposer | undefined
+      let bloomPass: UnrealBloomPass | undefined
+      try {
+        renderer = new THREE.WebGLRenderer({
+          canvas,
+          antialias: true,
+          powerPreference: 'high-performance',
+        })
+        const isMobileViewport = window.innerWidth < 768
+        // v42 smoothness fix: mobile caps at 1.5 (the bloom pass makes each
+        // rendered pixel notably more expensive; a 3×-DPR phone at 2.0 is
+        // fill-rate bound while a wireframe-thin tube shows no extra detail).
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileViewport ? 1.5 : 2.0))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.toneMapping = THREE.ACESFilmicToneMapping
+        renderer.toneMappingExposure = 0.9
+        renderer.outputColorSpace = THREE.SRGBColorSpace
 
-    const pmremGenerator = new THREE.PMREMGenerator(renderer)
-    scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture
+        pmremGenerator = new THREE.PMREMGenerator(renderer)
+        // v43 leak fix: keep the render target reference — its GPU framebuffer
+        // + cubemap texture are NOT freed by pmremGenerator.dispose() (same
+        // pattern as birthday-3d-background's pmremRT).
+        envRT = pmremGenerator.fromScene(new RoomEnvironment(), 0.04)
+        scene.environment = envRT.texture
 
-    // ============================================
-    // POST PROCESSING
-    // ============================================
-    const composer = new EffectComposer(renderer)
-    composer.addPass(new RenderPass(scene, camera))
-    const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.25,
-      0.5,
-      0.95, // High threshold so only gold glows, furniture stays sharp
-    )
-    composer.addPass(bloomPass)
-    composer.addPass(new OutputPass())
+        composer = new EffectComposer(renderer)
+        composer.addPass(new RenderPass(scene, camera))
+        bloomPass = new UnrealBloomPass(
+          new THREE.Vector2(window.innerWidth, window.innerHeight),
+          0.25,
+          0.5,
+          0.95, // High threshold so only gold glows, furniture stays sharp
+        )
+        composer.addPass(bloomPass)
+        composer.addPass(new OutputPass())
+        return { renderer, pmremGenerator, envRT, composer, bloomPass }
+      } catch (err) {
+        console.warn('Lut3DBackground: WebGL setup failed — static gradient fallback retained:', err)
+        // Dispose whatever partial resources were created before the failure.
+        envRT?.dispose()
+        pmremGenerator?.dispose()
+        composer?.dispose()
+        bloomPass?.dispose()
+        renderer?.dispose()
+        return null
+      }
+    }
+    const core = buildWebGLCore()
+    if (!core) return
+    const { renderer, pmremGenerator, envRT, composer, bloomPass } = core
 
     // ============================================
     // LUXURY LIGHTING (Enhanced for Furniture Visibility)
@@ -639,6 +678,27 @@ export default function Lut3DBackground() {
     }
     window.addEventListener('resize', onResize)
 
+    // v45: pause the loop when the tab itself is hidden — the browser stops
+    // firing rAF anyway, but an explicit cancel + restart keeps the clock
+    // from lurching on return: swallowing the hidden time means the intro,
+    // build-in and helix phases resume exactly where they paused instead
+    // of jumping ahead (per-frame delta is additionally clamped to 0.1s).
+    const onVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animationFrameId)
+        animationFrameId = 0
+      } else if (animationFrameId === 0) {
+        // Only restart when the loop is NOT already scheduled (guards the
+        // page-loaded-while-hidden case, where the initial animate() call
+        // already queued a rAF that the browser will fire on reveal).
+        // getDelta() consumes AND accumulates the hidden span into
+        // elapsedTime — subtract it back so time-based phases stand still.
+        clock.elapsedTime -= clock.getDelta()
+        animate()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
     animate()
 
     // ============================================
@@ -648,6 +708,7 @@ export default function Lut3DBackground() {
       cancelAnimationFrame(animationFrameId)
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('resize', onResize)
+      document.removeEventListener('visibilitychange', onVisibility)
 
       // Dispose all geometries / materials used by tunnel items + helix.
       scene.traverse((obj) => {
@@ -671,6 +732,9 @@ export default function Lut3DBackground() {
       // Dispose the bloom pass render targets and the composer.
       composer.dispose()
       bloomPass.dispose()
+      // v43 leak fix: free the environment map's GPU framebuffer/texture
+      // before disposing the generator itself.
+      envRT.dispose()
       pmremGenerator.dispose()
 
       renderer.dispose()

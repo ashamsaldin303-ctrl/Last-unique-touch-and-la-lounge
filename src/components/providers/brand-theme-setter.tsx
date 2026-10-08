@@ -6,19 +6,21 @@
  * BrandThemeSetter (src/components/providers/brand-theme-setter.tsx).
  */
 
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { useRouter } from '@/lib/router'
 import { resolveBrandFromPath } from '@/lib/brand'
-import { useTheme } from 'next-themes'
+
+/* SSR-safe layout effect (same pattern as src/app/page.tsx): useEffect on
+   the server, useLayoutEffect on the client — applies data-brand/lang/dir
+   BEFORE the first paint so cross-brand hash navigation never renders one
+   frame with the previous brand's palette. */
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 export function BrandThemeSetter() {
   const { path, locale } = useRouter()
-  const { setTheme, resolvedTheme } = useTheme() as {
-    setTheme: (theme: string) => void
-    resolvedTheme: string | undefined
-  }
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const brand = resolveBrandFromPath(path)
     const html = document.documentElement
     html.dataset.brand = brand
@@ -34,15 +36,6 @@ export function BrandThemeSetter() {
     window.addEventListener('lut:navigate', onNavigate)
     return () => window.removeEventListener('lut:navigate', onNavigate)
   }, [])
-
-  // La Lounge + Birthday brand pages are best experienced in their
-  // canonical light/dark identity — but we never override an explicit
-  // user choice, so only align on first mount.
-  useEffect(() => {
-    // no-op: theme remains user-controlled via navbar toggle
-    void resolvedTheme
-    void setTheme
-  }, [resolvedTheme, setTheme])
 
   return null
 }

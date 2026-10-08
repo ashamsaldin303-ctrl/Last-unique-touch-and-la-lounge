@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { cn } from '@/lib/utils'
 
 type Variant = 'divider' | 'corner' | 'bg'
@@ -14,6 +15,11 @@ type Variant = 'divider' | 'corner' | 'bg'
  * pick up the LUT brass accent (`--color-brass: #A9812E`) without hardcoded fills.
  */
 export function LutArabesque({ variant, className }: { variant: Variant; className?: string }) {
+  // Unique pattern id per instance — two simultaneous `bg` variants would
+  // otherwise emit a duplicate DOM id (browsers resolve url(#…) to the
+  // first, which is invalid HTML). useId works in server and client trees.
+  const patternId = `arabesque-pattern-${useId().replace(/\W/g, '')}`
+
   if (variant === 'divider') {
     return (
       <svg
@@ -74,7 +80,7 @@ export function LutArabesque({ variant, className }: { variant: Variant; classNa
     >
       <defs>
         <pattern
-          id="arabesque-pattern"
+          id={patternId}
           x="0"
           y="0"
           width="100"
@@ -91,7 +97,7 @@ export function LutArabesque({ variant, className }: { variant: Variant; classNa
           <circle cx="50" cy="50" r="4" stroke="currentColor" strokeWidth="0.5" fill="none" />
         </pattern>
       </defs>
-      <rect width="400" height="400" fill="url(#arabesque-pattern)" />
+      <rect width="400" height="400" fill={`url(#${patternId})`} />
     </svg>
   )
 }

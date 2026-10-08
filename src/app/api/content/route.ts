@@ -19,7 +19,7 @@ type Doc = (typeof VALID_DOCS)[number]
 type Locale = (typeof VALID_LOCALES)[number]
 
 /** In-memory cache — markdown rarely changes; survives for the process lifetime. */
-const cache = new Map<string, string>()
+const cache = new Map<string, string>() // cache-reset-36
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     const cacheKey = `${locale}/${doc}`
     const cached = cache.get(cacheKey)
     if (cached !== undefined) {
-      return NextResponse.json({ content: cached })
+      return NextResponse.json({ content: cached }, { headers: { 'Cache-Control': 'no-store' } })
     }
 
     // doc & locale are whitelist-validated → no path traversal possible
@@ -45,7 +45,9 @@ export async function GET(req: NextRequest) {
     try {
       const content = await fs.readFile(filePath, 'utf-8')
       cache.set(cacheKey, content)
-      return NextResponse.json({ content })
+      // no-store: the browser would otherwise heuristic-cache stale markdown
+      // across content edits (observed live during Task 36 audit)
+      return NextResponse.json({ content }, { headers: { 'Cache-Control': 'no-store' } })
     } catch (fileError) {
       const code = (fileError as NodeJS.ErrnoException)?.code
       if (code === 'ENOENT' || code === 'EISDIR') {

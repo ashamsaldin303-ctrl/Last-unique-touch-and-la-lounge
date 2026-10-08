@@ -25,13 +25,45 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category') ?? undefined
     const search = searchParams.get('search') ?? undefined
     const sort = searchParams.get('sort') ?? 'newest'
-    const page = Math.max(1, Number(searchParams.get('page') ?? '1'))
+    // parseInt (not Number) so garbage like `page=abc` degrades to page 1
+    // instead of NaN → Prisma skip validation error → 500.
+    const pageRaw = Number.parseInt(searchParams.get('page') ?? '1', 10)
+    const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1
+
+    // Search runs IN the query (not post-pagination) so results on any page
+    // are returned and `total`/`totalPages` reflect the filtered set.
+    // Note: Prisma rejects `mode: 'insensitive'` on SQLite (verified live),
+    // but SQLite's LIKE is ASCII-case-insensitive by default, so `contains`
+    // already gives case-insensitive matching (Arabic has no case).
+    //
+    // LIKE wildcard sanitization (audit r3-r1 L4): Prisma `contains` on
+    // SQLite does NOT escape the LIKE metacharacters `%`/`_` (live-verified:
+    // search='%' matched the whole catalog), so a raw term would act as a
+    // wildcard pattern. Both characters are stripped, keeping `contains` a
+    // literal substring test; a term made ONLY of wildcards ('%', '_')
+    // reduces to '' and is answered with an empty set (`id in []`) instead
+    // of silently degrading to match-all.
+    const rawQ = search?.trim()
+    const q = rawQ?.replace(/[%_]/g, '')
+    const searchWhere: Record<string, unknown> = rawQ
+      ? q
+        ? {
+            OR: [
+              { nameAr: { contains: q } },
+              { nameEn: { contains: q } },
+              { descriptionAr: { contains: q } },
+              { descriptionEn: { contains: q } },
+            ],
+          }
+        : { id: { in: [] } }
+      : {}
 
     const where: Record<string, unknown> = {
       ...(brand ? { brand } : {}),
       isActive: true,
+      ...(category && category !== 'all' ? { category: { slug: category } } : {}),
+      ...searchWhere,
     }
-    if (category && category !== 'all') where.category = { slug: category }
 
     const products = await db.product.findMany({
       where,
@@ -46,26 +78,7 @@ export async function GET(req: NextRequest) {
       take: PER_PAGE,
     })
 
-    // Search filter (applied post-query for AR/EN both) — count matches separately
-    let filtered = products
-    if (search) {
-      const q = search.trim().toLowerCase()
-      filtered = products.filter(
-        (p) =>
-          p.nameAr.toLowerCase().includes(q) ||
-          p.nameEn.toLowerCase().includes(q) ||
-          p.descriptionAr.toLowerCase().includes(q) ||
-          p.descriptionEn.toLowerCase().includes(q)
-      )
-    }
-
-    const total = await db.product.count({
-      where: {
-        ...(brand ? { brand } : {}),
-        isActive: true,
-        ...(category && category !== 'all' ? { category: { slug: category } } : {}),
-      },
-    })
+    const total = await db.product.count({ where })
 
     // Category facets: when browsing a single brand show that brand's
     // categories; for the unified catalog aggregate them all (unique by id).
@@ -80,7 +93,7 @@ export async function GET(req: NextRequest) {
     })
 
     return NextResponse.json({
-      products: filtered.map((p) => ({
+      products: products.map((p) => ({
         id: p.id,
         brand: p.brand,
         slug: p.slug,
@@ -97,7 +110,7 @@ export async function GET(req: NextRequest) {
         categoryId: p.categoryId,
         category: p.category,
       })),
-      total: search ? filtered.length + (page - 1) * PER_PAGE : total,
+      total,
       page,
       totalPages: Math.max(1, Math.ceil(total / PER_PAGE)),
       categories,

@@ -87,5 +87,5 @@ In cases of force majeure (weather conditions, natural disasters, government dec
 
 For any inquiries regarding the refund policy, please contact us via:
 - Email: info@lastuniquetouch.com
-- Phone: +965 9XXX XXXX
+- Phone: +965 5000 0000
 - Contact page: `/contact`

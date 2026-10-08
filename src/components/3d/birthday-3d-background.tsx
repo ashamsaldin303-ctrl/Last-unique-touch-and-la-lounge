@@ -267,6 +267,10 @@ function Birthday3DBackground() {
     if (tier === 'low') return
 
     const cfg = TIER_CONFIG[tier]
+    // v45: cfg.pixelRatio is a CAP — never exceed the device's actual DPR
+    // (a fixed 2.0 on a dpr=1 monitor costs 4× fill-rate for zero
+    // sharpness gain; siblings already use Math.min(window.devicePixelRatio, …)).
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, cfg.pixelRatio)
     const isMobile = tier !== 'high'
     // Mobile layout governor: on a 390px viewport the scene is too wide for
     // edge decor (speakers at ±19, light stands at ±22, balloon garland
@@ -299,36 +303,78 @@ function Birthday3DBackground() {
     )
     camera.position.set(0, 6, isMobile ? 13 : 20)
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true, alpha: true, powerPreference: 'high-performance',
-    })
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.setPixelRatio(cfg.pixelRatio)
-    renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = cfg.exposure
-    renderer.outputColorSpace = THREE.SRGBColorSpace
-    container.appendChild(renderer.domElement)
+    // v45: contain WebGL/renderer/composer construction failure — the
+    // capability probe can pass while creation still fails (GPU process
+    // reset, >16 live contexts, driver blocklist races). On failure the
+    // partials are disposed and the effect bails, leaving the CSS radial
+    // gradient fallback visible instead of blanking the whole page.
+    // Returns null (renders nothing) on failure — same containment pattern
+    // as la-lounge-3d-background's try/catch, plus partial disposal.
+    function buildWebGLCore(): {
+      renderer: THREE.WebGLRenderer
+      pmremGenerator: THREE.PMREMGenerator
+      pmremRT: THREE.WebGLRenderTarget
+      composer: EffectComposer
+      bloomPass: UnrealBloomPass
+      fxaaPass: ShaderPass
+    } | null {
+      // Closure narrowing guard — the outer `if (!container) return` above
+      // does not flow into nested function declarations.
+      if (!container) return null
+      let renderer: THREE.WebGLRenderer | undefined
+      let pmremGenerator: THREE.PMREMGenerator | undefined
+      let pmremRT: THREE.WebGLRenderTarget | undefined
+      let composer: EffectComposer | undefined
+      let bloomPass: UnrealBloomPass | undefined
+      try {
+        renderer = new THREE.WebGLRenderer({
+          antialias: true, alpha: true, powerPreference: 'high-performance',
+        })
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.setPixelRatio(pixelRatio)
+        renderer.toneMapping = THREE.ACESFilmicToneMapping
+        renderer.toneMappingExposure = cfg.exposure
+        renderer.outputColorSpace = THREE.SRGBColorSpace
+        container.appendChild(renderer.domElement)
 
-    const pmremGenerator = new THREE.PMREMGenerator(renderer)
-    const pmremRT = pmremGenerator.fromScene(new RoomEnvironment(), 0.04)
-    scene.environment = pmremRT.texture
+        pmremGenerator = new THREE.PMREMGenerator(renderer)
+        pmremRT = pmremGenerator.fromScene(new RoomEnvironment(), 0.04)
+        scene.environment = pmremRT.texture
 
-    // ---- Post ----
-    const composer = new EffectComposer(renderer)
-    composer.setPixelRatio(cfg.pixelRatio)
-    composer.setSize(window.innerWidth, window.innerHeight)
-    composer.addPass(new RenderPass(scene, camera))
-    const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      cfg.bloomStrength, cfg.bloomRadius, 0.85,
-    )
-    composer.addPass(bloomPass)
-    const fxaaPass = new ShaderPass(FXAAShader)
-    fxaaPass.material.uniforms['resolution'].value.set(
-      1 / (window.innerWidth * cfg.pixelRatio),
-      1 / (window.innerHeight * cfg.pixelRatio),
-    )
-    composer.addPass(fxaaPass)
+        // ---- Post ----
+        composer = new EffectComposer(renderer)
+        composer.setPixelRatio(pixelRatio)
+        composer.setSize(window.innerWidth, window.innerHeight)
+        composer.addPass(new RenderPass(scene, camera))
+        bloomPass = new UnrealBloomPass(
+          new THREE.Vector2(window.innerWidth, window.innerHeight),
+          cfg.bloomStrength, cfg.bloomRadius, 0.85,
+        )
+        composer.addPass(bloomPass)
+        const fxaa = new ShaderPass(FXAAShader)
+        fxaa.material.uniforms['resolution'].value.set(
+          1 / (window.innerWidth * pixelRatio),
+          1 / (window.innerHeight * pixelRatio),
+        )
+        composer.addPass(fxaa)
+        return { renderer, pmremGenerator, pmremRT, composer, bloomPass, fxaaPass: fxaa }
+      } catch (err) {
+        console.warn('Birthday3DBackground: WebGL setup failed — CSS gradient fallback retained:', err)
+        // Dispose whatever partial resources were created before the failure.
+        pmremRT?.dispose()
+        pmremGenerator?.dispose()
+        composer?.dispose()
+        bloomPass?.dispose()
+        if (renderer) {
+          renderer.dispose()
+          if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement)
+        }
+        return null
+      }
+    }
+    const core = buildWebGLCore()
+    if (!core) return
+    const { renderer, pmremGenerator, pmremRT, composer, bloomPass, fxaaPass } = core
 
     // ---- Lighting (kept restrained so the scene reads elegant, not cluttered) ----
     scene.add(new THREE.AmbientLight(0x8a7ab0, isMobile ? 0.35 : 0.5))
@@ -522,8 +568,8 @@ function Birthday3DBackground() {
       )
     } else {
       floorReflector = new Reflector(floorGeo, {
-        textureWidth: window.innerWidth * cfg.pixelRatio,
-        textureHeight: window.innerHeight * cfg.pixelRatio,
+        textureWidth: window.innerWidth * pixelRatio,
+        textureHeight: window.innerHeight * pixelRatio,
         color: 0x05020c, recursion: 1,
       } as ConstructorParameters<typeof Reflector>[1])
       floor = floorReflector
@@ -2002,9 +2048,12 @@ function Birthday3DBackground() {
       camera.aspect = w / h
       camera.updateProjectionMatrix()
       renderer.setSize(w, h)
-      renderer.setPixelRatio(cfg.pixelRatio)
+      // Recompute the DPR cap — it can change when the window moves between
+      // displays with different device pixel ratios.
+      const ratio = Math.min(window.devicePixelRatio || 1, cfg.pixelRatio)
+      renderer.setPixelRatio(ratio)
       composer.setSize(w, h)
-      fxaaPass.material.uniforms['resolution'].value.set(1 / (w * cfg.pixelRatio), 1 / (h * cfg.pixelRatio))
+      fxaaPass.material.uniforms['resolution'].value.set(1 / (w * ratio), 1 / (h * ratio))
     }
     window.addEventListener('resize', onResize)
     const onVisibility = () => {

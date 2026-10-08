@@ -7,6 +7,8 @@
  * calling toLocaleDateString.
  */
 
+import { formatKwd as formatKwdMoney, roundKwd } from '@/lib/money'
+
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 
 /** Parse 'YYYY-MM-DD' into a local Date (timezone-safe). */
@@ -24,7 +26,10 @@ export function parseDateParts(iso: string): Date | null {
  * visual audit (mm/dd/yyyy is unintuitive for event scheduling in Kuwait).
  */
 const DATE_REGIONS: Record<string, string> = {
-  ar: 'ar-KW',
+  // '-u-nu-latn' pins Latin digits: ar-KW's CLDR default renders
+  // Arabic-Indic numerals (٠١٢…) while every money figure is Latin
+  // toFixed(3) — one panel must not mix digit systems.
+  ar: 'ar-KW-u-nu-latn',
   en: 'en-GB',
 }
 
@@ -39,13 +44,20 @@ export function formatDate(iso: string, locale: string): string {
   }
 }
 
-/** Rental day count between two 'YYYY-MM-DD' dates (min 1, like the original). */
+/**
+ * Rental day count between two 'YYYY-MM-DD' dates, mirroring the orders
+ * API exactly: end-exclusive counting (the end day is a return day, not a
+ * billed day), clamped to the server's 1..365 window — so start === end
+ * (same-day rental) counts as 1 day. A reversed or unparseable range
+ * returns 0, which callers treat as "no valid selection".
+ */
 export function rentalDays(startIso: string, endIso: string): number {
   const start = parseDateParts(startIso)
   const end = parseDateParts(endIso)
   if (!start || !end) return 0
-  const diff = Math.ceil((end.getTime() - start.getTime()) / MS_PER_DAY)
-  return Math.max(0, diff)
+  const diff = end.getTime() - start.getTime()
+  if (diff < 0) return 0
+  return Math.min(365, Math.max(1, Math.ceil(diff / MS_PER_DAY)))
 }
 
 /** Today's date as 'YYYY-MM-DD' (local, for native date input mins). */
@@ -63,7 +75,16 @@ export function rentalPriceCalc(
   quantity: number
 ): { days: number; rental: number; deposit: number; total: number } {
   if (days < 1) return { days: 0, rental: 0, deposit: 0, total: 0 }
-  const rental = Math.round(rentalPricePerDay * days * quantity * 1000) / 1000
-  const deposit = Math.round(securityDeposit * quantity * 1000) / 1000
-  return { days, rental, deposit, total: Math.round((rental + deposit) * 1000) / 1000 }
+  const rental = roundKwd(rentalPricePerDay * days * quantity)
+  const deposit = roundKwd(securityDeposit * quantity)
+  return { days, rental, deposit, total: roundKwd(rental + deposit) }
+}
+
+/**
+ * Format a KWD amount for display (3 decimals, Latin digits, grouping) —
+ * thin delegate to the shared money module (single client-side source of
+ * truth for KWD rounding + display).
+ */
+export function formatKwd(amount: number, locale: 'ar' | 'en'): string {
+  return formatKwdMoney(amount, locale)
 }

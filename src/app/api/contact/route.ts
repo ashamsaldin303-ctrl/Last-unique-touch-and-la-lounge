@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/lib/db'
+import { maskPiiValue } from '@/lib/admin-auth'
+import { checkRateLimit, guardBodySize } from '@/app/api/_lib/guards'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +17,13 @@ const contactSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    // Public endpoint guards: 5 requests / minute / IP (in-memory sliding
+    // window, independent per route) + pre-parse body-size cap.
+    const limited = checkRateLimit(req, 'contact', 5, 60 * 1000)
+    if (limited) return limited
+    const oversized = guardBodySize(req)
+    if (oversized) return oversized
+
     const body = await req.json().catch(() => null)
     const parsed = contactSchema.safeParse(body)
     if (!parsed.success) {
@@ -34,12 +43,19 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    await db.securityLog.create({
-      data: {
-        event: 'contact_form_submitted',
-        details: JSON.stringify({ brand, email }),
-      },
-    })
+    // Post-commit audit log (r2 NEW-4): fire-and-forget — the message row is
+    // already COMMITTED, so a SecurityLog write failure must never convert
+    // this success into a 500. Email masked per r1-a3 #10.
+    void db.securityLog
+      .create({
+        data: {
+          event: 'contact_form_submitted',
+          details: JSON.stringify({ brand, email: maskPiiValue(email) }),
+        },
+      })
+      .catch((err: unknown) => {
+        console.error('[api/contact] security log write failed:', err)
+      })
 
     return NextResponse.json({ ok: true })
   } catch (error) {

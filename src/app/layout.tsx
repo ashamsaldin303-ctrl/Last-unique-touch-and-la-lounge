@@ -45,6 +45,9 @@ const baloo = Baloo_2({
 })
 
 export const metadata: Metadata = {
+  // Absolute base for resolving relative OG/Twitter image URLs (was unset —
+  // Next warned and guessed localhost). Overridable per environment.
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
   title: 'Last Unique Touch — اللمسة الأخيرة الفريدة | تأجير أثاث فاخر ومعدات فعاليات',
   description:
     'منصة كويتية فاخرة لتأجير الأثاث ومعدات الفعاليات. ثلاث علامات تجارية — Last Unique Touch وLa Lounge وYour Birthday — لخدمة أرقى المناسبات والفعاليات.',
@@ -81,7 +84,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="ar" dir="rtl" data-brand="lut" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" data-brand="neutral" suppressHydrationWarning>
       <body
         className={`${amiri.variable} ${tajawal.variable} ${cormorant.variable} ${lalezar.variable} ${baloo.variable} antialiased`}
       >

@@ -111,4 +111,4 @@ We reserve the right to modify these terms and conditions at any time. Changes w
 
 For any inquiries regarding these terms, please contact us via the `/contact` page or:
 - Email: info@lastuniquetouch.com
-- Phone: +965 9XXX XXXX
+- Phone: +965 5000 0000

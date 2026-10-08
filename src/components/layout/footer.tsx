@@ -8,20 +8,42 @@
  * Sticky to the bottom via the shell's flex layout.
  */
 
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { useRouter } from '@/lib/router'
 import { useI18n } from '@/lib/i18n'
 import { resolveBrandFromPath } from '@/lib/brand'
 import { Phone, Mail, MapPin } from 'lucide-react'
 import { Reveal } from '@/components/shared/reveal'
 
+/* SSR-safe layout effect: useEffect on the server, useLayoutEffect on the
+   client — flips post-hydration state before the first paint. */
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
 export function Footer() {
   const { t, locale } = useI18n()
-  const { path, navigate } = useRouter()
+  const { path: routerPath, navigate } = useRouter()
+  const [mounted, setMounted] = useState(false)
+  useIsomorphicLayoutEffect(() => {
+    setMounted(true)
+  }, [])
+  // HYDRATION-SAFE PATH (same rationale as the Navbar/page): the hash
+  // router parses window.location.hash in its initial state on the client
+  // while SSR always renders the '/' shell — brand-derived quick links
+  // diverged during hydration on deep links. Render the '/' shell on the
+  // first client render, then apply the real hash route before first paint.
+  const path = mounted ? routerPath : '/'
   const brand = resolveBrandFromPath(path)
   const year = new Date().getFullYear()
 
   const brandHomeHref =
-    brand === 'lalounge' ? '/la-lounge' : brand === 'birthday' ? '/your-birthday' : '/last-unique-touch'
+    brand === 'neutral'
+      ? '/'
+      : brand === 'lalounge'
+        ? '/la-lounge'
+        : brand === 'birthday'
+          ? '/your-birthday'
+          : '/last-unique-touch'
 
   const quickLinks: Array<{ path: string; label: string }> = [
     { path: brandHomeHref, label: t('nav.home') },
@@ -54,7 +76,7 @@ export function Footer() {
           <Reveal direction="up">
             <h3 className="font-display text-xl text-gold mb-3 tracking-wide">Last Unique Touch</h3>
             <p className="text-sm text-paper/60 leading-relaxed mb-4">{t('footer.tagline')}</p>
-            <p className="text-xs text-paper/40">{t('footer.craftedIn')}</p>
+            <p className="text-xs text-paper/60">{t('footer.craftedIn')}</p>
           </Reveal>
 
           {/* Quick links */}
@@ -64,12 +86,19 @@ export function Footer() {
               <ul className="space-y-2.5 list-none p-0 m-0">
                 {quickLinks.map((link) => (
                   <li key={link.path}>
-                    <button
-                      onClick={() => navigate(link.path)}
-                      className="link-slide link-shift text-sm text-paper/70 hover:text-gold transition-colors duration-300 cursor-pointer bg-transparent border-0 p-0 text-start"
+                    <a
+                      href={`#/${locale}${link.path === '/' ? '' : link.path}`}
+                      onClick={(e) => {
+                        // Real anchor (middle/ctrl+click opens the hash URL);
+                        // plain left clicks go through the client router.
+                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                        e.preventDefault()
+                        navigate(link.path)
+                      }}
+                      className="link-slide link-shift flex min-h-[44px] items-center text-sm text-paper/70 hover:text-gold transition-colors duration-300 no-underline"
                     >
                       {link.label}
-                    </button>
+                    </a>
                   </li>
                 ))}
               </ul>
@@ -83,17 +112,24 @@ export function Footer() {
               <ul className="space-y-2.5 list-none p-0 m-0">
                 {sisterBrands.map((brandLink) => (
                   <li key={brandLink.path}>
-                    <button
-                      onClick={() => navigate(brandLink.path)}
-                      className="group flex flex-col cursor-pointer bg-transparent border-0 p-0 text-start"
+                    <a
+                      href={`#/${locale}${brandLink.path}`}
+                      onClick={(e) => {
+                        // Real anchor (middle/ctrl+click opens the hash URL);
+                        // plain left clicks go through the client router.
+                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                        e.preventDefault()
+                        navigate(brandLink.path)
+                      }}
+                      className="group flex flex-col justify-center min-h-11 py-1 no-underline"
                     >
                       <span className="link-slide inline-block text-sm text-paper/80 group-hover:text-gold transition-colors duration-300">
                         {brandLink.label}
                       </span>
-                      <span className="text-[11px] text-paper/40 group-hover:text-paper/60 transition-colors duration-300">
+                      <span className="text-[11px] text-paper/60 group-hover:text-paper/80 transition-colors duration-300">
                         {brandLink.desc}
                       </span>
-                    </button>
+                    </a>
                   </li>
                 ))}
               </ul>
@@ -109,13 +145,24 @@ export function Footer() {
                   <span className="icon-ring flex items-center justify-center w-8 h-8 rounded-full border border-gold/20 text-gold transition-colors duration-300 group-hover:border-gold/50">
                     <Phone className="w-4 h-4" strokeWidth={1.5} />
                   </span>
-                  <span dir="ltr">{t('footer.phone')}</span>
+                  <a
+                    href="tel:+96550000000"
+                    dir="ltr"
+                    className="link-slide text-sm text-paper/70 hover:text-gold transition-colors duration-300 no-underline"
+                  >
+                    {t('footer.phone')}
+                  </a>
                 </li>
                 <li className="group flex items-center gap-3 text-sm text-paper/70">
                   <span className="icon-ring flex items-center justify-center w-8 h-8 rounded-full border border-gold/20 text-gold transition-colors duration-300 group-hover:border-gold/50">
                     <Mail className="w-4 h-4" strokeWidth={1.5} />
                   </span>
-                  <span>{t('footer.email')}</span>
+                  <a
+                    href="mailto:info@lastuniquetouch.com"
+                    className="link-slide text-sm text-paper/70 hover:text-gold transition-colors duration-300 no-underline"
+                  >
+                    {t('footer.email')}
+                  </a>
                 </li>
                 <li className="group flex items-center gap-3 text-sm text-paper/70">
                   <span className="icon-ring flex items-center justify-center w-8 h-8 rounded-full border border-gold/20 text-gold transition-colors duration-300 group-hover:border-gold/50">
@@ -130,20 +177,24 @@ export function Footer() {
 
         {/* Legal bottom bar */}
         <div className="mt-12 pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-paper/40 order-2 sm:order-1">
-            {locale === 'ar'
-              ? `© ${year} Last Unique Touch. جميع الحقوق محفوظة.`
-              : `© ${year} Last Unique Touch. All rights reserved.`}
-          </p>
+          {/* Catalog-driven copyright (footer.rights carries the {year} placeholder in both locales) */}
+          <p className="text-xs text-paper/60 order-2 sm:order-1">{t('footer.rights', { year })}</p>
           <nav className="order-1 sm:order-2 flex items-center gap-5" aria-label={t('footer.legal')}>
             {legalLinks.map((link) => (
-              <button
+              <a
                 key={link.path}
-                onClick={() => navigate(link.path)}
-                className="link-slide text-xs text-paper/50 hover:text-gold transition-colors cursor-pointer bg-transparent border-0 p-0"
+                href={`#/${locale}${link.path}`}
+                onClick={(e) => {
+                  // Real anchor (middle/ctrl+click opens the hash URL);
+                  // plain left clicks go through the client router.
+                  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                  e.preventDefault()
+                  navigate(link.path)
+                }}
+                className="link-slide flex min-h-[44px] items-center text-xs text-paper/50 hover:text-gold transition-colors no-underline px-0"
               >
                 {link.label}
-              </button>
+              </a>
             ))}
           </nav>
         </div>

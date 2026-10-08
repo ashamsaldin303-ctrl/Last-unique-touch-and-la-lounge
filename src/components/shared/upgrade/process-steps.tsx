@@ -44,7 +44,7 @@ export function ProcessSteps({ eyebrow, title, steps, light = false, className }
           {steps.map((step, i) => {
             const Icon = step.icon
             return (
-              <Reveal key={step.title} delay={i * 0.18} as="li" className="text-center relative">
+              <Reveal key={`${step.title}-${i}`} delay={i * 0.18} as="li" className="text-center relative">
                 <div className="relative z-10 flex items-center justify-center mb-5">
                   <span
                     className={cn(

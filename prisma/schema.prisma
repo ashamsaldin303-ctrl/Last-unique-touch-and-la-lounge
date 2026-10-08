@@ -25,7 +25,6 @@ model Category {
   products  Product[]
 
   @@unique([brand, slug], name: "category_brand_slug_unique")
-  @@index([brand, slug])
 }
 
 // ===== Products (Rental only — no sales) =====
@@ -91,6 +90,7 @@ model ContactMessage {
   subject   String
   message   String
   brand     String   @default("LUT")
+  read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([brand, createdAt])

@@ -34,7 +34,7 @@ export function StatsBand({ stats, light = false, accent, className }: StatsBand
       )}
     >
       {stats.map((stat, i) => (
-        <Reveal key={stat.label} delay={i * 0.12} className="text-center">
+        <Reveal key={`${stat.label}-${i}`} delay={i * 0.12} className="text-center">
           <div
             className="font-display text-3xl sm:text-5xl"
             style={{ color: accentHex }}

@@ -20,7 +20,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const brand = searchParams.get('brand') ?? 'LUT'
 
     const product = await db.product.findUnique({ where: { id }, include: { category: true } })
-    if (!product || product.brand !== brand) {
+    // Missing product is a real 404; a brand mismatch is deliberate — the
+    // storefront asked about another brand's product, so an empty rail (200)
+    // keeps the client's fallback path simple.
+    if (!product) {
+      return NextResponse.json({ error: 'not_found' }, { status: 404 })
+    }
+    if (product.brand !== brand) {
       return NextResponse.json({ products: [] })
     }
 
@@ -51,7 +57,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       })),
     })
   } catch (error) {
+    // Distinguish outages from "no related products": a DB failure is a 500,
+    // not an empty 200 that hides the problem from monitoring.
     console.error('[api/products/related] GET error:', error)
-    return NextResponse.json({ products: [] })
+    return NextResponse.json({ error: 'internal_error' }, { status: 500 })
   }
 }

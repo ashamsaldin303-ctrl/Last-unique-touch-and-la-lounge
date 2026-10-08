@@ -12,7 +12,7 @@
  * - WORDMARK SHINE: gold light sweep on hover
  */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useRouter, useLocaleSwitch } from '@/lib/router'
 import { useI18n } from '@/lib/i18n'
 import { resolveBrandFromPath, isHomePage } from '@/lib/brand'
@@ -23,16 +23,23 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 /** Brand wordmark shown in navbar per brand. */
-function useWordmark(brand: 'lut' | 'lalounge' | 'birthday') {
+function useWordmark(brand: 'neutral' | 'lut' | 'lalounge' | 'birthday') {
   const { t } = useI18n()
+  if (brand === 'neutral') return { main: t('maison.house'), subtitle: t('brand.kuwait') }
   if (brand === 'lalounge') return { main: t('brand.lalounge'), subtitle: null as string | null }
   if (brand === 'birthday') return { main: t('brand.birthday'), subtitle: t('brand.kuwait') }
   return { main: t('brand.lutShort'), subtitle: t('brand.lut') }
 }
 
+/* SSR-safe layout effect: useEffect on the server, useLayoutEffect on the
+   client — flips post-hydration state before the first paint (no flash of
+   the SSR shell, no useLayoutEffect SSR warning). */
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
 export function Navbar() {
   const { t, locale } = useI18n()
-  const { path, navigate } = useRouter()
+  const { path: routerPath, navigate } = useRouter()
   const switchLocale = useLocaleSwitch()
   const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
@@ -42,6 +49,15 @@ export function Navbar() {
   const drawerRef = useRef<HTMLDivElement>(null)
   const firstLinkRef = useRef<HTMLAnchorElement>(null)
   const hamburgerRef = useRef<HTMLButtonElement>(null)
+
+  // HYDRATION-SAFE PATH: the hash router's initial state reads
+  // window.location.hash on the client while SSR always renders the '/'
+  // shell — path-derived markup (wordmark button, brand links, hero text
+  // colors) diverged during hydration and React logged a mismatch (server
+  // `<div hidden md:flex>` vs client `<button aria-label="LUT">`). Gate the
+  // path behind `mounted` so the first client render matches the server
+  // tree exactly; the real hash route applies right after mount.
+  const path = mounted ? routerPath : '/'
 
   // Dark hero pages need light text in navbar (home + dark brand landings).
   // The La Lounge landing renders the light 3D blueprint scene over white
@@ -57,10 +73,20 @@ export function Navbar() {
   const { count: cartCount } = cartTotals(items)
   const wordmark = useWordmark(brand)
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  useIsomorphicLayoutEffect(() => {
     setMounted(true)
   }, [])
+
+  // Lock body scroll while the mobile drawer is open; restore on
+  // close/unmount (returns the previous inline value, not a blank slate).
+  useEffect(() => {
+    if (!mobileOpen) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [mobileOpen])
 
   useEffect(() => {
     let ticking = false
@@ -125,17 +151,34 @@ export function Navbar() {
     return () => window.removeEventListener('lut:navigate', onNavigate)
   }, [])
 
-  // Brand-aware link targets (mirrors original navbar.tsx)
+  // Brand-aware link targets (mirrors original navbar.tsx). Each brand site
+  // now owns its styled storefront; the neutral house links to the unified
+  // catalog. Task 25/28.
   const brandHomeHref =
-    brand === 'lalounge' ? '/la-lounge' : brand === 'birthday' ? '/your-birthday' : '/'
+    brand === 'lalounge'
+      ? '/la-lounge'
+      : brand === 'birthday'
+        ? '/your-birthday'
+        : brand === 'neutral'
+          ? '/'
+          : '/last-unique-touch'
   const brandContactHref =
     brand === 'lalounge'
       ? '/la-lounge/contact'
       : brand === 'birthday'
         ? '/your-birthday/contact'
-        : '/last-unique-touch/contact'
-  const brandProductsHref = brand === 'birthday' ? '/your-birthday/products' : '/products'
-  const brandCartHref = brand === 'birthday' ? '/your-birthday/products' : '/cart'
+        : brand === 'neutral'
+          ? '/contact'
+          : '/last-unique-touch/contact'
+  const brandProductsHref =
+    brand === 'lalounge'
+      ? '/la-lounge/products'
+      : brand === 'birthday'
+        ? '/your-birthday/products'
+        : '/products'
+  // Cart is brand-agnostic today; kept as a mutable-width string so the
+  // drawer's `=== '/'` guard stays meaningful for future brand-specific carts.
+  const brandCartHref: string = '/cart'
 
   const navLinks: Array<{ path: string; label: string }> = [
     { path: brandHomeHref, label: t('nav.home') },
@@ -159,7 +202,9 @@ export function Navbar() {
 
   const linkTextCls = (active: boolean) =>
     cn(
-      'relative text-sm font-medium tracking-wide transition-colors duration-300 group',
+      'relative text-sm font-medium transition-colors duration-300 group',
+      // letter-spacing breaks Arabic letter joining — apply to Latin only.
+      locale !== 'ar' && 'tracking-wide',
       active
         ? 'text-gold'
         : darkHero || scrolled
@@ -170,6 +215,7 @@ export function Navbar() {
   return (
     <>
       <nav
+        aria-label={t('nav.primary')}
         className={cn(
           'navbar-slide-in nav-smart fixed top-0 inset-x-0 z-50',
           scrolled ? 'glass-dark py-3' : 'bg-transparent py-5',
@@ -181,9 +227,16 @@ export function Navbar() {
             {/* LEFT: wordmark + desktop nav */}
             <div className="flex items-center gap-8 lg:gap-10 min-w-0">
               {!homePage && (
-                <button
-                  onClick={() => navigate(brandHomeHref)}
-                  className="shine-sweep group flex items-baseline gap-2 min-w-0 shrink-0 cursor-pointer bg-transparent border-0 p-0"
+                <a
+                  href={`#/${locale}${brandHomeHref === '/' ? '' : brandHomeHref}`}
+                  onClick={(e) => {
+                    // Real anchor (middle/ctrl+click opens the hash URL);
+                    // plain left clicks go through the client router.
+                    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                    e.preventDefault()
+                    navigate(brandHomeHref)
+                  }}
+                  className="shine-sweep group flex items-baseline gap-2 min-w-0 shrink-0 no-underline"
                   aria-label={wordmark.main}
                 >
                   <span className="font-display tracking-tight whitespace-nowrap transition-colors duration-300 text-primary text-lg sm:text-xl lg:text-2xl">
@@ -199,18 +252,25 @@ export function Navbar() {
                       {wordmark.subtitle}
                     </span>
                   )}
-                </button>
+                </a>
               )}
 
               <div className="hidden md:flex items-center gap-10">
                 {navLinks.map((link) => {
                   const active = isLinkActive(link.path)
                   return (
-                    <button
+                    <a
                       key={link.path}
-                      onClick={() => navigate(link.path)}
+                      href={`#/${locale}${link.path === '/' ? '' : link.path}`}
+                      onClick={(e) => {
+                        // Real anchor (middle/ctrl+click opens the hash URL);
+                        // plain left clicks go through the client router.
+                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+                        e.preventDefault()
+                        navigate(link.path)
+                      }}
                       aria-current={active ? 'page' : undefined}
-                      className={cn(linkTextCls(active), 'cursor-pointer bg-transparent border-0 p-0')}
+                      className={linkTextCls(active)}
                     >
                       {link.label}
                       {active ? (
@@ -227,7 +287,7 @@ export function Navbar() {
                           )}
                         />
                       )}
-                    </button>
+                    </a>
                   )
                 })}
               </div>
@@ -264,7 +324,7 @@ export function Navbar() {
                   'flex items-center gap-1.5 px-3 py-2 min-h-[44px] text-xs font-medium transition-colors cursor-pointer bg-transparent border-0',
                   darkHero || scrolled ? 'text-paper/70 hover:text-gold' : 'text-foreground/70 hover:text-gold'
                 )}
-                aria-label="Switch language"
+                aria-label={t('a11y.switchLanguage')}
               >
                 <Globe className="w-4 h-4" strokeWidth={1.3} />
                 <span>{locale === 'ar' ? 'EN' : 'عربي'}</span>
@@ -333,7 +393,7 @@ export function Navbar() {
               animate={{ x: 0 }}
               exit={{ x: locale === 'ar' ? '-100%' : '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 end-0 bottom-0 z-50 w-80 max-w-[85vw] bg-ink md:hidden flex flex-col"
+              className="fixed top-0 end-0 bottom-0 z-50 w-80 max-w-[85vw] bg-ink md:hidden flex flex-col overscroll-contain"
             >
               <div className="p-6 border-b border-paper/10 flex items-center justify-between">
                 {!homePage && (
@@ -348,7 +408,7 @@ export function Navbar() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="flex-1 p-6 space-y-2 overflow-y-auto max-h-96">
+              <div className="flex-1 p-6 space-y-2 overflow-y-auto max-h-96 overscroll-contain">
                 {navLinks.map((link, idx) => (
                   <motion.div
                     key={link.path}
@@ -360,6 +420,9 @@ export function Navbar() {
                       ref={idx === 0 ? firstLinkRef : undefined}
                       href={`#/${locale}${link.path === '/' ? '' : link.path}`}
                       onClick={(e) => {
+                        // Real anchor (middle/ctrl+click opens the hash URL);
+                        // plain left clicks go through the client router.
+                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
                         e.preventDefault()
                         navigate(link.path)
                         setMobileOpen(false)
@@ -380,10 +443,13 @@ export function Navbar() {
                   transition={{ delay: navLinks.length * 0.08 }}
                 >
                   <a
-                    href={`#/${locale}${(brandCartHref as string) === '/' ? '' : (brandCartHref as string)}`}
+                    href={`#/${locale}${brandCartHref === '/' ? '' : brandCartHref}`}
                     onClick={(e) => {
+                      // Real anchor (middle/ctrl+click opens the hash URL);
+                      // plain left clicks go through the client router.
+                      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
                       e.preventDefault()
-                      navigate(brandCartHref as string)
+                      navigate(brandCartHref)
                       setMobileOpen(false)
                     }}
                     className="flex items-center gap-3 py-3 text-lg font-display text-paper/70 no-underline"

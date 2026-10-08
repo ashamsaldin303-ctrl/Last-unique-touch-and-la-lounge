@@ -97,7 +97,10 @@ export function TiltCard({ children, className, max = 8, style }: TiltCardProps)
       onPointerMove={onMove}
       onPointerLeave={onLeave}
       className={cn(
-        'tilt-card relative transition-transform duration-300 ease-out will-change-transform',
+        // v45: no static will-change-transform — product grids render dozens
+        // of these and a permanent compositor-layer hint on every card is
+        // wasteful; the rAF lerp already keeps transforms smooth.
+        'tilt-card relative transition-transform duration-300 ease-out',
         className
       )}
       style={{

@@ -20,9 +20,13 @@ import enMessages from '@/messages/en.json'
 
 export type Locale = 'ar' | 'en'
 
+// NOTE: the JSON modules' inferred literal types are structurally compatible
+// with a plain string→unknown record (implicit index signature), so a single
+// `as` suffices — no double `as unknown as` round-trip. resolveKey re-checks
+// every level at runtime, so this cast only describes the top level.
 const MESSAGES: Record<Locale, Record<string, unknown>> = {
-  ar: arMessages as unknown as Record<string, unknown>,
-  en: enMessages as unknown as Record<string, unknown>,
+  ar: arMessages as Record<string, unknown>,
+  en: enMessages as Record<string, unknown>,
 }
 
 const LOCALE_KEY = 'lut_locale'
@@ -39,8 +43,16 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null)
 
+/**
+ * Resolve a dot-delimited key against a nested messages object.
+ * Returns undefined for ANY missing level (never throws) — t() then falls
+ * back to English and finally to the raw key, so dynamic keys such as
+ * `admin.tabs.${id}` degrade to visible-but-harmless text instead of errors.
+ */
 function resolveKey(obj: Record<string, unknown>, key: string): unknown {
   return key.split('.').reduce<unknown>((acc, part) => {
+    // `typeof === 'object'` + truthiness guarantees a non-null object here,
+    // so indexing it as a record is sound (arrays simply never match dot keys).
     if (acc && typeof acc === 'object' && part in (acc as Record<string, unknown>)) {
       return (acc as Record<string, unknown>)[part]
     }
@@ -98,6 +110,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  // Contract: missing key → raw key string (after an en fallback), never an
+  // exception. The catalog's array leaves (birthday gallery/scramble etc.)
+  // are consumed via direct JSON imports in pages — this branch only keeps
+  // t() total for any future array key instead of leaking "[object Object]".
   const t = useCallback(
     (key: string, params?: Record<string, string | number>): string => {
       const value = resolveKey(MESSAGES[locale], key) ?? resolveKey(MESSAGES.en, key)

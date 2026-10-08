@@ -103,5 +103,5 @@ We may update this privacy policy from time to time. We will post changes on thi
 
 For any privacy-related inquiries, please contact us via:
 - Email: info@lastuniquetouch.com
-- Phone: +965 9XXX XXXX
+- Phone: +965 5000 0000
 - Contact page: `/contact`

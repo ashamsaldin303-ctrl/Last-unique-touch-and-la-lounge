@@ -11,6 +11,7 @@
 import type { ReactNode } from 'react'
 import { Reveal } from '@/components/shared/reveal'
 import { MaskedTitle } from '@/components/shared/masked-words'
+import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 interface PageHeaderProps {
@@ -21,6 +22,10 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ eyebrow, title, subtitle, className }: PageHeaderProps) {
+  /* fix-2: tracking-wide on the display title is Latin-only — it tears
+     the joined Arabic letters apart, so it is applied for `en` only. */
+  const { locale } = useI18n()
+
   return (
     <Reveal direction="none" className={cn('text-center mb-10 sm:mb-14 px-4', className)}>
       {eyebrow && (
@@ -30,7 +35,12 @@ export function PageHeader({ eyebrow, title, subtitle, className }: PageHeaderPr
           <span className="line-draw-end w-8 h-px bg-primary/50" />
         </div>
       )}
-      <h1 className="font-display text-3xl sm:text-5xl md:text-6xl text-foreground tracking-wide mb-4">
+      <h1
+        className={cn(
+          'font-display text-3xl sm:text-5xl md:text-6xl text-foreground mb-4',
+          locale === 'en' && 'tracking-wide'
+        )}
+      >
         <MaskedTitle title={title} />
       </h1>
       {subtitle && (

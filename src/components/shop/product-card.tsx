@@ -29,12 +29,15 @@ export function ProductCard({
   const { t, locale } = useI18n()
   const { href } = useRouter()
   const [imgLoaded, setImgLoaded] = useState(false)
+  const [imgErrored, setImgErrored] = useState(false)
+  // A 404 (e.g. pending generated images) must not shimmer forever —
+  // once <Image> errors out, fall back to the no-image monogram.
+  const firstImage = product.images?.[0]
 
   const name = localizedName(product, locale)
   const categoryName = product.category ? localizedName(product.category, locale) : ''
   const description = localizedDescription(product, locale)
   const isOutOfStock = product.stock === 0
-  const firstImage = product.images?.[0]
 
   // Arrow direction follows reading direction: AR → left, EN → right.
   const ArrowIcon = locale === 'ar' ? ArrowLeft : ArrowRight
@@ -42,7 +45,14 @@ export function ProductCard({
   return (
     <a
       href={href(`/products/${product.slug}`)}
-      className={cn('group block h-full rounded-md focus-visible:outline-2', className)}
+      className={cn(
+        // Explicit outline style+color: outline-2 alone leaves the CSS
+        // initial `outline-style: none` (an invisible ring). The global
+        // :where(...) focus-visible rule covers this too — kept explicit
+        // so the card is self-sufficient.
+        'group block h-full rounded-md focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-primary',
+        className
+      )}
       aria-label={name}
     >
       <article
@@ -56,13 +66,14 @@ export function ProductCard({
           className={cn('img-shimmer relative aspect-square overflow-hidden bg-muted/40')}
           data-loaded={imgLoaded ? 'true' : 'false'}
         >
-          {firstImage ? (
+          {firstImage && !imgErrored ? (
             <Image
               src={firstImage}
               alt={name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               onLoad={() => setImgLoaded(true)}
+              onError={() => setImgErrored(true)}
               className={cn(
                 'object-cover transition-transform duration-700 ease-out group-hover:scale-105',
                 isOutOfStock && 'grayscale-[0.4]'
@@ -79,10 +90,17 @@ export function ProductCard({
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-primary/30 via-primary/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"
           />
-          {/* Gold sheen — diagonal light sweep */}
+          {/* Gold sheen — diagonal light sweep: enters from the reading
+              edge (Tailwind translate is physical, so the signs flip in RTL
+              to sweep right→left like the mirrored CTA arrow). */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-[2] -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-1000 ease-out group-hover:translate-x-full"
+            className={cn(
+              'pointer-events-none absolute inset-0 z-[2] bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-1000 ease-out',
+              locale === 'ar'
+                ? 'translate-x-full group-hover:-translate-x-full'
+                : '-translate-x-full group-hover:translate-x-full'
+            )}
           />
 
           {/* Quick-view affordance (rises on hover) */}
@@ -110,7 +128,13 @@ export function ProductCard({
         {/* Info */}
         <div className="flex flex-1 flex-col gap-2.5 p-4">
           {categoryName && (
-            <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-gold/30 bg-gold/5 px-2.5 py-0.5 text-[0.6875rem] font-semibold tracking-wide text-gold">
+            <span
+              className={cn(
+                'inline-flex w-fit items-center gap-1.5 rounded-full border border-gold/30 bg-gold/5 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-gold',
+                // Arabic is a joined script — never letter-space it (fix-2 lesson).
+                locale === 'en' && 'tracking-wide'
+              )}
+            >
               <span className="inline-block size-1 rotate-45 bg-gold/70" aria-hidden="true" />
               {categoryName}
             </span>
@@ -122,8 +146,9 @@ export function ProductCard({
 
           <p className="text-xs leading-relaxed text-muted-foreground/90 line-clamp-2">{description}</p>
 
-          {/* Price + CTA */}
-          <div className="mt-auto flex items-end justify-between gap-2 pt-2">
+          {/* Price + CTA — stacked on 2-col mobile grids (price column was
+              collapsing to ~12px next to the shrink-0 CTA), row from sm up */}
+          <div className="mt-auto flex flex-col gap-2 pt-2 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 space-y-0.5">
               <p
                 className={cn(
@@ -131,16 +156,30 @@ export function ProductCard({
                   isOutOfStock ? 'text-muted-foreground' : 'text-primary'
                 )}
               >
-                <span className="tabular-nums">{formatKwd(product.rentalPricePerDay)}</span>
-                <span className="text-[0.625rem] font-normal tracking-wide text-muted-foreground">
+                <span dir="ltr" className="tabular-nums">
+                  {formatKwd(product.rentalPricePerDay)}
+                </span>
+                <span
+                  className={cn(
+                    'text-[0.625rem] font-normal text-muted-foreground',
+                    // tracking-wide only for Latin; normal also defeats the
+                    // 0.01em inherited from .price-display over Arabic.
+                    locale === 'en' ? 'tracking-wide' : 'tracking-normal'
+                  )}
+                >
                   {t('products.perDay')}
                 </span>
+              </p>
+              <p className="text-[0.625rem] leading-tight text-muted-foreground/80">
+                {t('product.securityDeposit', {
+                  amount: formatKwd(product.securityDeposit),
+                })}
               </p>
             </div>
 
             <span
               className={cn(
-                'btn-lux inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2.5 text-xs font-semibold',
+                'btn-lux inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md px-3 min-h-11 py-2 text-xs font-semibold w-full sm:w-auto',
                 isOutOfStock && 'pointer-events-none opacity-50'
               )}
             >

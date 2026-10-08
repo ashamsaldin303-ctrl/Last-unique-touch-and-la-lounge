@@ -11,12 +11,13 @@
  * eventDate required). All copy comes from yourBirthday.booking.* keys.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { useI18n } from '@/lib/i18n'
 import { useToast } from '@/hooks/use-toast'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -36,6 +37,7 @@ import {
   PartyPopper,
   Phone,
   User,
+  X,
 } from 'lucide-react'
 
 interface BookingModalProps {
@@ -65,6 +67,34 @@ const bookingSchema = z.object({
 
 type BookingForm = typeof EMPTY_FORM
 
+/** zod issue field → message key for inline per-field errors (pattern
+ * ported from birthday-contact.tsx). */
+const FIELD_ERROR_KEYS: Record<string, string> = {
+  name: 'yourBirthday.booking.errors.nameMin',
+  phone: 'yourBirthday.booking.errors.phoneMin',
+  email: 'yourBirthday.booking.errors.emailInvalid',
+  location: 'yourBirthday.booking.errors.locationMin',
+  eventDate: 'yourBirthday.booking.errors.eventDateRequired',
+}
+
+/** Input ids in DOM order — used to focus the first invalid field. */
+const FIELD_IDS: Record<string, string> = {
+  name: 'birthday-booking-name',
+  phone: 'birthday-booking-phone',
+  email: 'birthday-booking-email',
+  eventDate: 'birthday-booking-date',
+  location: 'birthday-booking-location',
+}
+
+/** Local yyyy-mm-dd — date inputs are LOCAL; new Date().toISOString() is
+ *  UTC, which let past dates through in UTC+3 (Kuwait 00:00–03:00) and
+ *  blocked today in UTC− (same rationale as dateFromToday in
+ *  birthday-products.tsx). */
+function toLocalDateInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 /** Map an API error code to a message key under yourBirthday.booking.errors.* */
 const KNOWN_ERROR_CODES = [
   'invalid_input',
@@ -80,19 +110,29 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
   const { t } = useI18n()
   const { toast } = useToast()
   const [form, setForm] = useState<BookingForm>(EMPTY_FORM)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  /** Aborts an in-flight booking POST when the dialog closes/unmounts. */
+  const abortRef = useRef<AbortController | null>(null)
 
   // Reset the form a moment after the dialog fully closes so the success
-  // screen doesn't flash back to the empty form mid-exit-animation.
+  // screen doesn't flash back to the empty form mid-exit-animation. Also
+  // abort any POST still in flight so it can't flip state post-close.
   useEffect(() => {
     if (open) return
+    abortRef.current?.abort()
+    abortRef.current = null
     const timer = setTimeout(() => {
       setSuccess(false)
       setForm(EMPTY_FORM)
+      setFieldErrors({})
     }, 300)
     return () => clearTimeout(timer)
   }, [open])
+
+  // Unmount while open (route change) — abort the in-flight POST.
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   // Auto-close after success (mirrors the original 2.5s pattern).
   useEffect(() => {
@@ -101,8 +141,16 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
     return () => clearTimeout(timer)
   }, [open, success, onOpenChange])
 
-  const set = (key: keyof BookingForm) => (value: string) =>
+  const set = (key: keyof BookingForm) => (value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }))
+    // Clear that field's inline error as soon as the user edits it.
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -110,16 +158,32 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
 
     const parsed = bookingSchema.safeParse(form)
     if (!parsed.success) {
-      // No per-field message keys exist for booking — surface the shared
-      // invalid-input message as a toast (server parity).
+      // Per-field inline errors (birthday-contact pattern) + aria-invalid;
+      // the shared toast stays as a secondary signal.
+      const errors: Record<string, string> = {}
+      for (const issue of parsed.error.issues) {
+        const field = String(issue.path[0] ?? '')
+        if (field && !errors[field]) {
+          errors[field] = t(FIELD_ERROR_KEYS[field] ?? 'yourBirthday.booking.errors.invalid_input')
+        }
+      }
+      setFieldErrors(errors)
       toast({
         title: t('yourBirthday.booking.errors.invalid_input'),
         variant: 'destructive',
       })
+      // Focus the first invalid input (DOM order) so keyboard/SR users
+      // land directly on the field to fix.
+      const firstInvalid = ['name', 'phone', 'email', 'eventDate', 'location'].find(
+        (f) => !!errors[f]
+      )
+      if (firstInvalid) document.getElementById(FIELD_IDS[firstInvalid])?.focus()
       return
     }
 
     setSubmitting(true)
+    const controller = new AbortController()
+    abortRef.current = controller
     try {
       const response = await fetch('/api/bookings/birthday', {
         method: 'POST',
@@ -133,6 +197,7 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
           notes: form.notes || undefined,
           selectedPackage: selectedPackage ?? undefined,
         }),
+        signal: controller.signal,
       })
 
       const result = (await response.json().catch(() => ({}))) as {
@@ -153,23 +218,41 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
 
       setSuccess(true)
     } catch {
+      // Aborted (dialog closed/unmounted mid-flight) — drop state updates.
+      if (controller.signal.aborted) return
       toast({
         title: t('yourBirthday.booking.errors.network'),
         variant: 'destructive',
       })
     } finally {
+      if (abortRef.current === controller) abortRef.current = null
       setSubmitting(false)
     }
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  // Local calendar dates (see toLocalDateInput) + the server's 18-month
+  // event_date_out_of_range cap mirrored client-side.
+  const today = toLocalDateInput(new Date())
+  const horizon = new Date()
+  horizon.setMonth(horizon.getMonth() + 18)
+  const maxDate = toLocalDateInput(horizon)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-md gap-0 overflow-y-auto max-h-[90dvh] border-primary/30 bg-card p-6 sm:p-8"
+        showCloseButton={false}
         dir="auto"
       >
+        {/* Localized close button — the shared DialogContent fallback label
+            is hardcoded English (Arabic-first app); same position/styling as
+            the default one it replaces. */}
+        <DialogClose
+          className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+        >
+          <X aria-hidden="true" />
+          <span className="sr-only">{t('yourBirthday.booking.close')}</span>
+        </DialogClose>
         {/* Decorative corner glows — gold, on-brand */}
         <div
           aria-hidden="true"
@@ -235,9 +318,21 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
                     autoComplete="name"
                     value={form.name}
                     onChange={(e) => set('name')(e.target.value)}
+                    aria-invalid={!!fieldErrors.name}
+                    aria-describedby={fieldErrors.name ? 'birthday-booking-name-error' : undefined}
                     className="ps-10 min-h-11 bg-background"
                   />
                 </div>
+                {fieldErrors.name && (
+                  <p
+                    id="birthday-booking-name-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 text-xs text-destructive"
+                  >
+                    <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                    {fieldErrors.name}
+                  </p>
+                )}
               </div>
 
               {/* Phone */}
@@ -259,9 +354,21 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
                     dir="ltr"
                     value={form.phone}
                     onChange={(e) => set('phone')(e.target.value)}
+                    aria-invalid={!!fieldErrors.phone}
+                    aria-describedby={fieldErrors.phone ? 'birthday-booking-phone-error' : undefined}
                     className="ps-10 min-h-11 bg-background text-start"
                   />
                 </div>
+                {fieldErrors.phone && (
+                  <p
+                    id="birthday-booking-phone-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 text-xs text-destructive"
+                  >
+                    <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                    {fieldErrors.phone}
+                  </p>
+                )}
               </div>
 
               {/* Email */}
@@ -281,9 +388,21 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
                     dir="ltr"
                     value={form.email}
                     onChange={(e) => set('email')(e.target.value)}
+                    aria-invalid={!!fieldErrors.email}
+                    aria-describedby={fieldErrors.email ? 'birthday-booking-email-error' : undefined}
                     className="ps-10 min-h-11 bg-background text-start"
                   />
                 </div>
+                {fieldErrors.email && (
+                  <p
+                    id="birthday-booking-email-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 text-xs text-destructive"
+                  >
+                    <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                    {fieldErrors.email}
+                  </p>
+                )}
               </div>
 
               {/* Event date */}
@@ -301,11 +420,24 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
                     type="date"
                     required
                     min={today}
+                    max={maxDate}
                     value={form.eventDate}
                     onChange={(e) => set('eventDate')(e.target.value)}
+                    aria-invalid={!!fieldErrors.eventDate}
+                    aria-describedby={fieldErrors.eventDate ? 'birthday-booking-date-error' : undefined}
                     className="ps-10 min-h-11 bg-background"
                   />
                 </div>
+                {fieldErrors.eventDate && (
+                  <p
+                    id="birthday-booking-date-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 text-xs text-destructive"
+                  >
+                    <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                    {fieldErrors.eventDate}
+                  </p>
+                )}
               </div>
 
               {/* Location */}
@@ -325,9 +457,21 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
                     minLength={2}
                     value={form.location}
                     onChange={(e) => set('location')(e.target.value)}
+                    aria-invalid={!!fieldErrors.location}
+                    aria-describedby={fieldErrors.location ? 'birthday-booking-location-error' : undefined}
                     className="ps-10 min-h-11 bg-background"
                   />
                 </div>
+                {fieldErrors.location && (
+                  <p
+                    id="birthday-booking-location-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 text-xs text-destructive"
+                  >
+                    <AlertCircle className="size-3.5 shrink-0" aria-hidden="true" />
+                    {fieldErrors.location}
+                  </p>
+                )}
               </div>
 
               {/* Notes */}

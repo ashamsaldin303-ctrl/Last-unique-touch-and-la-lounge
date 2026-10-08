@@ -309,27 +309,8 @@ body {
   transition: background-color 0.5s ease, color 0.5s ease;
 }
 
-::selection {
-  background: var(--color-primary);
-  color: var(--color-primary-foreground);
-}
-
-/* Custom scrollbar — brand-aware */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-background);
-}
-::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-primary) 45%, transparent);
-  border-radius: 999px;
-  border: 2px solid var(--color-background);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
-}
+/* (::selection and custom scrollbar live once, further below in the polish
+   layer — the duplicated early copies were dead cascade and were removed.) */
 
 /* Focus visible — accessibility */
 :focus-visible {
@@ -1239,8 +1220,11 @@ p {
   bottom: -3px;
   inset-inline: 0;
   height: 1px;
+  /* `to inline-end` is not a valid css-images-3 side-or-corner (the whole
+     declaration was dropped at parse time) — physical direction + RTL
+     mirror below instead. */
   background: linear-gradient(
-    to inline-end,
+    to right,
     color-mix(in srgb, var(--color-primary) 85%, transparent),
     transparent
   );
@@ -1250,6 +1234,11 @@ p {
 }
 [dir='rtl'] .link-slide::after {
   transform-origin: right center;
+  background: linear-gradient(
+    to left,
+    color-mix(in srgb, var(--color-primary) 85%, transparent),
+    transparent
+  );
 }
 .link-slide:hover::after,
 .link-slide:focus-visible::after {
@@ -1737,7 +1726,7 @@ p {
   transform: scaleX(0);
   transform-origin: center;
   background: linear-gradient(
-    to inline-end,
+    to right,
     transparent,
     var(--color-gold),
     color-mix(in srgb, var(--color-gold) 40%, transparent),
@@ -1871,7 +1860,7 @@ p {
   height: 2px;
   border-radius: 999px;
   background: linear-gradient(
-    to inline-end,
+    to right,
     transparent,
     var(--color-gold),
     transparent
@@ -2003,7 +1992,7 @@ p {
   inset-inline: 0;
   height: 2px;
   background: linear-gradient(
-    to inline-end,
+    to right,
     transparent,
     color-mix(in srgb, var(--color-gold) 85%, transparent),
     transparent
@@ -2188,3 +2177,770 @@ body::after {
 }
 
 /* rebuild-trigger: skill-kit v2 final */
+
+/* ================================================================
+   TASK 25 — NEUTRAL HOUSE (umbrella identity, home page)
+   The landing page belongs to no single brand: a dark "gallery"
+   surface in warm near-black + maison champagne accent. The three
+   brand accents appear contextually via the tri-* utilities so the
+   page reads as one house embracing three worlds.
+   ================================================================ */
+:root[data-brand='neutral'] {
+  --primary: #c9a25e;
+  --primary-foreground: #17130c;
+  --accent: #b8915a;
+  --ring: #c9a25e;
+  --gold: #c9a25e;
+  --lut: #c9a25e;
+  --color-gold: #c9a25e;
+  --color-brand: #c9a25e;
+  --color-lut: #c9a25e;
+  --background: #0e0d0b;
+  --foreground: #f2ede2;
+  --color-background: #0e0d0b;
+  --color-foreground: #f2ede2;
+  --card: #191712;
+  --card-foreground: #f2ede2;
+  --color-card: #191712;
+  --color-card-foreground: #f2ede2;
+  --popover: #191712;
+  --popover-foreground: #f2ede2;
+  --color-popover: #191712;
+  --color-popover-foreground: #f2ede2;
+  --border: #2a2620;
+  --input: #2a2620;
+  --color-border: #2a2620;
+  --color-input: #2a2620;
+  --secondary: #221f19;
+  --secondary-foreground: #f2ede2;
+  --muted: #221f19;
+  --muted-foreground: #a59c8b;
+  --font-display: var(--font-cormorant), var(--font-amiri), serif;
+  --font-body: var(--font-tajawal), system-ui, sans-serif;
+}
+/* The maison is dark-first: light/dark toggles barely shift it. */
+.dark:root[data-brand='neutral'],
+:root[data-brand='neutral'].dark {
+  --background: #0b0a08;
+  --color-background: #0b0a08;
+  --card: #151310;
+  --color-card: #151310;
+  --popover: #151310;
+  --color-popover: #151310;
+}
+
+/* Tri-brand accent scope: set --tri on any subtree, then consume via
+   the tri-accent utilities below. */
+.tri-lut {
+  --tri: #8b6b3d;
+}
+.tri-ll {
+  --tri: #e6007e;
+}
+.tri-bday {
+  --tri: #f5b914;
+}
+.tri-house {
+  --tri: #c9a25e;
+}
+.tri-accent {
+  color: var(--tri);
+}
+.tri-line {
+  background: var(--tri);
+}
+.tri-ring {
+  border-color: color-mix(in srgb, var(--tri) 45%, transparent);
+}
+.tri-glow {
+  box-shadow: 0 18px 55px -22px color-mix(in srgb, var(--tri) 55%, transparent);
+}
+
+/* Maison brand gradient text (champagne, var-driven — unlike the
+   LUT-hardcoded .text-gradient-gold). */
+.text-gradient-maison {
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--color-gold) 72%, #fff3d6) 0%,
+    color-mix(in srgb, var(--color-gold) 92%, #ffffff) 38%,
+    color-mix(in srgb, var(--color-gold) 62%, #3a2f1a) 78%,
+    color-mix(in srgb, var(--color-gold) 85%, #fff3d6) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ================================================================
+   TASK 26 — DURATION SELECTOR (rental period picker)
+   "عقد الأيام" — the days-strand: preset chips + framed date
+   fields + a jeweler's strand whose gems mark the rented days.
+   Fully brand-adaptive through --color-primary / --color-gold, so
+   the same component reads gold (LUT), magenta (La Lounge),
+   birthday gold and maison champagne.
+   ================================================================ */
+
+/* --- Panel frame (full mode) --- */
+.duration-panel {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
+  border-radius: 0.875rem;
+  background:
+    radial-gradient(
+      ellipse 70% 90% at 50% -20%,
+      color-mix(in srgb, var(--color-primary) 9%, transparent),
+      transparent 65%
+    ),
+    var(--card);
+  box-shadow: 0 24px 60px -32px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+.duration-panel::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-primary) 75%, transparent),
+    transparent
+  );
+}
+
+/* --- Framed native date field --- */
+.duration-field {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 26%, transparent);
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, var(--color-primary) 4%, var(--background));
+  transition:
+    border-color 260ms var(--ease-out-strong),
+    box-shadow 260ms var(--ease-out-strong),
+    background-color 260ms ease;
+}
+.duration-field:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+.duration-field:focus-within {
+  border-color: color-mix(in srgb, var(--color-primary) 70%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--background));
+}
+.duration-field[data-filled='true'] {
+  border-color: color-mix(in srgb, var(--color-primary) 48%, transparent);
+}
+
+/* --- The strand (timeline) --- */
+.duration-strand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+}
+.duration-rail {
+  position: relative;
+  flex: 1;
+  height: 30px;
+  display: flex;
+  align-items: center;
+}
+.duration-rail::before {
+  /* ruler ticks */
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: 14px;
+  transform: translateY(-50%);
+  background-image: repeating-linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-primary) 30%, transparent) 0 1px,
+    transparent 1px 9px
+  );
+  opacity: 0.55;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+.duration-flow {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 50%;
+  height: 3px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-gold) 20%, transparent),
+    color-mix(in srgb, var(--color-gold) 85%, #fff),
+    var(--color-gold)
+  );
+  box-shadow: 0 0 14px color-mix(in srgb, var(--color-gold) 40%, transparent);
+  transition: width 620ms var(--ease-fluid);
+  background-size: 200% 100%;
+}
+.duration-flow[data-live='true'] {
+  animation: duration-march 2.8s linear infinite;
+}
+@keyframes duration-march {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* --- Day gems on the strand --- */
+.duration-gem {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  transform: rotate(45deg);
+  border-radius: 2px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-gold) 55%, #ffffff 18%),
+    var(--color-gold)
+  );
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--color-gold) 45%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  border: 1px solid color-mix(in srgb, var(--color-gold) 60%, #ffffff 12%);
+}
+.duration-gem[data-dormant='true'] {
+  opacity: 0.16;
+  filter: grayscale(0.55);
+  box-shadow: none;
+}
+
+/* --- Endpoint nodes (start / end flags) --- */
+.duration-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  min-width: 4.25rem;
+}
+.duration-node-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--color-gold);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-gold) 22%, transparent),
+    0 0 12px color-mix(in srgb, var(--color-gold) 55%, transparent);
+}
+.duration-node-dot[data-dormant='true'] {
+  background: color-mix(in srgb, var(--color-foreground) 30%, transparent);
+  box-shadow: none;
+}
+
+/* --- Big day counter --- */
+.duration-count {
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--color-gold) 60%, #ffffff 20%),
+    color-mix(in srgb, var(--color-gold) 95%, #ffffff),
+    color-mix(in srgb, var(--color-gold) 62%, var(--color-foreground))
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* --- Preset chip (compact variant sizing handled by Tailwind) --- */
+.duration-chip {
+  /* fix-2 touch targets: 44px (matches the h-11 date fields) */
+  min-height: 44px;
+}
+.duration-chip-compact {
+  /* fix-2 touch targets: 40px floor in compact (44px would swell the
+     card mini-forms; chips stay comfortably tappable and wrap-safe) */
+  min-height: 40px;
+}
+
+/* --- Reduced motion: strand marches stop, gems static --- */
+@media (prefers-reduced-motion: reduce) {
+  .duration-flow,
+  .duration-flow[data-live='true'] {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* rebuild-trigger: task25/26 neutral house + duration selector v2 */
+
+/* ================================================================
+   TASK 28-a KIT — LA LOUNGE STOREFRONT (magenta editorial)
+   Pre-provisioned building blocks. The page auto-themes via
+   data-brand='lalounge' (dark plum + magenta); these classes give
+   the editorial/atelier identity. Agents: DO NOT edit this file.
+   ================================================================ */
+
+/* Drafting-paper backdrop with a faint magenta grid */
+.ll-store-draft {
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-primary) 7%, transparent) 1px, transparent 1px) 0 0 / 100% 3.5rem,
+    linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 7%, transparent) 1px, transparent 1px) 0 0 / 3.5rem 100%,
+    var(--background);
+}
+
+/* Editorial collection card */
+.ll-store-card {
+  position: relative;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
+  background: linear-gradient(165deg, color-mix(in srgb, var(--color-primary) 6%, var(--card)), var(--card) 60%);
+  transition:
+    border-color 350ms var(--ease-fluid),
+    box-shadow 350ms var(--ease-fluid);
+}
+.ll-store-card:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  box-shadow: 0 24px 60px -28px rgba(230, 0, 126, 0.45);
+}
+.ll-store-card::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary) 80%, transparent), transparent);
+}
+
+/* Oversized outline index number (editorial numbering) */
+.ll-store-index {
+  font-family: var(--font-display);
+  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--color-primary) 60%, transparent);
+  color: transparent;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Magenta editorial rule */
+.ll-store-rule {
+  height: 1px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 70%, transparent), transparent);
+}
+
+/* Price plate */
+.ll-store-price {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+/* ================================================================
+   TASK 28-b KIT — BIRTHDAY STOREFRONT (festive)
+   Pre-provisioned building blocks. The page auto-themes via
+   data-brand='birthday' (white + gold + purple + playful fonts);
+   these classes give the party identity. Agents: DO NOT edit.
+   ================================================================ */
+
+/* Confetti field — scattered gold/pink/purple dots */
+.bday-store-confetti {
+  background-image:
+    radial-gradient(circle, color-mix(in srgb, var(--color-primary) 50%, transparent) 0 2.2px, transparent 2.8px),
+    radial-gradient(circle, color-mix(in srgb, #ffb6c1 75%, transparent) 0 2.6px, transparent 3.2px),
+    radial-gradient(circle, color-mix(in srgb, var(--color-foreground) 22%, transparent) 0 1.8px, transparent 2.4px);
+  background-size: 150px 150px, 210px 210px, 260px 260px;
+  background-position: 0 0, 47px 63px, 113px 27px;
+}
+
+/* Playful party card */
+.bday-store-card {
+  border: 2px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  border-radius: 1.25rem;
+  background: var(--card);
+  box-shadow: 0 18px 44px -24px rgba(201, 149, 14, 0.42);
+  transition:
+    transform 350ms var(--ease-fluid),
+    box-shadow 350ms var(--ease-fluid),
+    border-color 350ms var(--ease-fluid);
+}
+.bday-store-card:hover {
+  transform: translateY(-5px) rotate(-0.6deg);
+  border-color: color-mix(in srgb, var(--color-primary) 65%, transparent);
+  box-shadow: 0 26px 60px -26px rgba(201, 149, 14, 0.55);
+}
+
+/* Ticket-style price plate (dashed perforation + punch holes) */
+.bday-store-ticket {
+  position: relative;
+  border: 1.5px dashed color-mix(in srgb, var(--color-primary) 55%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+.bday-store-ticket::before,
+.bday-store-ticket::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1.5px dashed color-mix(in srgb, var(--color-primary) 55%, transparent);
+  transform: translateY(-50%);
+}
+.bday-store-ticket::before {
+  inset-inline-start: -0.55rem;
+}
+.bday-store-ticket::after {
+  inset-inline-end: -0.55rem;
+}
+
+/* Balloon float — gentle playful bob */
+@keyframes bday-balloon-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-9px) rotate(2.5deg);
+  }
+}
+.bday-store-float {
+  animation: bday-balloon-float 6s ease-in-out infinite;
+}
+.bday-store-float-2 {
+  animation: bday-balloon-float 7.5s ease-in-out -2.2s infinite reverse;
+}
+
+/* Wavy squiggle underline for headings */
+.bday-store-squiggle {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: color-mix(in srgb, var(--color-primary) 65%, transparent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 7px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bday-store-float,
+  .bday-store-float-2,
+  .bday-store-card,
+  .bday-store-card:hover {
+    animation: none;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* rebuild-trigger: task28 storefront kits */
+
+/* ===== Arabic typography guards (fix-2) ===== */
+/* letter-spacing tears the joined Arabic letters apart (cursive script:
+   Chrome inserts gaps between connected glyph forms) and uppercase is a
+   no-op that only distorts copy flow. In Arabic context the spaced-caps
+   treatment is replaced by word-spacing — the approach proven in
+   la-lounge-products.tsx (eyebrowTypo). Latin rendering is untouched. */
+html[lang='ar'] .eyebrow,
+[dir='rtl'] .eyebrow {
+  letter-spacing: normal;
+  text-transform: none;
+  word-spacing: 0.35em;
+}
+
+/* Same guard for the small shared pill/veil labels that carry a light
+   letter-spacing over Arabic text (stock-veil badge, quick-view veil). */
+html[lang='ar'] .stock-veil > span,
+[dir='rtl'] .stock-veil > span,
+html[lang='ar'] .veil-quick,
+[dir='rtl'] .veil-quick {
+  letter-spacing: normal;
+}
+
+/* rebuild-trigger: fix-2 arabic typography guards */
+
+/* ===== Admin panel kit (w2-e) ===== */
+/* ================================================================
+   ADMIN PANEL KIT — wave 2 / task 2-e (Maison control panel)
+   Dark warm-glass kit scoped to the admin shell, independent of
+   the storefront brand theming. Warm palette only (champagne gold
+   on #0E0D0B — never blue/indigo). Logical properties throughout
+   (inset-inline-*, text-align: start) → html[dir='rtl'] mirrors
+   for free, no physical left/right anywhere. No letter-spacing /
+   text-transform in the kit (Arabic joining, fix-2 lesson).
+   Tunables exposed as --admin-* custom properties (defaults inline).
+   ================================================================ */
+
+/* --- Page shell: faint champagne wash over warm near-black + top radial --- */
+.admin-shell {
+  --admin-bg: #0e0d0b;
+  --admin-gold: #c9a24b;
+  --admin-gold-soft: #e5c878;
+  --admin-ink: #f5efe4;
+  --admin-ink-soft: rgba(245, 239, 228, 0.7);
+  --admin-radius: 1rem;
+
+  min-height: 100dvh;
+  color-scheme: dark;
+  color: var(--admin-ink);
+  background:
+    radial-gradient(72rem 30rem at 50% -8rem, rgba(201, 162, 75, 0.1), transparent 65%),
+    radial-gradient(52rem 28rem at 88% 110%, rgba(181, 107, 61, 0.05), transparent 70%),
+    linear-gradient(180deg, #14120e 0%, var(--admin-bg) 38%, #0b0a08 100%);
+}
+
+/* Warm text selection inside the panel only */
+.admin-shell ::selection {
+  background: rgba(201, 162, 75, 0.35);
+  color: var(--admin-ink);
+}
+
+/* --- Decorative warm radial glow (absolute, inert, horizontally centered;
+       the page drops it inside a relative container — vertical placement
+       stays utility-tunable since no top/offset is set here) --- */
+.admin-glow {
+  position: absolute;
+  inset-inline: 0;
+  height: 24rem;
+  margin-inline: auto;
+  pointer-events: none;
+  background: radial-gradient(
+    50% 55% at 50% 42%,
+    rgba(201, 162, 75, 0.13),
+    rgba(181, 107, 61, 0.05) 55%,
+    transparent 72%
+  );
+}
+
+/* --- Dark glass card: warm rgba 5% + light blur + 1px gold top hairline --- */
+.admin-card {
+  border-radius: var(--admin-radius, 1rem);
+  background: rgba(245, 239, 228, 0.05);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(201, 162, 75, 0.13);
+  border-top-color: rgba(201, 162, 75, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(229, 200, 120, 0.14),
+    0 24px 60px -34px rgba(0, 0, 0, 0.7);
+}
+
+/* --- KPI tile: medal icon + big display number + quiet label --- */
+.admin-stat {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: var(--admin-radius, 1rem);
+  background: rgba(245, 239, 228, 0.045);
+  border: 1px solid rgba(201, 162, 75, 0.14);
+  box-shadow: inset 0 1px 0 rgba(201, 162, 75, 0.16);
+  transition:
+    border-color 320ms var(--ease-fluid, ease),
+    background-color 320ms var(--ease-fluid, ease),
+    transform 320ms var(--ease-fluid, ease);
+}
+.admin-stat:hover {
+  border-color: rgba(201, 162, 75, 0.3);
+  background: rgba(245, 239, 228, 0.07);
+  transform: translateY(-2px);
+}
+.admin-stat-value {
+  font-family: var(--font-display);
+  font-size: var(--admin-stat-size, 2.1rem);
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--admin-gold);
+  font-variant-numeric: tabular-nums;
+}
+.admin-stat-label {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--admin-ink-soft);
+}
+.admin-stat-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  inline-size: 2.85rem;
+  block-size: 2.85rem;
+  border-radius: 999px;
+  color: var(--admin-gold-soft);
+  border: 1px solid rgba(201, 162, 75, 0.45);
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgba(201, 162, 75, 0.22),
+    rgba(201, 162, 75, 0.05)
+  );
+  box-shadow: inset 0 1px 0 rgba(229, 200, 120, 0.3);
+}
+
+/* --- Scrollable table wrapper: sticky header, hairline rows, warm hover --- */
+.admin-table {
+  max-height: var(--admin-table-maxh, 26rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: calc(var(--admin-radius, 1rem) - 0.375rem);
+  scrollbar-width: thin; /* Firefox — faint gold */
+  scrollbar-color: rgba(201, 162, 75, 0.4) transparent;
+}
+.admin-table::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.admin-table::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-table::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(201, 162, 75, 0.32);
+}
+.admin-table::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 162, 75, 0.5);
+}
+.admin-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: start;
+  color: var(--admin-ink-soft);
+  background: linear-gradient(180deg, rgba(20, 18, 14, 0.97), rgba(20, 18, 14, 0.92));
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(201, 162, 75, 0.25);
+}
+.admin-table td {
+  padding: 0.7rem 0.85rem;
+  text-align: start;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(245, 239, 228, 0.05);
+}
+.admin-table tbody tr {
+  transition: background-color 160ms var(--ease-fluid, ease);
+}
+.admin-table tbody tr:hover {
+  background: rgba(201, 162, 75, 0.04); /* warm 4% */
+}
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* --- Status chip: small pill, tinted border + transparent fill.
+       Text is the spec hue lifted toward warm ivory for AA on #0E0D0B. --- */
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.18rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  line-height: 1.55;
+  white-space: nowrap;
+  color: var(--admin-ink-soft);
+  border: 1px solid rgba(245, 239, 228, 0.16);
+  background: rgba(245, 239, 228, 0.05);
+}
+.admin-chip[data-status='PENDING'] {
+  /* amber #B45309 */
+  color: color-mix(in srgb, #b45309 52%, #f5efe4);
+  border-color: color-mix(in srgb, #b45309 65%, transparent);
+  background: color-mix(in srgb, #b45309 16%, transparent);
+}
+.admin-chip[data-status='CONFIRMED'] {
+  /* quiet green #3F6212 */
+  color: color-mix(in srgb, #3f6212 48%, #f5efe4);
+  border-color: color-mix(in srgb, #3f6212 70%, transparent);
+  background: color-mix(in srgb, #3f6212 18%, transparent);
+}
+.admin-chip[data-status='CANCELLED'] {
+  /* quiet red #B91C1C */
+  color: color-mix(in srgb, #b91c1c 55%, #f5efe4);
+  border-color: color-mix(in srgb, #b91c1c 62%, transparent);
+  background: color-mix(in srgb, #b91c1c 14%, transparent);
+}
+.admin-chip[data-status='COMPLETED'] {
+  /* gray-gold */
+  color: color-mix(in srgb, #c9a24b 42%, #b9b2a2);
+  border-color: color-mix(in srgb, #c9a24b 40%, transparent);
+  background: color-mix(in srgb, #c9a24b 9%, transparent);
+}
+
+/* --- Brand badge: small tri-brand tag --- */
+.admin-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.16rem 0.6rem;
+  border-radius: 0.45rem;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.admin-brand-badge[data-brand='LUT'] {
+  color: #c9a24b;
+  border-color: rgba(201, 162, 75, 0.5);
+  background: rgba(201, 162, 75, 0.09);
+}
+.admin-brand-badge[data-brand='LA_LOUNGE'] {
+  /* magenta #E6007E (lifted 15% toward ivory for AA on the dark shell) */
+  color: color-mix(in srgb, #e6007e 85%, #f5efe4);
+  border-color: rgba(230, 0, 126, 0.55);
+  background: rgba(230, 0, 126, 0.1);
+}
+.admin-brand-badge[data-brand='YOUR_BIRTHDAY'] {
+  color: #f5b914;
+  border-color: rgba(245, 185, 20, 0.5);
+  background: rgba(245, 185, 20, 0.1);
+}
+
+/* --- Centered login card: deeper dark glass + gold border + faint glow --- */
+.admin-login-card {
+  inline-size: min(24rem, 100%);
+  border-radius: var(--admin-radius, 1rem);
+  background: rgba(10, 9, 8, 0.66);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(201, 162, 75, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(229, 200, 120, 0.22),
+    0 0 3rem -0.75rem rgba(201, 162, 75, 0.22),
+    0 2.5rem 5rem -3rem rgba(0, 0, 0, 0.75);
+}
+
+/* --- RTL: the kit is direction-agnostic by construction (logical
+       properties only), so html[dir='rtl'] mirrors automatically.
+       The guard below just pins start-alignment explicitly for chips,
+       badges and table cells in both directions. --- */
+html[dir='rtl'] .admin-chip,
+html[dir='rtl'] .admin-brand-badge,
+html[dir='rtl'] .admin-table thead th,
+html[dir='rtl'] .admin-table td,
+html[dir='ltr'] .admin-chip,
+html[dir='ltr'] .admin-brand-badge,
+html[dir='ltr'] .admin-table thead th,
+html[dir='ltr'] .admin-table td {
+  text-align: start;
+}
+
+/* --- Reduced motion: hover lifts and row washes become instant --- */
+@media (prefers-reduced-motion: reduce) {
+  .admin-card,
+  .admin-stat,
+  .admin-table tbody tr,
+  .admin-chip,
+  .admin-brand-badge,
+  .admin-login-card {
+    transition: none;
+    animation: none;
+  }
+  .admin-stat:hover {
+    transform: none;
+  }
+}
+
+/* rebuild-trigger: w2-e admin panel kit */

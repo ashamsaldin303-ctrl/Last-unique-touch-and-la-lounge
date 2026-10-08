@@ -1060,25 +1060,59 @@ export default function LaLounge3DBackground() {
       }
       window.addEventListener('resize', onResize)
 
+      // v45: pause the loop when the tab itself is hidden — the browser stops
+      // firing rAF anyway, but an explicit cancel + restart keeps the clock
+      // from lurching on return. Swallowing the hidden time means the
+      // camera spline/orbit phases resume exactly where they paused instead
+      // of teleporting across the orbit (t jumps were the off-screen cost
+      // of an unmanaged clock).
+      const onVisibility = () => {
+        if (document.hidden) {
+          cancelAnimationFrame(animFrameId)
+          animFrameId = 0
+        } else if (animFrameId === 0) {
+          // Only restart when the loop is NOT already scheduled (guards the
+          // page-loaded-while-hidden case, where the initial animate() call
+          // already queued a rAF that the browser will fire on reveal).
+          // getDelta() consumes AND accumulates the hidden span into
+          // elapsedTime — subtract it back so time-based phases stand still.
+          clock.elapsedTime -= clock.getDelta()
+          animate()
+        }
+      }
+      document.addEventListener('visibilitychange', onVisibility)
+
       // ============================================
       // CLEANUP (returned to React for unmount)
       // ============================================
       cleanup = () => {
         cancelAnimationFrame(animFrameId)
         window.removeEventListener('resize', onResize)
+        document.removeEventListener('visibilitychange', onVisibility)
         // v41-g2-F1 Fix #2: traverse the scene graph to dispose geometries /
         // materials before tearing down the renderer. scene.clear() only
         // detaches objects — it does NOT free GPU buffers, so without this
         // loop the WebGL context leaks memory on every route change / Strict
         // Mode double-mount.
         scene.traverse((obj) => {
-          if (obj instanceof THREE.Mesh) {
-            obj.geometry?.dispose()
-            if (Array.isArray(obj.material)) {
-              obj.material.forEach((m) => m.dispose())
-            } else {
-              obj.material?.dispose()
-            }
+          // v43 leak fix: dispose EVERY GPU-backed node, not just meshes.
+          // The lounge is built mostly from LineSegments / Line edges and a
+          // crowd of Points — the previous `obj instanceof THREE.Mesh` filter
+          // skipped all of them, leaking every EdgesGeometry / line
+          // BufferGeometry, the crowd buffer, the five shared line materials
+          // (matStruct/matMain/matSub/matAccent/matHidden) and crowdMat on
+          // every unmount (twice under React StrictMode). Materials shared
+          // with meshes get disposed more than once — a harmless no-op in
+          // three.js.
+          const node = obj as unknown as {
+            geometry?: THREE.BufferGeometry
+            material?: THREE.Material | THREE.Material[]
+          }
+          if (node.geometry) node.geometry.dispose()
+          if (Array.isArray(node.material)) {
+            node.material.forEach((m) => m.dispose())
+          } else if (node.material) {
+            node.material.dispose()
           }
         })
         renderer.dispose()

@@ -31,6 +31,18 @@ const BRAND_HEX: Record<'heritage' | 'modern' | 'atelier', string> = {
   atelier: '#F5B914',
 }
 
+/**
+ * Brightened label variants — the category chip sits on the near-black glass
+ * plate where the deep LUT gold (#8B6B3D) lands ~4:1 at 9-11px (AA needs 4.5
+ * for small text). Champagne #C9A25e lifts it to ~8.5:1; magenta/gold already
+ * pass comfortably.
+ */
+const BRAND_HEX_LABEL: Record<'heritage' | 'modern' | 'atelier', string> = {
+  heritage: '#C9A25E',
+  modern: '#FF5FA8',
+  atelier: '#F5B914',
+}
+
 /** Convert hex (#RRGGBB) to an rgba() string with given alpha (0–1). */
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -56,6 +68,7 @@ export function ExperienceCard({
   const cardRef = useRef<HTMLDivElement>(null)
   const ArrowIcon = locale === 'ar' ? ArrowLeft : ArrowRight
   const brandHex = BRAND_HEX[accentColor]
+  const brandLabelHex = BRAND_HEX_LABEL[accentColor]
   const brandGlowSoft = hexToRgba(brandHex, 0.06)
   // Track scroll direction + visibility to drive the exit/enter animation.
   // 'enter' = card is in view (animate in), 'exit' = scrolled past (animate out).
@@ -154,6 +167,7 @@ export function ExperienceCard({
               src={productImageUrl}
               alt={title}
               fill
+              priority
               sizes="(max-width: 768px) 150px, 280px"
               className="object-contain pointer-events-none"
             />
@@ -182,9 +196,9 @@ export function ExperienceCard({
       >
         {/* Header */}
         <div className="flex justify-between items-center w-full relative z-10">
-          <div className="flex items-center gap-1.5 text-[8px] md:text-[10px] lg:text-[11px] text-primary-foreground/40 tracking-[0.2em] font-medium uppercase bg-white/[0.03] border border-white/5 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full">
+          <div className="flex items-center gap-1.5 text-[8px] md:text-[10px] lg:text-[11px] text-white/50 tracking-[0.2em] font-medium uppercase bg-white/[0.03] border border-white/5 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full">
             <span>EXP</span>
-            <span style={{ color: brandHex }}>{'//'}</span>
+            <span style={{ color: brandLabelHex }}>{'//'}</span>
             <span>{index}</span>
           </div>
           {/* Brand Logo — enlarged per user request (logos INSIDE the card, not the bezel) */}
@@ -206,7 +220,7 @@ export function ExperienceCard({
           <div className="flex items-center gap-2 max-w-full">
             <span
               className="text-[9px] md:text-[11px] lg:text-xs font-semibold tracking-[0.05em] text-right leading-tight max-w-[180px] md:max-w-[260px] lg:max-w-[320px]"
-              style={{ color: brandHex }}
+              style={{ color: brandLabelHex }}
             >
               {category}
             </span>
@@ -218,13 +232,13 @@ export function ExperienceCard({
               }}
             />
           </div>
-          <h2 className="text-sm sm:text-lg md:text-2xl lg:text-3xl font-display text-primary-foreground tracking-tight sm:tracking-normal font-light break-words leading-tight text-right w-full">
+          <h2 className="text-sm sm:text-lg md:text-2xl lg:text-3xl font-display text-white tracking-tight sm:tracking-normal font-light break-words leading-tight text-right w-full">
             {title}
           </h2>
           <div
             className={cn(
               'flex items-center gap-2 text-[9px] md:text-[11px] lg:text-[12px] font-bold tracking-[0.25em] uppercase mt-0.5 transition-colors duration-700',
-              isComingSoon ? 'text-primary-foreground/30' : 'text-primary-foreground/60 group-hover:text-primary-foreground',
+              isComingSoon ? 'text-white/35' : 'text-white/65 group-hover:text-white',
             )}
           >
             <span>{actionText}</span>
