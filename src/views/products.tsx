@@ -174,7 +174,7 @@ export default function ProductsPage() {
   const showEmpty = !loading && !error && products.length === 0
 
   return (
-    <div className="relative mx-auto w-full max-w-7xl flex-1 px-4 pb-16 pt-10 sm:px-6 sm:pt-14">
+    <div className="relative mx-auto w-full max-w-7xl flex-1 px-4 pb-16 pt-24 sm:px-6 sm:pt-28">
       {/* Ambient gold backdrop (decorative) */}
       <div className="catalog-ambient" aria-hidden="true" />
 

@@ -262,7 +262,10 @@
       "messages": "رسائل التواصل",
       "activeProducts": "منتجات نشطة",
       "last7": "آخر 7 أيام",
-      "unread": "غير مقروءة"
+      "unread": "غير مقروءة",
+      "sectionLabel": "مؤشرات الأداء الرئيسية",
+      "sectionTitle": "نظرة عامة",
+      "completedBookings": "حجوزات مكتملة"
     },
     "orders": {
       "title": "سجل الطلبات والحجوزات",
@@ -390,6 +393,29 @@
     },
     "errors": {
       "unauthorized": "غير مصرح"
+    },
+    "viewSite": "عرض الموقع",
+    "brands": {
+      "sectionLabel": "الإدارة بالبيوت الثلاثة",
+      "sectionTitle": "بيوت الماركات",
+      "sectionSubtitle": "لكل بيت صفحة إدارة مستقلة تجمع منتجاته وطلباته",
+      "manage": "إدارة",
+      "viewStorefront": "عرض المتجر",
+      "lut": {
+        "tagline": "تأجير أثاث المناسبات والفعاليات"
+      },
+      "lalounge": {
+        "tagline": "الأثاث المخصص وتنظيم الفعاليات"
+      },
+      "birthday": {
+        "tagline": "ديكورات حفلات أعياد الميلاد"
+      }
+    },
+    "brand": {
+      "backToAdmin": "العودة إلى مركز الإدارة",
+      "houseEyebrow": "بيت العلامة",
+      "kpiTitle": "مؤشرات البيت",
+      "totalProductsLabel": "الإجمالي"
     }
   },
   "cart": {

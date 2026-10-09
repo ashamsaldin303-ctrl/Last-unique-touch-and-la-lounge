@@ -298,7 +298,14 @@ function StatusMenu({ current, disabled, fullWidth, statusLabels, menuLabel, onC
 /* Panel                                                               */
 /* ------------------------------------------------------------------ */
 
-export default function OrdersPanel() {
+/** Optional prop — the Task 38 brand pages render the panel LOCKED to
+ *  one house (the list query carries &brand=…). The overview renders it
+ *  unscoped across all houses. */
+export interface OrdersPanelProps {
+  brand?: 'LUT' | 'LA_LOUNGE' | 'YOUR_BIRTHDAY'
+}
+
+export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}) {
   const { t, locale } = useI18n()
 
   /* ---- Data state (the list load runs through the shared useAdminApi
@@ -319,8 +326,9 @@ export default function OrdersPanel() {
     const params = new URLSearchParams({ page: String(page), pageSize: String(PAGE_SIZE) })
     if (q) params.set('q', q)
     if (statusFilter !== 'ALL') params.set('status', statusFilter)
+    if (fixedBrand) params.set('brand', fixedBrand)
     return `/api/admin/bookings?${params.toString()}`
-  }, [page, q, statusFilter])
+  }, [page, q, statusFilter, fixedBrand])
 
   const { data, loading, error, sessionExpired, reload, setData, markUnauthorized } =
     useAdminApi<BookingsResponse>(bookingsUrl, [bookingsUrl])

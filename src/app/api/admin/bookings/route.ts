@@ -12,6 +12,13 @@ function isBookingStatus(value: string | null): value is BookingStatus {
   return value !== null && (BOOKING_STATUSES as readonly string[]).includes(value)
 }
 
+/** The three houses (SQLite stores brands as plain strings). */
+const BRANDS = ['LUT', 'LA_LOUNGE', 'YOUR_BIRTHDAY'] as const
+
+function isBrand(value: string | null): value is (typeof BRANDS)[number] {
+  return value !== null && (BRANDS as readonly string[]).includes(value)
+}
+
 function parsePagination(searchParams: URLSearchParams): { page: number; pageSize: number } {
   const page = Number.parseInt(searchParams.get('page') ?? '', 10)
   const pageSize = Number.parseInt(searchParams.get('pageSize') ?? '', 10)
@@ -24,7 +31,8 @@ function parsePagination(searchParams: URLSearchParams): { page: number; pageSiz
 /**
  * GET /api/admin/bookings — paginated booking list (protected).
  * Query params: `status` (optional filter), `q` (customer name/phone/email
- * contains), `page` (default 1), `pageSize` (default 20, max 100).
+ * contains), `brand` (optional — scope to one house, Task 38 brand pages),
+ * `page` (default 1), `pageSize` (default 20, max 100).
  */
 export async function GET(req: NextRequest) {
   const denied = requireAdmin(req)
@@ -34,16 +42,27 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
     const { page, pageSize } = parsePagination(searchParams)
     const status = searchParams.get('status')
-    const q = searchParams.get('q')?.trim()
+    // LIKE wildcard sanitization (Loop 1 finding, audit 38-R1-b): Prisma
+    // `contains` on SQLite does NOT escape the LIKE metacharacters `%`/`_`
+    // (searching `q=%` matched every row), so both are stripped — keeping
+    // `contains` a literal substring test. A term made ONLY of wildcards
+    // reduces to '' and is answered with an empty set (`id in []`) instead
+    // of silently degrading to match-all (same contract as products route).
+    const qRaw = searchParams.get('q')?.trim()
+    const q = qRaw?.replace(/[%_]/g, '')
+    const brand = searchParams.get('brand')
 
     const where: Prisma.BookingWhereInput = {}
     if (isBookingStatus(status)) where.status = status
-    if (q) {
-      where.OR = [
-        { customerName: { contains: q } },
-        { customerPhone: { contains: q } },
-        { customerEmail: { contains: q } },
-      ]
+    if (isBrand(brand)) where.brand = brand
+    if (qRaw) {
+      where.OR = q
+        ? [
+            { customerName: { contains: q } },
+            { customerPhone: { contains: q } },
+            { customerEmail: { contains: q } },
+          ]
+        : [{ id: { in: [] } }]
     }
 
     const [total, bookings] = await Promise.all([
@@ -59,12 +78,18 @@ export async function GET(req: NextRequest) {
       }),
     ])
 
-    const items = bookings.map((booking) => ({
-      ...booking,
-      productNameAr: booking.product?.nameAr ?? null,
-      productNameEn: booking.product?.nameEn ?? null,
-      productBrand: booking.product?.brand ?? null,
-    }))
+    const items = bookings.map((booking) => {
+      // Destructure the product relation out — it is already flattened into
+      // the productName*/productBrand fields below, so the row must not
+      // carry the nested object too (Loop 1 finding 38-R1-b: payload noise).
+      const { product, ...row } = booking
+      return {
+        ...row,
+        productNameAr: product?.nameAr ?? null,
+        productNameEn: product?.nameEn ?? null,
+        productBrand: product?.brand ?? null,
+      }
+    })
 
     return NextResponse.json({
       items,

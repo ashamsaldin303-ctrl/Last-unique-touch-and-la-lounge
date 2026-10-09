@@ -2436,3 +2436,112 @@ Work Log:
 Stage Summary:
 - الحالة النهائية: lint 0/0 · tsc نظيف · كل المسارات 200 · E2E كامل PASS · البيانات سليمة (21 منتجاً/6 فئات) · كلمة المرور في .env فقط (غير متتبعة) · الحزمة العامة خالية من كود الأدمن (~4500 سطراً)
 - الموقع الآن: إدارة منتجات كاملة (إنشاء/تحرير/رفع صور/فئات/حذف محمي 409) + كل إصلاحات الأمان والجودة والوصول عبر 5 موجات + مراجعة سداسية
+
+---
+Task ID: 38-R1-b
+Agent: review-agent-B (APIs + panels)
+Task: Loop 1 review of admin stats/bookings brand scoping + panel props
+
+Work Log:
+- Read worklog tail (context 37→38), then the 6 in-scope files: stats/route.ts + bookings/route.ts (full), schema.prisma, use-admin-api.ts, products-panel.tsx + orders-panel.tsx (changed paths via 2 chunks + targeted greps), plus consumer greps in views/admin.tsx + views/admin-brand.tsx.
+- bunx tsc --noEmit → exit 0 (one allowed run).
+- Read-only live verification (login POST → cookie jar, then 4 GETs, no mutations): stats global — brands breakdown sums match globals (21/21 products, 14 bookings, 10 pending, 225 revenue); stats?brand=LUT — scoped numbers byte-identical to brands.LUT, brands key omitted; stats?brand=FOO — unknown brand ignored → global response; bookings?brand=LA_LOUNGE&status=PENDING&q=a — brand AND status AND OR(q) compose correctly (rows LA_LOUNGE/PENDING, 'a' via email), productBrand present per row.
+- Checklist verified: requireAdmin + force-dynamic both handlers; brand whitelist (isBrand) both routes; unread raw SQL parameterized via Prisma.sql; _sum ?? 0 + Math.round(x*1000)/1000; groupBy typing + isBrand guards before assignment; pageSize clamp [1,100] → no divide-by-zero, totalPages=0 handled by panel fallback; panels' prop contracts ({brand: fixedBrand} = {} default, fixedBrand ?? 'ALL' init, pills hidden :745, openCreate seeds fixedBrand deps [brand, fixedBrand], openEdit keeps p.brand, productsUrl/bookingsUrl include brand with correct memo deps, category reset on brand change, normalizeRow fallback 'LUT'); AdminStats/BrandStats/BrandAdminStats consumer shapes match the API.
+- Wrote report agent-ctx/audit/38-loop1-b.md — modified no project file.
+
+Stage Summary:
+- VERDICT: CLEAN — 0 critical, 0 major, 2 minor (both bookings/route.ts: [bug] q not LIKE-escaped — % matches all rows, pre-existing and explicitly deferred in 37-6-a, admin-only/no injection; [perf] ...booking spread serializes the nested product relation next to the extracted productNameAr/En/productBrand fields). Brand scoping + panel prop changes are correct end-to-end (API math, where composition, consumer shapes, live curls all agree).
+
+---
+Task ID: 38-R1-c
+Agent: review-agent-C (i18n + integration)
+Task: Loop 1 i18n parity + route/dead-code integration audit
+
+Work Log:
+- Read worklog tail + the 5 new/changed frontend files (admin.tsx, admin-brand.tsx, admin-kit/admin-gate/use-admin-session/brand-theme) + page.tsx + brand-theme-setter.tsx + lib/brand.ts
+- Python i18n audit over the 11 scoped files: extracted every t() literal (171 unique keys) with template expansion (admin.tabs.${id} → orders/messages/products) and the labelKey/taglineKey/BRAND_LABEL_KEY constants; dotted-lookup in BOTH catalogs → 0 unresolved; full-tree parity ar=754/en=754, 0 missing each way; sanity scan (Arabic-in-ar, English-in-en, HTML tags, lead/trail spaces, placeholder mismatch) → only 3 pre-existing documented items (agreePrefix trailing space by-design; products.resultCount ICU category split by-design) + 1 new minor CLDR-blind suffix admin.brand.totalProductsSuffix ("1 منتجاً"/"1 products" at count 1)
+- Route integration: page.tsx '/admin/lut'|'/admin/la-lounge'|'/admin/birthday' ≡ ADMIN_BRAND_META.adminPath ≡ all href() calls (incl. sitePaths); resolveBrandFromPath stamps 'lalounge' for /admin/la-lounge and 'lut' for /admin, /admin/lut, /admin/birthday → the dataset.brand='neutral' overrides in both views (useEffect [locale]) are required and win the same commit (setter layout-effect → view passive effect), surviving locale flips
+- Dead code: only page.tsx:41-42 import @/views/admin{,-brand} (defaults); zero named-import orphans; bunx eslint (views+components/admin, --max-warnings 0) exit 0; bunx tsc --noEmit exit 0; manual unused-import pass clean
+- API contract: stats/bookings/products/categories all accept ?brand= (stats validates isBrand) matching the brand-scoped fetches
+- Hygiene: src/views/admin-brand.tsx present; agent-ctx/audit/ present; report written to agent-ctx/audit/38-loop1-c.md (no project files modified)
+
+Stage Summary:
+- I18N/INTEGRATION VERDICT: CLEAN — 0 critical / 0 major; minors: [i18n] admin.brand.totalProductsSuffix CLDR-blind plural at count 1; [i18n] admin.status.${next} covers exactly the 4 enum statuses (defensive note); 2 pre-existing by-design notes (agreePrefix trailing space, resultCount ICU split); [style] admin-brand.tsx:225-240 re-declares AdminBackdrop gradients instead of using <AdminBackdrop/>
+- Parity: ar=754 = en=754, 0 missing either direction, 0 unresolved t() refs (171 unique scoped keys), Task-38 keys Arabic/English correct with no HTML/whitespace/placeholder defects
+
+---
+Task ID: 38-R1-a
+Agent: review-agent-A (frontend views)
+Task: Loop 1 review of the new admin multi-page frontend (7 files)
+
+Work Log:
+- Read the worklog tail (2300+) for context, then read each scoped file exactly once: views/admin.tsx, views/admin-brand.tsx, components/admin/{admin-kit,admin-gate,use-admin-session,brand-theme}.tsx/ts, app/page.tsx
+- bunx tsc --noEmit → clean (covers Brand prop alignment, dynamic import typing, the --tw-ring-color style cast, Particles/AnimatedCounter/Reveal props)
+- Python i18n audit: extracted 47 t() keys from the 7 files (literals + admin.tabs.${id} templates + meta labelKey/taglineKey) → all exist in BOTH ar.json and en.json, zero missing
+- Contract verification: read api/admin/stats/route.ts — `brands` per-house map (global response) and `?brand=` scoping both implemented, matching the two pages' fetches; page.tsx route cases '/admin/lut|la-lounge|birthday' ≡ ADMIN_BRAND_META adminPath values
+- Session machine: 'admin:unauthorized' name consistent across use-admin-session/use-admin-api/panels (grep); listener add/remove in effect (no leak); sessionExpired cleared on login+logout; probe has cancelled flag; gate→ready re-fires loadStats ([phase, loadStats] effect); statsRequestIdRef guards every await
+- Toast duplication ruled out: layout.tsx Toaster is the shadcn radix channel (hooks/use-toast) while AdminToaster is sonner — all 4 admin modules import toast from 'sonner' → single rendering channel per toast
+- data-brand neutral assertion ordering verified vs BrandThemeSetter (its useLayoutEffect stamps path brand, the admin page's passive useEffect then asserts neutral in the same commit — neutral wins); AnimatePresence mode="wait" ⇒ one admin view at a time ⇒ no duplicate admin-password id
+- a11y/RTL sweep: h1 per phase (never co-mounted), role=status/alert, focus rings incl. whole-card overlay sibling (z-10 under storefront z-20, no nested interactive), rtl:rotate-180 arrows, dir=ltr numerals, logical ms-/pe-, 44px targets
+- Wrote agent-ctx/audit/38-loop1-a.md; no project files modified
+
+Stage Summary:
+- VERDICT: CLEAN — 0 critical / 0 major / 2 minor [style]: (1) admin-brand.tsx:224-240 re-implements AdminBackdrop (byte-identical gradients + direct Particles, particle count drift 10 vs 12) instead of composing it; (2) brand-theme.ts:87 isAdminBrand is a dead export (page.tsx hardcodes the brand literals)
+---
+Task ID: 38-R2-b
+Agent: deep-review-agent-B (APIs + panels final state)
+Task: Loop 2 final-state re-review of admin APIs + panels + fix verification + live contract curls
+
+Work Log:
+- Read 38-loop1-b.md (Loop 1 CLEAN, 2 minor) + worklog tail (2400+) for context; then read stats/route.ts + bookings/route.ts whole (once each).
+- F4 verified landed: bookings:51-65 qRaw/q split with /[%_]/g strip + wildcard-only → `id in []` empty-set branch; live GET ?q=%25 → total 0, items 0.
+- F5 verified landed: bookings:81-92 `const { product, ...row } = booking` destructure; live brand=LA_LOUNGE response has 0 rows carrying a `product` key, productBrand populated.
+- Panels re-read on final state: orders-panel (normalizeRow :161-186, props :304-308, bookingsUrl :325-331 with pageSize always + brand when fixedBrand, PATCH :366-407 / DELETE :410-459 intact); products-panel (props :147-151, openCreate :219-221 deps [brand, fixedBrand], ProductsDialog :590-601 brand={editorTarget.brand}, toolbar fixedBrand :660-679 pills hidden :745, handleBrandChange :207-212 alive for overview mode).
+- Live read-only contract curls (login 200 → jar; no mutations): stats/bookings without cookie → 401/401 (requireAdmin regression pass); bookings?brand=LA_LOUNGE → all rows LA_LOUNGE, flat rows; stats?brand=LUT → equals global brands.LUT on all 5 counters, omits `brands`; global stats → 3 brands, sums equal globals (14/10/21/21, revenue 225); raw SQL brand bound via Prisma.sql parameter (stats:87-91).
+- Consumer types: admin.tsx:111 brands? optional + :542 optional-chained; admin-brand.tsx BrandAdminStats:75 has no brands ref; admin-brand fetches stats?brand=encodeURIComponent (198) and mounts both panels with brand (:442/:445).
+- bunx tsc --noEmit → exit 0.
+- Wrote agent-ctx/audit/38-loop2-b.md; modified no project file.
+
+Stage Summary:
+- VERDICT: CLEAN — 0 critical / 0 major / 0 minor. Loop 1 F4 (q LIKE-wildcard sanitization) + F5 (product destructure) both landed and live-verified; Task 38 brand scoping, panel prop contracts, mutation flows, and consumer shapes all correct on final state.
+
+---
+Task ID: 38-R2-a
+Agent: deep-review-agent-A (frontend final state)
+Task: Loop 2 final-state deep re-review of the admin frontend (7 files) + fix verification
+
+Work Log:
+- Read both Loop 1 reports (38-loop1-a.md, 38-loop1-c.md) + worklog tail for context; then read each scoped file exactly once: views/admin.tsx, views/admin-brand.tsx, components/admin/{admin-kit,admin-gate,use-admin-session,brand-theme}, app/page.tsx.
+- Fix verification: F1 — admin-brand.tsx:224 renders <AdminBackdrop particleCount={phase==='gate'?22:10}/> from the kit import (:55); rg Particles in the file → 0 matches; the only gradient div left is the brand-specific accent glow (inline style). F2 — brand-theme.ts (85 lines) has no isAdminBrand; rg repo-wide → 0 matches. F3 — admin-brand.tsx:359 badge uses ${t('admin.brand.totalProductsLabel')}: N; key present in both catalogs (ar/en :418); the old CLDR-blind totalProductsSuffix key was removed from BOTH catalogs too (rg → 0 matches, no dead residue).
+- Deep-review: route-swap — AnimatePresence mode="wait" serializes exit→unmount→mount (views never co-mount); 'admin:unauthorized' listener removed with the same stable useCallback reference it was added with (use-admin-session.ts:45-53, no leak); the 550ms focus timer lives in persistent AppShell and targets the persistent <main id="main-content"> outside AnimatePresence (page.tsx:143-191, :236) — right DOM after swap; typing guard protects the gate's autoFocus field.
+- Session-hook edge: probe uses the effect-local cancelled flag re-checked after every await (:63/:69/:72; cleanup :75-77) → no setState-on-unmounted path when navigating #/ar/admin/lut → #/ar/admin before resolution; the 450ms exit window keeps the component legally mounted for a mid-exit resolve; the new view runs its own probe (double-fetch harmless).
+- 401 journey traced on brand + overview: loadStats 401 → markUnauthorized → window event → the hook's own listener → setPhase('gate')+sessionExpired → gate mounts; markUnauthorized never sets phase directly (single handler, idempotent, no toast on this path) → no double-handling.
+- KPI NaN/Infinity: cards gated by {stats ? …}; BrandCard degrades via stats?.brands?.[brand] + typeof-number guard + em-dash; badges null at 0; no division on stats values.
+- Dynamic imports: next/dynamic forwards props to the loaded default export (brand prop works; loading placeholder is a prop-less static shimmer); ssr:false legal in the 'use client' page; SSR renders the '/' shell (mounted gate) → no hydration mismatch.
+- i18n re-verified with python3: 48 unique keys (literals + admin.tabs.${id} expansion + brand-theme labelKey/taglineKey constants) → 0 missing in ar.json, 0 missing in en.json.
+- a11y/CSS spot-checks: gate autoFocus + aria-invalid/aria-describedby→#admin-login-error always resolves; overlay-link ring var + z-10 sibling under z-20 storefront link; Radix tab semantics; animate-pulse-ring defined at globals.css:790-802; group/rtl:rotate-180 built-ins.
+- Gates: bunx tsc --noEmit → exit 0 (zero output) · bun run lint → exit 0. Wrote agent-ctx/audit/38-loop2-a.md; modified no project file.
+
+Stage Summary:
+- VERDICT: CLEAN — 0 critical / 0 major / 0 minor. All three fixes (F1 backdrop composition, F2 dead export deletion, F3 plural-free products badge) landed exactly as specified with zero residue; all Loop 2 deep-review focus areas (route-swap lifecycle, session probe cancellation, 401 journey, KPI NaN paths, dynamic-import props/hydration, full i18n key set, a11y, CSS existence) verified clean.
+---
+Task ID: 38
+Agent: main (Z.ai Code)
+Task: إعادة تصميم لوحة الأدمن بالكامل + فصل صفحة إدارة مستقلة لكل ماركة (LUT / La Lounge / Your Birthday) بشكل جميل عبر خطة اللوبس (حلقات مراجعة→إصلاح→مراجعة) حتى الصفر أخطاء
+
+Work Log:
+- القراءة العميقة: admin.tsx القديم + panels (products/orders/messages) + use-admin-api + router.tsx + page.tsx + prisma schema + مفاتيح i18n (تطابق 149/149)
+- بنية جديدة: #/ar/admin (مركز إدارة شامل: KPIs + بطاقات بيوت الماركات + تبويبات طلبات/رسائل/منتجات) + #/ar/admin/lut · #/ar/admin/la-lounge · #/ar/admin/birthday (AdminBrandPage: hero بلون الماركة + KPIs محصورة + تبويبات منتجات/طلبات محصورة)
+- مكوّنات مشتركة جديدة: use-admin-session.ts (آلة الجلسة checking/gate/ready + admin:unauthorized) · admin-gate.tsx (بوابة الدخول) · admin-kit.tsx (AdminBackdrop/AdminToaster/CheckingState/PanelSkeleton) · brand-theme.ts (ADMIN_BRAND_META: ألوان LUT #C9A25E / La Lounge #E6007E / Birthday #F5B914)
+- API: /api/admin/stats?brand= يحصر كل المؤشرات + استجابة عامة تحمل brands breakdown (groupBy×5) · /api/admin/bookings?brand= فلتر · الواجهات panels تقبل prop brand (قفل الفلتر + بذر حوار الإنشاء)
+- i18n: +26 مفتاح ar/en (تطابق 754/754) — brands.*، brand.*، stats.completedBookings…
+- التحقق الحي: curl (login 200، scoped=breakdown بالضبط، brand=NOPE→عام) + متصفح حي (بوابة→دخول→نظرة عامة→بطاقة→صفحة ماركة→تبويبات محصورة→عودة) + EN + جوال 390px + VLM (نظرة عامة/La Lounge/جوال: PASS)
+- Loop 1 (3 مراجعين متوازيين): CLEAN — 0 حرج/كبير، 6 صغار → أُصلحت كلها: (1) إزالة تكرار Backdrop في صفحة الماركة (2) حذف isAdminBrand الميت (3) تعقيم LIKE في bookings q=% (4) استبعاد كائن product المتداخل من الصفوف (5) totalProductsSuffix → totalProductsLabel بصيغة صحيحة نحوياً (6) توثيق
+- اكتشاف Loop 2 (عبر متصفح): خلل هندسي قديم — شريط التنقل fixed ارتفاعه 84px بينما padding الصفحات 32px فقط → رابط «العودة» محجوب والنص يرتسم خلف الشريط → إصلاح: pt-24 sm:pt-28 لصفحات الأدمن الثلاث + products.tsx (قيس: كل مسارات المتجر الأخرى كانت سليمة 112px+)
+- Loop 2 (مراجعان عميقيان): CLEAN — 0 نتائج نهائية + تحقق F1-F5 بأنها هبطت + اختبارات عقد حية (q=% → 0، لا كائن product، scoped=breakdown، 401 بلا كوكي)
+- البوابات النهائية: tsc نظيف (src) · lint 0 · dev.log بلا أخطاء · صفر أخطاء console · متصفح: كل المسارات تعمل (لقطات screenshots/38/ 1-18)
+
+Stage Summary:
+- لوحة أدمن متعددة الصفحات جاهزة إنتاجياً: مركز إدارة + 3 صفحات ماركات مستقلة بألوانها، بجلسة مشتركة وAPI محصور بالماركة
+- اللوبس تقاربت: Loop1 CLEAN(6 صغار أُصلحت) → Loop2 CLEAN(صفر) + إصلاح خلل الشريط العلوي المكتشف حياً
+- الإخراج: 5 ملفات جديدة + 10 معدلة + 5 تقارير audit في agent-ctx/audit/ + 18 لقطة تحقق — جاهزة للـ push

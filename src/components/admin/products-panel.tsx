@@ -141,11 +141,18 @@ function firstImage(p: ProductItem): string | null {
 
 /* ================= Component ================= */
 
-export default function ProductsPanel() {
+/** Optional prop — the Task 38 brand pages render the panel LOCKED to one
+ *  house (no brand pills; create dialog seeds the house). The overview
+ *  renders it unscoped with the full brand filter. */
+export interface ProductsPanelProps {
+  brand?: Brand
+}
+
+export default function ProductsPanel({ brand: fixedBrand }: ProductsPanelProps = {}) {
   const { t, locale } = useI18n()
 
   const [q, setQ] = useState('')
-  const [brand, setBrand] = useState<BrandFilter>('ALL')
+  const [brand, setBrand] = useState<BrandFilter>(fixedBrand ?? 'ALL')
   const [category, setCategory] = useState<string>('ALL')
   const [page, setPage] = useState(1)
   /** Product ids with an in-flight PATCH (rows disabled). */
@@ -210,8 +217,8 @@ export default function ProductsPanel() {
   }, [])
 
   const openCreate = useCallback(() => {
-    setEditorTarget({ product: null, brand: brand === 'ALL' ? 'LUT' : brand })
-  }, [brand])
+    setEditorTarget({ product: null, brand: fixedBrand ?? (brand === 'ALL' ? 'LUT' : brand) })
+  }, [brand, fixedBrand])
 
   const openEdit = useCallback((p: ProductItem) => {
     setEditorTarget({ product: p, brand: p.brand })
@@ -409,6 +416,7 @@ export default function ProductsPanel() {
         {/* ---- Toolbar (search lives here — keystrokes stay local) ---- */}
         <ProductsToolbar
           brand={brand}
+          fixedBrand={fixedBrand}
           onBrandChange={handleBrandChange}
           category={category}
           onCategoryChange={handleCategoryChange}
@@ -651,6 +659,7 @@ export default function ProductsPanel() {
  */
 function ProductsToolbar({
   brand,
+  fixedBrand,
   onBrandChange,
   category,
   onCategoryChange,
@@ -659,6 +668,8 @@ function ProductsToolbar({
   onCreate,
 }: {
   brand: BrandFilter
+  /** Present on brand pages — hides the brand pills (panel is locked). */
+  fixedBrand?: Brand
   onBrandChange: (brand: BrandFilter) => void
   category: string
   onCategoryChange: (category: string) => void
@@ -731,28 +742,30 @@ function ProductsToolbar({
           {t('admin.products.create')}
         </Button>
       </div>
-      <div
-        className="flex flex-wrap items-center gap-2"
-        role="group"
-        aria-label={t('products.brandFilter.label')}
-      >
-        {BRAND_FILTERS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={brand === option.value}
-            onClick={() => onBrandChange(option.value)}
-            className={cn(
-              'min-h-11 rounded-full border px-4 py-2 text-sm font-medium transition-colors',
-              brand === option.value
-                ? 'border-[#C9A25E]/60 bg-[#C9A25E]/15 text-[#E5C878]'
-                : 'border-white/10 bg-transparent text-[#B6AD9C] hover:bg-white/[0.04] hover:text-[#E5D9BE]'
-            )}
-          >
-            {t(option.labelKey)}
-          </button>
-        ))}
-      </div>
+      {fixedBrand ? null : (
+        <div
+          className="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label={t('products.brandFilter.label')}
+        >
+          {BRAND_FILTERS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={brand === option.value}
+              onClick={() => onBrandChange(option.value)}
+              className={cn(
+                'min-h-11 rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                brand === option.value
+                  ? 'border-[#C9A25E]/60 bg-[#C9A25E]/15 text-[#E5C878]'
+                  : 'border-white/10 bg-transparent text-[#B6AD9C] hover:bg-white/[0.04] hover:text-[#E5D9BE]'
+              )}
+            >
+              {t(option.labelKey)}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
