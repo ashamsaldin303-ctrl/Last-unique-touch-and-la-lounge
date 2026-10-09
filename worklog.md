@@ -2545,3 +2545,26 @@ Stage Summary:
 - لوحة أدمن متعددة الصفحات جاهزة إنتاجياً: مركز إدارة + 3 صفحات ماركات مستقلة بألوانها، بجلسة مشتركة وAPI محصور بالماركة
 - اللوبس تقاربت: Loop1 CLEAN(6 صغار أُصلحت) → Loop2 CLEAN(صفر) + إصلاح خلل الشريط العلوي المكتشف حياً
 - الإخراج: 5 ملفات جديدة + 10 معدلة + 5 تقارير audit في agent-ctx/audit/ + 18 لقطة تحقق — جاهزة للـ push
+---
+Task ID: 39
+Agent: main (Z.ai Code)
+Task: دراسة موقع getlayers.ai بالكامل (القوالب/البرومبتات/السورس/المستودعات العامة) ثم تطبيق تقنياته السينمائية على موقعنا لرفع مستوى التصميم إلى مستوى خارق
+
+Work Log:
+- تصفّح كامل لـ getlayers.ai: الصفحة الرئيسية (page_reader + agent-browser حي) + صفحات templates/3d-scenes/gradients/backgrounds/sections/docs/pricing + صفحات layer التفصيلية عبر المتصفح الحي (modal ?layer=soda)
+- استخراج برومبت Soda المجاني كاملاً (38KB عبر اعتراض clipboard.writeText) وفهم بنية البرومبتات: What it is → shell/libs → layout → interactions VERBATIM → loader → fixed params → assets
+- استنساخ مستودعي Textura العامين: ai-design-vault (نظام التصميم الكامل: tokens ثلاثية الطبقات، motion-system بالسبرينغات، text-motion بالأسطر/الكلمات/الحروف، component-conventions) + next16-claude-starter (التنفيذ الفعلي: Inview/Spring/Hover/Handle + ticker واحد + lenis)
+- تحليل بصري عبر VLM: لقطات Layers (الأسلوب السينمائي: void-black + grain + glass + GeneralSans خفيف) مقابل لقطات موقعنا (نقد صريح: لا grain مرئي، تيبوغرافي هادئة، لا cursor مخصص، بطاقات ميتة، فووتر نصي)
+- تنفيذ حزمة CINEMATIC KIT (globals.css ملحق): spotlight-surface (توهج قطري يتبع المؤشر + ring للحدود عبر mask) · grain أعمق للعلامات الداكنة (mix-blend overlay) · cinema-frame/vignette + cinema-fade-bottom · .statement (تيبوغرافي تحريري ضخم خفيف بقيود RTL) · .glass-strong · lux-cursor-dot/ring (حالات hover/text) · marquee-v3 (فواصل ✦ + قناع حواف + إيقاف عند hover) · .footer-watermark (علامة مائية ضخمة) — كلها تحترم prefers-reduced-motion و(hover:none)
+- SpotlightField جديد: مستمع pointermove مفوَّض واحد يكتب --spot-x/--spot-y على [data-spotlight] (بدون React state) — مركّب في page.tsx
+- ترقية CursorGlow: هالة + نقطة 1:1 + حلقة متأخرة تتضخم فوق العناصر التفاعلية وتتحول لمؤشر نصي فوق الحقول — حلقة rAF واحدة تنام عند السكون
+- الصفحة الرئيسية: عنوان hero أضخم بتدرج الشامبانيا + إطار سينمائي؛ Marquee ثنائي اللغة (اسم لاتيني + حرفة عربية لكل علامة)؛ قسم HOUSE STATEMENT جديد (بيت القصيد التحريري: سطور MaskedWords + em بلون الشامبانيا، مائل لاتيني/غير مائل عربي)؛ بطاقات العوالم ولماذا نحن بـ spotlight؛ testimonials بوضع editorial (اقتباس serif مائل أكبر + مؤلف متتبّع + أفاتار حلقة رفيعة)؛ CTA بـ glass-strong
+- ExperienceCard: لوحة المعلومات بـ spotlight بلون العلامة + سهم ينزلق عند hover (اتجاهي RTL/LTR)
+- Footer: علامة مائية "✦ LAST UNIQUE TOUCH" ضخمة شبه شفافة أعلى الأعمدة (مقاسة لتناسب 1440px دون قص، ولفّ رشيق تحت 480px)
+- i18n: +5 مفاتيح maison.statement (ar/en) بتطابق 759/759
+- اكتشاف حرج وإصلاحه: قاعدة البيانات كانت فارغة (0 منتج/حجز) و.env فقد ADMIN_PASSWORD/SECRET → إعادة تشغيل prisma/seed.ts (21 منتج + 6 فئات + 4 حجوزات + 3 رسائل) واستعادة .env كاملاً → تسجيل دخول الأدمن 200/كلمة خاطئة 401/الإحصاءات تعمل
+- التحقق النهائي: tsc 0 · lint 0 · صفر أخطاء console · المتصفح الحي: كل الأقسام تُظهر وتعمل (مرور تمريري scroll-reveal) · EN + جوال 390px بلا فيض أفقي · spotlight وcursor مُتحقق بصرياً (فرض الحالة في headless) · صفحة منتج + منتجات + أدمن كلها تعمل
+
+Stage Summary:
+- الموقع رُفع إلى مستوى "سينمائي" بمعايير GetLayers: مؤشر مخصص ثلاثي الطبقات، إضاءة تفاعلية تتبع المؤشر، حبيبات فيلم، إطار vignette، تيبوغرافي تحريري ضخم، شريط ثنائي اللغة، فوتر بعلامة مائية
+- إخراج: 9 ملفات معدلة + spotlight-field.tsx جديد + 5 مفاتيح i18n + استعادة كاملة للقاعدة و.env
