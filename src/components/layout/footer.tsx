@@ -70,6 +70,14 @@ export function Footer() {
       {/* Flowing gold hairline along the top edge */}
       <div className="footer-hairline" aria-hidden="true" />
 
+      {/* Editorial watermark wordmark (Task 39 — the cinematic close) */}
+      <div
+        className="footer-watermark select-none overflow-hidden pt-8 sm:pt-10"
+        aria-hidden="true"
+      >
+        <span className="footer-watermark-dot">✦</span> LAST UNIQUE TOUCH
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand + tagline */}

@@ -14,6 +14,7 @@ import { Footer } from '@/components/layout/footer'
 import { FloatingWhatsApp } from '@/components/layout/floating-whatsapp'
 import { ScrollProgress, BackToTop } from '@/components/shared/upgrade'
 import { CursorGlow } from '@/components/shared/cursor-glow'
+import { SpotlightField } from '@/components/shared/spotlight-field'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useI18n } from '@/lib/i18n'
@@ -256,6 +257,7 @@ function AppShell() {
       <FloatingWhatsApp />
       <BackToTop />
       <CursorGlow />
+      <SpotlightField />
     </div>
   )
 }

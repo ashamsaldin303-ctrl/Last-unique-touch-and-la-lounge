@@ -743,8 +743,15 @@ body {
 [dir='rtl'] .marquee-track {
   animation-name: marquee-rtl;
 }
-.marquee-track:hover {
+/* Task 39: pause on hover so the eye can inspect a brand pair
+   (duration changes would jump the percentage-based track). */
+.marquee-v2 .marquee-track:hover {
   animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+  }
 }
 
 /* ============================================================
@@ -2944,3 +2951,280 @@ html[dir='ltr'] .admin-table td {
 }
 
 /* rebuild-trigger: w2-e admin panel kit */
+
+/* ================================================================
+   TASK 39 — CINEMATIC KIT (getlayers.ai study, applied)
+   Techniques distilled from GetLayers/Textura's design language:
+   · pointer-tracked spotlight on cards (their interactive gradients)
+   · stronger film grain + edge vignette on dark "cinema" surfaces
+   · editorial statement typography (huge, light, tight-tracked)
+   · crisp glass surfaces (blur + saturate + inner highlight)
+   · custom-cursor ring affordance (dot + trailing ring)
+   · footer watermark wordmark + marquee separators (✦ glyph)
+   All utilities are transform/opacity-only, pointer:fine gated in
+   JS, and every one degrades gracefully under reduced motion.
+   ================================================================ */
+
+/* --- Pointer-tracked spotlight surface -------------------------------
+   Any card with [data-spotlight] gets a soft radial highlight that
+   follows the cursor (SpotlightField writes --spot-x/--spot-y in px).
+   The highlight is brand-tinted via --tri or the primary gold.       */
+.spotlight-surface {
+  position: relative;
+}
+.spotlight-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-fluid);
+  background: radial-gradient(
+    360px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in srgb, var(--tri, var(--color-primary)) 13%, transparent),
+    transparent 65%
+  );
+}
+.spotlight-surface:hover::after,
+.spotlight-surface:focus-visible::after {
+  opacity: 1;
+}
+/* The same sweep lights the hairline border (card-hairline pattern) */
+.spotlight-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-fluid);
+  background: radial-gradient(
+    260px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in srgb, var(--tri, var(--color-primary)) 34%, transparent),
+    transparent 70%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  padding: 1px; /* hairline ring width */
+}
+.spotlight-surface:hover::before,
+.spotlight-surface:focus-visible::before {
+  opacity: 1;
+}
+/* Touch users (no hover): keep it invisible — spotlight is a
+   fine-pointer affordance, not content. */
+@media (hover: none) {
+  .spotlight-surface::after,
+  .spotlight-surface::before {
+    display: none;
+  }
+}
+
+/* --- Grain: deepen on the dark cinema brands -------------------------
+   The base 0.032 grain is tuned for ivory paper; on the maison /
+   La Lounge dark surfaces a slightly stronger mix-blend grain reads
+   as film stock. One paint, fixed layer, zero repaints.             */
+html[data-brand='neutral'] body::after,
+html[data-brand='lalounge'] body::after {
+  opacity: 0.055;
+  mix-blend-mode: overlay;
+}
+html[data-brand='neutral'].dark body::after {
+  opacity: 0.065;
+}
+
+/* --- Edge vignette (cinema frame) ------------------------------------
+   Applied only where a section opts in (.cinema-frame). A soft dark
+   falloff at the frame edges focuses the composition like a lens.   */
+.cinema-frame {
+  /* (position comes from the caller — usually absolute inset-0) */
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 90% at 50% 42%,
+      transparent 52%,
+      rgba(5, 4, 2, 0.42) 88%,
+      rgba(3, 2, 1, 0.6) 100%
+    );
+}
+/* Bottom-of-hero fade into the page body (helps hero → content seam) */
+.cinema-fade-bottom {
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent 55%,
+    color-mix(in srgb, var(--background) 55%, transparent) 88%,
+    var(--background) 100%
+  );
+}
+
+/* --- Editorial statement typography ----------------------------------
+   GetLayers' signature: huge, LIGHT (not bold) display lines with
+   generous leading. Works with the existing serif display stack and
+   the maison champagne gradient. Fluid so it never overflows RTL.  */
+.statement {
+  font-family: var(--font-display);
+  font-weight: 300;
+  line-height: 1.22;
+  font-size: clamp(1.75rem, 4.6vw, 3.6rem);
+  letter-spacing: 0.005em;
+}
+html[dir='rtl'] .statement {
+  line-height: 1.38; /* Arabic descenders need room (clip-safe ≥1.1) */
+}
+.statement em {
+  font-style: italic;
+  color: color-mix(in srgb, var(--color-primary) 88%, #fff8e6);
+}
+/* Arabic has no true italics — a synthetic slant would cheapen the
+   serif; keep the emphasis purely chromatic in RTL. */
+html[dir='rtl'] .statement em {
+  font-style: normal;
+}
+
+/* --- Crisp glass (GetLayers modal-grade surface) ---------------------- */
+.glass-strong {
+  background: color-mix(in srgb, var(--card) 72%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 16%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 24px 60px -28px rgba(0, 0, 0, 0.55);
+}
+
+/* --- Custom cursor ring affordance ------------------------------------
+   Rendered by CursorGlow (dot + ring elements). The ring swells over
+   interactive elements; the dot tracks 1:1. mix-blend-difference
+   keeps both visible on any surface. Fine pointers only (JS gates). */
+.lux-cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 95;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 92%, #fff);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms var(--ease-fluid);
+  will-change: transform;
+}
+.lux-cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 94;
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 62%, transparent);
+  box-shadow: 0 0 18px -6px color-mix(in srgb, var(--color-primary) 55%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 260ms var(--ease-fluid),
+    width 300ms var(--ease-fluid),
+    height 300ms var(--ease-fluid),
+    margin 300ms var(--ease-fluid),
+    border-color 300ms var(--ease-fluid),
+    background-color 300ms var(--ease-fluid);
+  will-change: transform;
+}
+.lux-cursor-active .lux-cursor-dot,
+.lux-cursor-active .lux-cursor-ring {
+  opacity: 1;
+}
+/* Hover state over interactive elements (class toggled by JS) */
+.lux-cursor-ring.lux-cursor-hover {
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-color: color-mix(in srgb, var(--color-primary) 85%, transparent);
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+/* Text inputs: ring becomes a thin caret-guide */
+.lux-cursor-ring.lux-cursor-text {
+  width: 6px;
+  height: 26px;
+  margin: -13px 0 0 -3px;
+  border-radius: 3px;
+  border-color: color-mix(in srgb, var(--color-primary) 80%, transparent);
+}
+
+/* --- Marquee v3: ✦ separators + bilingual pairing ---------------------
+   Extends marquee-v2: glyph separators (diamond star) between the
+   brand names read more "maison" than plain dots; hover slow-down
+   (not full pause) keeps the strip alive while inspecting.        */
+.marquee-v3 {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+}
+.marquee-word-glyph {
+  color: color-mix(in srgb, var(--color-primary) 65%, transparent);
+  font-size: 0.55em;
+  line-height: 1;
+}
+
+/* --- Footer watermark wordmark -----------------------------------------
+   The oversized, nearly-invisible brand line at the footer's top —
+   the editorial close GetLayers uses. Purely decorative (aria-hidden
+   in markup); paper at 7% so it never fights the columns.        */
+.footer-watermark {
+  font-family: var(--font-display);
+  font-weight: 300;
+  /* Sized to fit the longest wordmark ("LAST UNIQUE TOUCH" ≈ 17 caps)
+     inside a 1440px container with padding — no clipping. */
+  font-size: clamp(2rem, 6.5vw, 5.25rem);
+  line-height: 1.05;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, #f2ede2 9%, transparent);
+  user-select: none;
+  white-space: nowrap;
+  text-align: center;
+  padding-inline: 1rem;
+}
+/* Squeeze gracefully instead of clipping on very narrow screens. */
+@media (max-width: 480px) {
+  .footer-watermark {
+    white-space: normal;
+    font-size: clamp(1.5rem, 11vw, 2.4rem);
+    line-height: 1.15;
+  }
+}
+.footer-watermark .footer-watermark-dot {
+  color: color-mix(in srgb, var(--color-primary) 42%, transparent);
+}
+
+/* --- Reduced motion: the kit is inert -------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .spotlight-surface::after,
+  .spotlight-surface::before {
+    transition: none;
+    display: none;
+  }
+  .lux-cursor-dot,
+  .lux-cursor-ring {
+    display: none;
+  }
+  .marquee-v3 {
+    mask-image: none;
+  }
+}
+
+/* rebuild-trigger: task-39 cinematic kit v1 */

@@ -1185,7 +1185,14 @@
       "subtitle": "Choose your world, browse the collection, and book your period in minutes",
       "shopAll": "The Unified Store"
     },
-    "whyUsTitle": "Why Hosts Trust the House"
+    "whyUsTitle": "Why Hosts Trust the House",
+    "statement": {
+      "eyebrow": "The house philosophy",
+      "lead": "We craft the details that",
+      "em": "become stories",
+      "tail": "worth retelling",
+      "note": "Three houses, three crafts, one standard of care"
+    }
   },
   "laLoungeProducts": {
     "title": "La Lounge Collection",

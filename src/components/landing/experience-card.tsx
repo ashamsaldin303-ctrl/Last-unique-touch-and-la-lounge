@@ -189,10 +189,14 @@ export function ExperienceCard({
         />
       </div>
 
-      {/* 3. Info Plate */}
+      {/* 3. Info Plate — GetLayers-style pointer spotlight (Task 39) */}
       <div
-        className="plate-anim flex-1 min-w-0 h-full bg-[#050505]/60 hover:bg-[#070707]/70 backdrop-blur-lg rounded-lg md:rounded-lg lg:rounded-lg border border-white/[0.08] group-hover:border-white/[0.2] transition-[background-color,border-color,box-shadow] duration-700 flex flex-col justify-between p-3 sm:p-4 md:p-7 lg:p-8 relative shadow-2xl group-hover:shadow-[0_20px_40px_-15px_rgba(255,255,255,0.05)] z-20"
-        style={{ animationDelay: `${delay + 0.15}s` }}
+        data-spotlight
+        className="plate-anim spotlight-surface flex-1 min-w-0 h-full bg-[#050505]/60 hover:bg-[#070707]/70 backdrop-blur-lg rounded-lg md:rounded-lg lg:rounded-lg border border-white/[0.08] group-hover:border-white/[0.2] transition-[background-color,border-color,box-shadow] duration-700 flex flex-col justify-between p-3 sm:p-4 md:p-7 lg:p-8 relative shadow-2xl group-hover:shadow-[0_20px_40px_-15px_rgba(255,255,255,0.05)] z-20"
+        style={{
+          animationDelay: `${delay + 0.15}s`,
+          ['--tri' as string]: brandHex,
+        }}
       >
         {/* Header */}
         <div className="flex justify-between items-center w-full relative z-10">
@@ -242,7 +246,15 @@ export function ExperienceCard({
             )}
           >
             <span>{actionText}</span>
-            <span>
+            <span
+              className={cn(
+                'transition-transform duration-500',
+                !isComingSoon &&
+                  (locale === 'ar'
+                    ? 'group-hover:-translate-x-1.5'
+                    : 'group-hover:translate-x-1.5'),
+              )}
+            >
               {isComingSoon ? <Plus className="w-4 h-4" /> : <ArrowIcon className="w-4 h-4" />}
             </span>
           </div>

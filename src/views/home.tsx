@@ -39,6 +39,7 @@ import { useI18n } from '@/lib/i18n'
 import { ExperienceCard } from '@/components/landing/experience-card'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { Reveal } from '@/components/shared/reveal'
+import { MaskedWords } from '@/components/shared/masked-words'
 import {
   SectionHeading,
   ProcessSteps,
@@ -153,6 +154,11 @@ export default function HomePage() {
           <CosmicBackground />
         </ErrorBoundary>
 
+        {/* Cinema frame (Task 39): soft edge falloff + bottom fade into
+            the page body — the composition reads like a lens, not a sticker. */}
+        <div className="absolute inset-0 z-[5] pointer-events-none cinema-frame" aria-hidden="true" />
+        <div className="absolute inset-x-0 bottom-0 h-40 z-[5] pointer-events-none cinema-fade-bottom" aria-hidden="true" />
+
         {/* Top: house mark + neutral umbrella headline */}
         <motion.div
           style={{ opacity }}
@@ -181,10 +187,10 @@ export default function HomePage() {
           </div>
 
           <h1
-            className="animate-hero-down font-display text-xl sm:text-3xl md:text-4xl text-paper"
+            className="animate-hero-down font-display text-[clamp(1.35rem,3.4vw,2.6rem)] sm:leading-[1.25] text-paper text-balance"
             style={{ animationDelay: '0.3s' }}
           >
-            {t('maison.title')}
+            <span className="text-gradient-maison">{t('maison.title')}</span>
           </h1>
 
           <p
@@ -271,33 +277,80 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* ============ MARQUEE — three brands strip (pulsing brand dots) ============ */}
+      {/* ============ MARQUEE V3 — bilingual brand strip (Latin house name
+          + Arabic craft, ✦ glyph separators, edge-masked) ============ */}
       <section
-        className="marquee-v2 bg-ink border-y border-white/[0.06] py-4 overflow-hidden"
+        className="marquee-v2 marquee-v3 bg-ink border-y border-white/[0.06] py-4 overflow-hidden"
         aria-hidden="true"
       >
         <div className="marquee-track flex w-max items-center gap-10">
           {Array.from({ length: 2 }).map((_, dup) => (
             <div key={dup} className="flex items-center gap-10">
               {[
-                { name: 'LAST UNIQUE TOUCH', hex: '#8B6B3D' },
-                { name: 'LA LOUNGE', hex: '#E6007E' },
-                { name: 'YOUR BIRTHDAY', hex: '#F5B914' },
+                { name: 'LAST UNIQUE TOUCH', craft: t('maison.worlds.lut.tagline'), hex: '#8B6B3D' },
+                { name: 'LA LOUNGE', craft: t('maison.worlds.lalounge.tagline'), hex: '#E6007E' },
+                { name: 'YOUR BIRTHDAY', craft: t('maison.worlds.birthday.tagline'), hex: '#F5B914' },
               ].flatMap((b) => [
                 <span
                   key={`${dup}-${b.name}`}
-                  className="marquee-word font-display text-sm sm:text-base tracking-[0.3em] text-paper/40 whitespace-nowrap"
+                  className="marquee-word flex items-baseline gap-3 font-display text-sm sm:text-base tracking-[0.3em] text-paper/40 whitespace-nowrap"
                 >
                   {b.name}
+                  <span className="font-body text-[10px] sm:text-xs tracking-normal text-paper/30">
+                    {b.craft}
+                  </span>
                 </span>,
                 <span
-                  key={`${dup}-${b.name}-dot`}
-                  className="animate-dot-pulse w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ backgroundColor: b.hex, boxShadow: `0 0 8px ${b.hex}` }}
-                />,
+                  key={`${dup}-${b.name}-sep`}
+                  className="flex items-center gap-4 shrink-0"
+                >
+                  <span className="marquee-word-glyph select-none">✦</span>
+                  <span
+                    className="animate-dot-pulse w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: b.hex, boxShadow: `0 0 8px ${b.hex}` }}
+                  />
+                </span>,
               ])}
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ============ HOUSE STATEMENT — the editorial set-piece (Task 39,
+          GetLayers' signature section): one huge light serif line, word
+          masks rising in sequence, champagne emphasis, tri-brand glow ============ */}
+      <section className="relative py-20 sm:py-32 px-4 bg-background overflow-hidden">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-[0.35]"
+          style={{
+            background:
+              'radial-gradient(ellipse 28% 42% at 20% 30%, rgba(139,107,61,0.16), transparent 70%), radial-gradient(ellipse 28% 42% at 80% 70%, rgba(230,0,126,0.10), transparent 70%), radial-gradient(ellipse 26% 40% at 55% 20%, rgba(245,185,20,0.10), transparent 70%)',
+          }}
+        />
+        <div className="relative max-w-4xl mx-auto text-center">
+          <Reveal direction="none">
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <span className="w-10 h-px bg-primary/50" aria-hidden="true" />
+              <span className="eyebrow text-primary/80">{t('maison.statement.eyebrow')}</span>
+              <span className="w-10 h-px bg-primary/50" aria-hidden="true" />
+            </div>
+          </Reveal>
+          <Reveal direction="none" className="statement text-foreground">
+            <MaskedWords text={t('maison.statement.lead')} />{' '}
+            <em>
+              <MaskedWords text={t('maison.statement.em')} />
+            </em>{' '}
+            <MaskedWords text={t('maison.statement.tail')} />
+            <span className="sr-only">
+              {t('maison.statement.lead')} {t('maison.statement.em')} {t('maison.statement.tail')}
+            </span>
+          </Reveal>
+          <Reveal direction="none" delay={0.25}>
+            <p className="mt-6 text-sm sm:text-base text-muted-foreground max-w-xl mx-auto">
+              {t('maison.statement.note')}
+            </p>
+          </Reveal>
         </div>
       </section>
 
@@ -316,7 +369,10 @@ export default function HomePage() {
             {WORLDS.map((world, i) => (
               <Reveal key={world.key} delay={i * 0.12} className="h-full">
                 <TiltCard className={`h-full rounded-2xl ${world.tri}`} max={7}>
-                  <article className="glow-border card-lift group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card">
+                  <article
+                    data-spotlight
+                    className="glow-border card-lift spotlight-surface group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card"
+                  >
                     {/* Brand imagery — clip-path bottom reveal */}
                     <div className="relative h-52 overflow-hidden">
                       <Image
@@ -436,7 +492,8 @@ export default function HomePage() {
                 <Reveal key={item.key} delay={i * 0.1} className={featured ? 'sm:col-span-2' : ''}>
                   <TiltCard className="h-full rounded-xl" max={6}>
                     <div
-                      className={`glow-border card-lift lux-card h-full p-6 rounded-xl ${
+                      data-spotlight
+                      className={`glow-border card-lift spotlight-surface lux-card h-full p-6 rounded-xl ${
                         featured
                           ? 'flex items-center gap-6 text-start sm:text-start'
                           : 'text-center'
@@ -473,19 +530,20 @@ export default function HomePage() {
         steps={processSteps}
       />
 
-      {/* ============ TESTIMONIALS — auto-rotating ============ */}
+      {/* ============ TESTIMONIALS — auto-rotating, editorial (Task 39) ============ */}
       <TestimonialsSection
         title={t('home.testimonials.title')}
         subtitle={t('home.testimonials.subtitle')}
         items={testimonials}
+        editorial
       />
 
-      {/* ============ HOUSE CTA — magnetic button to the unified store +
-          tri-brand dots back into each world ============ */}
+      {/* ============ HOUSE CTA — glass-strong panel, magnetic button to the
+          unified store + tri-brand dots back into each world ============ */}
       <section className="py-16 sm:py-24 px-4 bg-background">
         <div className="max-w-4xl mx-auto">
           <Reveal>
-            <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card p-8 sm:p-12 text-center card-lift">
+            <div className="relative overflow-hidden rounded-2xl glass-strong p-8 sm:p-12 text-center card-lift">
               {/* Tri-brand ambience — one radial glow per world */}
               <div
                 aria-hidden="true"
