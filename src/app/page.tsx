@@ -39,6 +39,7 @@ import CheckoutPage from '@/views/checkout'
 import PaymentPage from '@/views/payment'
 import CheckoutSuccessPage from '@/views/checkout-success'
 import AdminPage from '@/views/admin'
+import AdminBrandPage from '@/views/admin-brand'
 import AboutPage from '@/views/about'
 import ContactPage from '@/views/contact'
 import LegalPage from '@/views/legal'
@@ -85,6 +86,12 @@ function PageForPath({ path, slug }: { path: string; slug?: string }) {
       return <CheckoutSuccessPage />
     case '/admin':
       return <AdminPage />
+    case '/admin/lut':
+      return <AdminBrandPage brand="LUT" />
+    case '/admin/la-lounge':
+      return <AdminBrandPage brand="LA_LOUNGE" />
+    case '/admin/birthday':
+      return <AdminBrandPage brand="YOUR_BIRTHDAY" />
     case '/about':
       return <AboutPage />
     case '/contact':

@@ -1,66 +1,71 @@
 'use client'
 
 /**
- * Admin — «بيت الإدارة» (the Administration House).
+ * Admin Overview — «بيت الإدارة» (the Administration House, Task 38 redesign).
  *
- * One hash route (#/ar/admin · #/en/admin) hosting the whole back office:
+ * Hash route #/ar/admin · #/en/admin. The command center of the back office:
  *
- *   1. Login gate — dark glass card with a glowing gold ShieldCheck
- *      medallion. POSTs the password to /api/admin/login; the httpOnly
- *      session cookie is set by the server (same-origin fetch keeps it).
- *   2. Dashboard — house header + six KPI cards from /api/admin/stats +
- *      a tab band whose panels (Orders / Messages / Products) are built
- *      by parallel agents and imported here per the wave contract.
+ *   1. Login gate — shared <AdminGate/> (dark glass card + gold medallion)
+ *      driven by useAdminSession(); the httpOnly cookie lands automatically.
+ *   2. Dashboard —
+ *        · house header (title, secure badge, storefront link, logout)
+ *        · six global KPI cards from /api/admin/stats
+ *        · THREE BRAND HOUSE CARDS — one per house (LUT · La Lounge ·
+ *          Your Birthday), each an accent-framed link to its own admin
+ *          page (#/admin/lut · #/admin/la-lounge · #/admin/birthday) with
+ *          live per-brand counters (products / bookings / pending) from
+ *          the same stats payload.
+ *        · global tab band — Orders / Messages / Products (panels are
+ *          self-fetching dynamic imports; brand-scoped management lives
+ *          on the per-brand pages).
  *
- * Session contract with the parallel API + panel agents:
- *   - GET  /api/admin/session → { authenticated: boolean }
- *   - POST /api/admin/login   → 200 {ok} | 401 invalid_credentials | 429 rate_limited
- *   - POST /api/admin/logout  → {ok}
- *   - GET  /api/admin/stats   → KPI numbers (expectedRevenue in KWD)
- *   - panels dispatch `window.dispatchEvent(new CustomEvent('admin:unauthorized'))`
- *     on any 401 → this page drops back to the gate with an
- *     expired-session notice (admin.session.expired).
+ * Session contract (wave-wide):
+ *   - 401 anywhere (panels' useAdminApi, mutation fetches, this page's own
+ *     stats load) dispatches 'admin:unauthorized' → useAdminSession drops
+ *     the page back to the gate with the expired notice.
+ *   - KPIs refresh on login, on every tab switch (mutations land fresh),
+ *     and via the header refresh button — sequence-guarded so a stale
+ *     success can never overwrite newer state.
  *
- * The house identity is the neutral warm-dark champagne palette
- * (data-brand="neutral", asserted below — the router's brand resolver
- * would otherwise stamp 'lut' on this path).
+ * The house identity stays the neutral warm-dark champagne palette
+ * (data-brand="neutral", asserted on every locale flip because the
+ * router's brand resolver would otherwise stamp 'lut' on this path).
  */
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  AlertTriangle,
   Armchair,
+  ArrowLeft,
   CalendarClock,
   CheckCircle2,
   Clock,
   Coins,
-  Loader2,
+  ExternalLink,
   Lock,
   LogOut,
   Mail,
   RefreshCw,
-  ShieldCheck,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Toaster } from '@/components/ui/sonner'
-import { Particles } from '@/components/shared/particles'
 import { Reveal } from '@/components/shared/reveal'
 import { AnimatedCounter } from '@/components/shared/upgrade/animated-counter'
 import { useI18n } from '@/lib/i18n'
+import { useRouter } from '@/lib/router'
 import { cn } from '@/lib/utils'
 import dynamic from 'next/dynamic'
-// Parallel-agent panels — wave contract: default export, no props,
-// self-fetching, and they dispatch 'admin:unauthorized' on 401.
-// Dynamically imported (r3 architecture finding): the three panels carry
-// ~4.5k lines of back-office code (plus zod + editor dialog) that must
-// not ship to anonymous shoppers. Loading states stream in behind the
-// login gate; ssr:false is allowed here — admin.tsx is a client component.
+import { useAdminSession } from '@/components/admin/use-admin-session'
+import { AdminGate } from '@/components/admin/admin-gate'
+import { AdminBackdrop, AdminToaster, CheckingState, PanelSkeleton } from '@/components/admin/admin-kit'
+import { ADMIN_BRANDS, ADMIN_BRAND_META, type Brand } from '@/components/admin/brand-theme'
+
+// Self-fetching panels — default export, no props, dispatch
+// 'admin:unauthorized' on 401. Dynamically imported (r3 architecture
+// finding): the panels carry ~4.5k lines of back-office code that must
+// not ship to anonymous shoppers. ssr:false is allowed — client view.
 const OrdersPanel = dynamic(() => import('@/components/admin/orders-panel'), {
   ssr: false,
   loading: () => <PanelSkeleton />,
@@ -78,7 +83,16 @@ const ProductsPanel = dynamic(() => import('@/components/admin/products-panel'),
    Types
    ============================================================ */
 
-/** GET /api/admin/stats — contract with the parallel API agent. */
+/** Per-brand counters in the stats payload (brand house cards). */
+interface BrandStats {
+  products: number
+  activeProducts: number
+  bookings: number
+  pendingBookings: number
+  revenue: number
+}
+
+/** GET /api/admin/stats — contract with the API. */
 interface AdminStats {
   totalBookings: number
   pendingBookings: number
@@ -92,14 +106,15 @@ interface AdminStats {
   activeProducts: number
   /** Bookings created in the last 7 days (a count, not a series). */
   last7Bookings: number
+  /** Per-house breakdown for the brand cards (defensive: optional so a
+   *  stale server during hot-reload degrades to "—" instead of crashing). */
+  brands?: Partial<Record<Brand, BrandStats>>
 }
 
-type AuthPhase = 'checking' | 'gate' | 'ready'
-type LoginError = 'invalid' | 'rate_limited' | 'server' | null
-type TabId = 'overview' | 'orders' | 'messages' | 'products'
+type TabId = 'orders' | 'messages' | 'products'
 type StatsPhase = 'idle' | 'loading' | 'error'
 
-const TABS: TabId[] = ['overview', 'orders', 'messages', 'products']
+const TABS: TabId[] = ['orders', 'messages', 'products']
 
 /* ============================================================
    KPI card — big display-font numeral, gold/amber/green tone
@@ -184,44 +199,132 @@ function KpiCard({
 }
 
 /* ============================================================
-   Panel placeholder — dark-glass shimmer while a lazily-loaded
-   panel chunk streams in (shared by the three dynamic imports).
+   Brand house card — the per-brand navigation moment
    ============================================================ */
 
-function PanelSkeleton() {
-  return (
-    <div
-      role="status"
-      aria-busy="true"
-      className="lux-card flex flex-col gap-4 rounded-xl border border-[#C9A25E]/20 bg-[#14110B]/95 p-6"
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-6 w-44 rounded-md bg-white/[0.07]" />
-          <Skeleton className="h-3 w-16 rounded bg-white/[0.05]" />
-        </div>
-        <Skeleton className="h-11 w-24 rounded-md bg-white/[0.05]" />
-      </div>
-      <Skeleton className="h-11 w-full rounded-md bg-white/[0.05]" />
-      <Skeleton className="h-64 w-full rounded-lg bg-white/[0.04]" />
-    </div>
-  )
+interface BrandCardProps {
+  brand: Brand
+  stats: BrandStats | undefined
+  delay: number
 }
 
-/* ============================================================
-   Session-probe state (rendered before the first API answer)
-   ============================================================ */
+function BrandCard({ brand, stats, delay }: BrandCardProps) {
+  const { t } = useI18n()
+  const { href } = useRouter()
+  const meta = ADMIN_BRAND_META[brand]
+  const Icon = meta.icon
 
-function CheckingState({ label }: { label: string }) {
+  /** Tabular counter or a muted dash while stats stream in. */
+  const num = (value: number | undefined) =>
+    typeof value === 'number' ? value.toLocaleString('en-US') : '—'
+
   return (
-    <div className="flex flex-1 items-center justify-center px-4 py-24" role="status">
-      <div className="flex flex-col items-center gap-4">
-        <span className="animate-pulse-ring inline-flex size-14 items-center justify-center rounded-full border border-primary/40 bg-primary/10">
-          <ShieldCheck className="size-7 text-primary" aria-hidden="true" />
-        </span>
-        <span className="text-sm text-muted-foreground">{label}</span>
+    <Reveal delay={delay} className="h-full">
+      <div
+        className={cn(
+          'lux-card group relative h-full overflow-hidden rounded-xl border-border/60 bg-[#14110B]/95 py-0',
+          'transition-[border-color,transform] duration-300 hover:-translate-y-1'
+        )}
+      >
+        {/* Brand accent top hairline */}
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-4 top-0 h-[3px] rounded-full opacity-80"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${meta.accent}, transparent)`,
+          }}
+        />
+
+        {/* Whole-card overlay link (manage) — sits under the storefront link */}
+        <a
+          href={href(meta.adminPath)}
+          className="absolute inset-0 z-10 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          style={{ ['--tw-ring-color' as string]: meta.accentBorder }}
+          aria-label={`${t(meta.labelKey)} — ${t('admin.brands.manage')}`}
+        />
+
+        <div className="relative z-0 flex flex-col gap-4 p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span
+                className="flex size-12 shrink-0 items-center justify-center rounded-lg border"
+                style={{
+                  color: meta.accentText,
+                  backgroundColor: meta.accentSoft,
+                  borderColor: meta.accentBorder,
+                }}
+              >
+                <Icon className="size-6" aria-hidden="true" />
+              </span>
+              <div className="flex flex-col gap-0.5">
+                <h3 className="font-display text-lg leading-tight text-foreground sm:text-xl">
+                  {t(meta.labelKey)}
+                </h3>
+                <p className="text-[11px] leading-snug text-muted-foreground">{t(meta.taglineKey)}</p>
+              </div>
+            </div>
+            <span
+              className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full border transition-transform duration-300 group-hover:scale-110"
+              style={{
+                color: meta.accentText,
+                borderColor: meta.accentBorder,
+                backgroundColor: meta.accentSoft,
+              }}
+              aria-hidden="true"
+            >
+              <ArrowLeft className="size-4 rtl:rotate-180" />
+            </span>
+          </div>
+
+          {/* Per-brand mini counters */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/50 pt-4">
+            <span className="flex items-center gap-1.5 text-sm">
+              <span className="text-[11px] text-muted-foreground">{t('admin.stats.activeProducts')}</span>
+              <span className="font-display tabular-nums text-foreground" dir="ltr">
+                {num(stats?.activeProducts)}
+              </span>
+              <span className="text-[11px] text-muted-foreground">/ {num(stats?.products)}</span>
+            </span>
+            <span className="flex items-center gap-1.5 text-sm">
+              <span className="text-[11px] text-muted-foreground">{t('admin.stats.totalBookings')}</span>
+              <span className="font-display tabular-nums text-foreground" dir="ltr">
+                {num(stats?.bookings)}
+              </span>
+            </span>
+            {stats && stats.pendingBookings > 0 ? (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium"
+                style={{
+                  color: meta.accentText,
+                  borderColor: meta.accentBorder,
+                  backgroundColor: meta.accentSoft,
+                }}
+              >
+                <span className="size-1.5 rounded-full" style={{ backgroundColor: meta.accent }} aria-hidden="true" />
+                {stats.pendingBookings.toLocaleString('en-US')} {t('admin.stats.pendingBookings')}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            {/* Storefront preview link — above the overlay (z-20) */}
+            <a
+              href={href(meta.sitePath)}
+              className="relative z-20 inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+              {t('admin.brands.viewStorefront')}
+            </a>
+            <span
+              className="inline-flex min-h-11 items-center gap-1.5 pe-1 text-xs font-semibold"
+              style={{ color: meta.accentText }}
+            >
+              {t('admin.brands.manage')}
+            </span>
+          </div>
+        </div>
       </div>
-    </div>
+    </Reveal>
   )
 }
 
@@ -230,16 +333,13 @@ function CheckingState({ label }: { label: string }) {
    ============================================================ */
 
 export default function AdminPage() {
-  const { t, locale, dir } = useI18n()
+  const { t, locale } = useI18n()
+  const { href } = useRouter()
+  const { phase, sessionExpired, login, logout, markUnauthorized } = useAdminSession()
 
-  const [phase, setPhase] = useState<AuthPhase>('checking')
-  const [password, setPassword] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [loginError, setLoginError] = useState<LoginError>(null)
-  const [sessionExpired, setSessionExpired] = useState(false)
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [statsPhase, setStatsPhase] = useState<StatsPhase>('idle')
-  const [tab, setTab] = useState<TabId>('overview')
+  const [tab, setTab] = useState<TabId>('orders')
 
   /* Neutral house identity — warm dark champagne for the back office.
      Re-asserted on locale flips because BrandThemeSetter re-stamps the
@@ -247,22 +347,6 @@ export default function AdminPage() {
   useEffect(() => {
     document.documentElement.dataset.brand = 'neutral'
   }, [locale])
-
-  /* Any 401 from the parallel panels (window event) or from this page's
-     own stats fetch → drop to the gate with an expired-session notice. */
-  const handleUnauthorized = useCallback(() => {
-    setPhase('gate')
-    setSessionExpired(true)
-    setStats(null)
-    setStatsPhase('idle')
-    setTab('overview')
-  }, [])
-
-  useEffect(() => {
-    const onUnauthorized = () => handleUnauthorized()
-    window.addEventListener('admin:unauthorized', onUnauthorized)
-    return () => window.removeEventListener('admin:unauthorized', onUnauthorized)
-  }, [handleUnauthorized])
 
   /* KPI stats loader — sequence-guarded so a stale success can never
      overwrite a newer state (mirrors the panels' requestId pattern). */
@@ -274,7 +358,7 @@ export default function AdminPage() {
       const res = await fetch('/api/admin/stats', { cache: 'no-store' })
       if (statsRequestIdRef.current !== id) return
       if (res.status === 401) {
-        handleUnauthorized()
+        markUnauthorized()
         return
       }
       if (!res.ok) throw new Error(`admin stats ${res.status}`)
@@ -286,206 +370,27 @@ export default function AdminPage() {
       if (statsRequestIdRef.current !== id) return
       setStatsPhase('error')
     }
-  }, [handleUnauthorized])
+  }, [markUnauthorized])
 
-  /* Session probe on mount — decides gate vs dashboard. A non-OK answer
-     (401, or 404 while the parallel API agent is still landing) simply
-     shows the gate: the house stays closed until the API answers. */
+  /* Load on login/mount-ready (phase flips to 'ready' exactly once per
+     gate pass) — panels are self-fetching, the KPIs are this page's job. */
   useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      try {
-        const res = await fetch('/api/admin/session', { cache: 'no-store' })
-        if (cancelled) return
-        if (!res.ok) {
-          setPhase('gate')
-          return
-        }
-        const data = (await res.json()) as { authenticated?: boolean }
-        if (cancelled) return
-        if (data?.authenticated) {
-          setPhase('ready')
-          void loadStats()
-        } else {
-          setPhase('gate')
-        }
-      } catch {
-        if (!cancelled) setPhase('gate')
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [loadStats])
-
-  /* Login — POST {password}; the httpOnly cookie lands automatically. */
-  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (submitting) return
-    if (!password.trim()) {
-      setLoginError('invalid')
-      return
-    }
-    setSubmitting(true)
-    setLoginError(null)
-    try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-        cache: 'no-store',
-      })
-      if (res.ok) {
-        setPassword('')
-        setSessionExpired(false)
-        setPhase('ready')
-        void loadStats()
-        return
-      }
-      setLoginError(
-        res.status === 401 ? 'invalid' : res.status === 429 ? 'rate_limited' : 'server'
-      )
-    } catch {
-      setLoginError('server')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  /* Logout — POST then back to the gate (no expiry notice: deliberate). */
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/admin/logout', { method: 'POST', cache: 'no-store' })
-    } catch {
-      /* network hiccup — the server cookie expires on its own */
-    }
-    setPhase('gate')
-    setPassword('')
-    setLoginError(null)
-    setStats(null)
-    setStatsPhase('idle')
-    setSessionExpired(false)
-    setTab('overview')
-  }
-
-  const loginErrorMessage =
-    loginError === 'rate_limited'
-      ? t('admin.login.rateLimited')
-      : loginError === 'invalid'
-        ? t('admin.login.error')
-        : loginError === 'server'
-          ? t('admin.login.serverError')
-          : null
+    if (phase === 'ready') void loadStats()
+  }, [phase, loadStats])
 
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden">
-      {/* Warm dark maison backdrop + drifting gold dust (both states) */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_55%_at_50%_-10%,rgba(201,162,94,0.13),transparent_62%)]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_115%,rgba(139,107,61,0.10),transparent_65%)]"
-      />
-      <Particles count={phase === 'gate' ? 22 : 12} />
-
-      {/* Single admin-shell sonner toaster — panels no longer mount their own
-          (toasts survive tab switches and share one dark-gold style). */}
-      <Toaster
-        position="top-center"
-        dir={dir}
-        theme="dark"
-        toastOptions={{
-          style: {
-            background: '#171410',
-            border: '1px solid rgba(201,162,94,0.25)',
-            color: '#F2EDE2',
-            fontSize: '13px',
-          },
-        }}
-      />
+      <AdminBackdrop particleCount={phase === 'gate' ? 22 : 12} />
+      <AdminToaster />
 
       {/* ---------- 1. Login gate ---------- */}
       {phase === 'checking' ? <CheckingState label={t('admin.common.loading')} /> : null}
 
-      {phase === 'gate' ? (
-        <div className="relative flex flex-1 items-center justify-center px-4 py-16 sm:py-24">
-          <Reveal className="w-full max-w-sm">
-            <div className="glass-panel flex flex-col gap-6 rounded-2xl p-6 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)] sm:p-8">
-              <div className="flex flex-col items-center gap-4 text-center">
-                {/* Glowing gold medallion */}
-                <span className="animate-pulse-ring inline-flex size-16 items-center justify-center rounded-full border border-primary/40 bg-primary/10">
-                  <ShieldCheck className="size-8 text-primary" aria-hidden="true" />
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  <h1 className="font-display text-2xl text-foreground sm:text-3xl">
-                    {t('admin.login.title')}
-                  </h1>
-                  <p className="text-sm text-muted-foreground">{t('admin.login.hint')}</p>
-                </div>
-              </div>
-
-              {sessionExpired ? (
-                <p
-                  role="alert"
-                  className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive"
-                >
-                  <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
-                  {t('admin.session.expired')}
-                </p>
-              ) : null}
-
-              <form onSubmit={handleLogin} noValidate className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="admin-password">{t('admin.login.passwordLabel')}</Label>
-                  <Input
-                    id="admin-password"
-                    name="password"
-                    type="password"
-                    dir="ltr"
-                    autoComplete="current-password"
-                    autoFocus
-                    required
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value)
-                      if (loginError) setLoginError(null)
-                    }}
-                    aria-invalid={loginError ? true : undefined}
-                    aria-describedby={loginError ? 'admin-login-error' : undefined}
-                    placeholder="••••••••"
-                    className="h-11 min-h-11"
-                  />
-                </div>
-
-                {loginErrorMessage ? (
-                  <p id="admin-login-error" role="alert" className="text-sm text-destructive">
-                    {loginErrorMessage}
-                  </p>
-                ) : null}
-
-                <Button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn-lux min-h-11 rounded-md px-6 py-2.5 text-base font-semibold"
-                >
-                  {submitting ? (
-                    <Loader2 className="animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Lock aria-hidden="true" />
-                  )}
-                  {submitting ? t('admin.common.loading') : t('admin.login.submit')}
-                </Button>
-              </form>
-            </div>
-          </Reveal>
-        </div>
-      ) : null}
+      {phase === 'gate' ? <AdminGate onLogin={login} sessionExpired={sessionExpired} /> : null}
 
       {/* ---------- 2. Dashboard ---------- */}
       {phase === 'ready' ? (
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-10 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:px-8">
           {/* House header */}
           <header className="flex flex-wrap items-end justify-between gap-4">
             <div className="flex flex-col gap-1">
@@ -495,13 +400,20 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground">{t('admin.subtitle')}</p>
             </div>
             <div className="flex items-center gap-2.5">
+              <a
+                href={href('/')}
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-border/70 px-4 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <ExternalLink className="size-3.5" aria-hidden="true" />
+                {t('admin.viewSite')}
+              </a>
               <span className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs text-primary">
                 <Lock className="size-3.5" aria-hidden="true" />
                 {t('admin.secureBadge')}
               </span>
               <Button
                 variant="outline"
-                onClick={() => void handleLogout()}
+                onClick={() => void logout()}
                 className="min-h-11 rounded-md border-primary/30 px-4 text-primary hover:bg-primary/10 hover:text-primary"
               >
                 <LogOut aria-hidden="true" />
@@ -510,16 +422,139 @@ export default function AdminPage() {
             </div>
           </header>
 
-          {/* Tab band — role=tablist/tab/tabpanel + arrow-key navigation
-              come from the Radix Tabs primitives; ≥44px targets.
-              Returning to the Overview tab refreshes the KPIs, so counters
-              reflect any mutations made inside the panels (Task 4-9 note). */}
+          {/* Global KPI band */}
+          <section aria-label={t('admin.stats.sectionLabel')} className="flex flex-col gap-4">
+            <div className="flex items-end justify-between gap-4">
+              <h2 className="font-display text-xl text-foreground sm:text-2xl">
+                {t('admin.stats.sectionTitle')}
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => void loadStats()}
+                disabled={statsPhase === 'loading'}
+                aria-label={t('admin.common.refresh')}
+                className="size-11 rounded-lg text-muted-foreground hover:text-primary"
+              >
+                <RefreshCw
+                  className={cn('size-4', statsPhase === 'loading' && 'animate-spin')}
+                  aria-hidden="true"
+                />
+              </Button>
+            </div>
+
+            {statsPhase === 'error' ? (
+              <div
+                role="alert"
+                className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-8 text-center"
+              >
+                <p className="text-sm text-destructive">{t('admin.common.error')}</p>
+                <Button
+                  variant="outline"
+                  onClick={() => void loadStats()}
+                  className="min-h-11 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <RefreshCw aria-hidden="true" />
+                  {t('admin.common.retry')}
+                </Button>
+              </div>
+            ) : null}
+
+            {statsPhase === 'loading' && !stats ? (
+              <div className="grid gap-4 min-[480px]:grid-cols-2 xl:grid-cols-3" aria-busy="true">
+                {Array.from({ length: 6 }, (_, i) => (
+                  <Skeleton key={i} className="h-32 rounded-xl sm:h-36" />
+                ))}
+              </div>
+            ) : null}
+
+            {stats ? (
+              <div className="grid gap-4 min-[480px]:grid-cols-2 xl:grid-cols-3">
+                <KpiCard
+                  icon={CalendarClock}
+                  label={t('admin.stats.totalBookings')}
+                  value={stats.totalBookings}
+                  badge={
+                    stats.last7Bookings > 0
+                      ? `${t('admin.stats.last7')}: ${stats.last7Bookings.toLocaleString('en-US')}`
+                      : null
+                  }
+                />
+                <KpiCard
+                  icon={Clock}
+                  label={t('admin.stats.pendingBookings')}
+                  value={stats.pendingBookings}
+                  tone="amber"
+                  delay={0.06}
+                />
+                <KpiCard
+                  icon={CheckCircle2}
+                  label={t('admin.stats.confirmedBookings')}
+                  value={stats.confirmedBookings}
+                  tone="green"
+                  delay={0.12}
+                />
+                <KpiCard
+                  icon={Coins}
+                  label={t('admin.stats.expectedRevenue')}
+                  value={stats.expectedRevenue}
+                  format="kwd"
+                  currencyLabel={t('admin.common.kwd')}
+                  delay={0.18}
+                />
+                <KpiCard
+                  icon={Mail}
+                  label={t('admin.stats.messages')}
+                  value={stats.totalMessages}
+                  tone={stats.unreadMessages > 0 ? 'amber' : 'gold'}
+                  badge={
+                    stats.unreadMessages > 0
+                      ? `${stats.unreadMessages.toLocaleString('en-US')} ${t('admin.stats.unread')}`
+                      : null
+                  }
+                  delay={0.24}
+                />
+                <KpiCard
+                  icon={Armchair}
+                  label={t('admin.stats.activeProducts')}
+                  value={stats.activeProducts}
+                  delay={0.3}
+                />
+              </div>
+            ) : null}
+          </section>
+
+          {/* Brand house cards — one door per house */}
+          <section aria-label={t('admin.brands.sectionLabel')} className="flex flex-col gap-4">
+            <div className="flex items-end justify-between gap-4">
+              <div className="flex flex-col gap-1">
+                <h2 className="font-display text-xl text-foreground sm:text-2xl">
+                  {t('admin.brands.sectionTitle')}
+                </h2>
+                <p className="text-sm text-muted-foreground">{t('admin.brands.sectionSubtitle')}</p>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {ADMIN_BRANDS.map((brand, index) => (
+                <BrandCard
+                  key={brand}
+                  brand={brand}
+                  stats={stats?.brands?.[brand]}
+                  delay={0.08 * index}
+                />
+              ))}
+            </div>
+          </section>
+
+          {/* Global tab band — role=tablist/tab/tabpanel + arrow-key
+              navigation come from the Radix Tabs primitives; ≥44px targets.
+              Every tab switch refreshes the KPIs so the counters absorb
+              any mutations made inside the panels. */}
           <Tabs
             value={tab}
             onValueChange={(v) => {
-              const next = v as TabId
-              setTab(next)
-              if (next === 'overview') void loadStats()
+              setTab(v as TabId)
+              void loadStats()
             }}
             className="gap-0"
           >
@@ -535,106 +570,6 @@ export default function AdminPage() {
               ))}
             </TabsList>
 
-            {/* Overview tab = the KPI band itself */}
-            <TabsContent value="overview" className="flex flex-col gap-4 pt-6">
-              <div className="flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => void loadStats()}
-                  disabled={statsPhase === 'loading'}
-                  aria-label={t('admin.common.refresh')}
-                  className="size-11 rounded-lg text-muted-foreground hover:text-primary"
-                >
-                  <RefreshCw
-                    className={cn('size-4', statsPhase === 'loading' && 'animate-spin')}
-                    aria-hidden="true"
-                  />
-                </Button>
-              </div>
-
-              {statsPhase === 'error' ? (
-                <div
-                  role="alert"
-                  className="flex flex-col items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-8 text-center"
-                >
-                  <p className="text-sm text-destructive">{t('admin.common.error')}</p>
-                  <Button
-                    variant="outline"
-                    onClick={() => void loadStats()}
-                    className="min-h-11 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <RefreshCw aria-hidden="true" />
-                    {t('admin.common.retry')}
-                  </Button>
-                </div>
-              ) : null}
-
-              {statsPhase === 'loading' && !stats ? (
-                <div className="grid gap-4 min-[480px]:grid-cols-2 xl:grid-cols-3" aria-busy="true">
-                  {Array.from({ length: 6 }, (_, i) => (
-                    <Skeleton key={i} className="h-32 rounded-xl sm:h-36" />
-                  ))}
-                </div>
-              ) : null}
-
-              {stats ? (
-                <div className="grid gap-4 min-[480px]:grid-cols-2 xl:grid-cols-3">
-                  <KpiCard
-                    icon={CalendarClock}
-                    label={t('admin.stats.totalBookings')}
-                    value={stats.totalBookings}
-                    badge={
-                      stats.last7Bookings > 0
-                        ? `${t('admin.stats.last7')}: ${stats.last7Bookings.toLocaleString('en-US')}`
-                        : null
-                    }
-                  />
-                  <KpiCard
-                    icon={Clock}
-                    label={t('admin.stats.pendingBookings')}
-                    value={stats.pendingBookings}
-                    tone="amber"
-                    delay={0.06}
-                  />
-                  <KpiCard
-                    icon={CheckCircle2}
-                    label={t('admin.stats.confirmedBookings')}
-                    value={stats.confirmedBookings}
-                    tone="green"
-                    delay={0.12}
-                  />
-                  <KpiCard
-                    icon={Coins}
-                    label={t('admin.stats.expectedRevenue')}
-                    value={stats.expectedRevenue}
-                    format="kwd"
-                    currencyLabel={t('admin.common.kwd')}
-                    delay={0.18}
-                  />
-                  <KpiCard
-                    icon={Mail}
-                    label={t('admin.stats.messages')}
-                    value={stats.totalMessages}
-                    tone={stats.unreadMessages > 0 ? 'amber' : 'gold'}
-                    badge={
-                      stats.unreadMessages > 0
-                        ? `${stats.unreadMessages.toLocaleString('en-US')} ${t('admin.stats.unread')}`
-                        : null
-                    }
-                    delay={0.24}
-                  />
-                  <KpiCard
-                    icon={Armchair}
-                    label={t('admin.stats.activeProducts')}
-                    value={stats.activeProducts}
-                    delay={0.3}
-                  />
-                </div>
-              ) : null}
-            </TabsContent>
-
-            {/* Panel tabs — parallel-agent components (self-fetching) */}
             <TabsContent value="orders" className="pt-6">
               <OrdersPanel />
             </TabsContent>

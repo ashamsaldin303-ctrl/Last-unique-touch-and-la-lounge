@@ -262,7 +262,10 @@
       "messages": "Contact messages",
       "activeProducts": "Active products",
       "last7": "Last 7 days",
-      "unread": "unread"
+      "unread": "unread",
+      "sectionLabel": "Key performance indicators",
+      "sectionTitle": "Overview",
+      "completedBookings": "Completed bookings"
     },
     "orders": {
       "title": "Orders & bookings log",
@@ -390,6 +393,29 @@
     },
     "errors": {
       "unauthorized": "Unauthorized"
+    },
+    "viewSite": "View site",
+    "brands": {
+      "sectionLabel": "Manage the three houses",
+      "sectionTitle": "Brand houses",
+      "sectionSubtitle": "Each house has its own admin page gathering its products and orders",
+      "manage": "Manage",
+      "viewStorefront": "View storefront",
+      "lut": {
+        "tagline": "Event & occasion furniture rentals"
+      },
+      "lalounge": {
+        "tagline": "Custom furniture & event planning"
+      },
+      "birthday": {
+        "tagline": "Birthday party décor & celebrations"
+      }
+    },
+    "brand": {
+      "backToAdmin": "Back to the admin center",
+      "houseEyebrow": "Brand house",
+      "kpiTitle": "House metrics",
+      "totalProductsLabel": "Total"
     }
   },
   "cart": {
