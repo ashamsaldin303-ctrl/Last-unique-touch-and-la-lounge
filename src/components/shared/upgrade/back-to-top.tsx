@@ -45,7 +45,13 @@ export function BackToTop() {
           initial={{ opacity: 0, scale: 0.6, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.6, y: 16 }}
-          whileTap={prefersReduced ? undefined : { scale: 0.92 }}
+          // v45-audit: unconditional whileTap — a server/client difference here
+          // (useReducedMotion is null on server, true/false on client) made
+          // framer-motion drop `tabindex="0"` on reduced-motion clients and
+          // produced a hydration attribute mismatch. The global
+          // <MotionConfig reducedMotion="user"> wrapper at the app root
+          // already suppresses the transform for those users.
+          whileTap={{ scale: 0.92 }}
           transition={
             prefersReduced
               ? { duration: 0 } // instant for vestibular-sensitive users

@@ -1,0 +1,12 @@
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { chromium } = require('/home/z/.npm-global/lib/node_modules/playwright');
+const sharp = require('sharp');
+const browser = await chromium.launch({ headless: true, args: ['--disable-dev-shm-usage','--disable-gpu','--no-sandbox'] });
+const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+await page.goto('http://localhost:3000/#/ar/your-birthday/contact', { waitUntil: 'networkidle', timeout: 60000 }).catch(()=>{});
+await page.waitForTimeout(3000);
+await page.screenshot({ path: '/tmp/verify-white-test.jpg', type: 'jpeg', quality: 82 });
+const stats = await sharp('/tmp/verify-white-test.jpg').greyscale().resize(64,64,{fit:'fill'}).stats();
+console.log('MANUAL RECAPTURE mean:', stats.channels[0].mean.toFixed(1), 'stdev:', stats.channels[0].stdev.toFixed(1));
+await browser.close();

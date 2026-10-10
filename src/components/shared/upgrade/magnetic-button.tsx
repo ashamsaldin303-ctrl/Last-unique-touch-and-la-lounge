@@ -70,7 +70,13 @@ export function MagneticButton({
       onMouseMove={onMove}
       onMouseLeave={onLeave}
       style={{ x: springX, y: springY }}
-      whileTap={prefersReducedMotion ? undefined : { scale: 0.97 }}
+      // Unconditional whileTap: useReducedMotion() is null during SSR but
+      // true/false on the client, so branching this prop made framer-motion
+      // emit `tabindex="0"` on the server and omit it for reduced-motion
+      // clients → hydration attribute mismatch (audit r40). The root
+      // <MotionConfig reducedMotion="user"> already suppresses the scale
+      // transform for vestibular-sensitive users.
+      whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
       aria-label={ariaLabel}
       className={cn(
