@@ -2654,3 +2654,23 @@ Stage Summary:
 - كل الأخطاء الحقيقية من تدقيق 563 لقطة أُصلحت (11 إصلاحاً) وتحقّق رقمياً: تباين 6.4–31.3:1، كل أهداف اللمس ≥44px، صفر تحذيرات console، الظل الذهبي محسوب
 - منتجات جديدة: src/components/3d/anim-clock.ts + scripts/verify-contrast.mjs؛ 10 ملفات معدلة (globals.css، home، footer، navbar، testimonials، product-detail، lut، experience-card، خلفيات 3D ×5)
 - إعادة تعريف دقيقة لسطح الميزون (داكن في الوضعين) وُثّقت في التعليقات والتقرير لمنع تكرار خطأ الأحبار الداكنة
+---
+Task ID: 42
+Agent: main (Z.ai Code)
+Task: ادخل prompt-motion.com وحلّل جميع الأنميشنز وUI/UX كومبوننتس القابلة للاستخدام وطبّقها في الموقع
+
+Work Log:
+- استكشاف prompt-motion.com بالكامل (curl لأن Cloudflare يحجب المتصفح): الرئيسية + /templates + /customize + /blog + 28 صفحة مدخلات فرعية — 233 مدخلة، 230 بـ prompt كامل
+- استخراج وتوثيق الكتالوج الكامل في agent-ctx/pm-analysis/ANALYSIS.md: فلسفة الحركة (نوابض بتجاوز طفيف، عنصر واحد متصل، لا وقت ميت، دخول متحرك/خروج متسارع) + القائمة المحظورة (glows/particles/crossfades/bouncy…) + 18 تقنية قابلة للنقل (T1–T18)
+- أقوى المصادر: twoclipping «Shape morphing» (12.1k likes — الحافتان بنابضين مختلفين) و ultimaxbt «Orange dot motion system» و antonio-kodheli (highlighter sweep) و 3D template الرسمي
+- بناء نظام الحركة الموحّد src/lib/motion.ts: springSoft/Snappy/Gentle + liquidLeading/Trailing + easeExpoOut/Accelerate + routeVariants/swapEnter/swapExit/popSpring
+- 4 مكونات fx جديدة: liquid-tabs (مؤشر بحافتين بنابضين، إلزامي بلا state عبر motion values)، morph-number (نابض رقمي ζ≈0.9 مع إعادة استهداف من القيمة الحية)، highlight-sweep (مسح قراءة الاتجاه RTL-aware)، ink-flood (غمر دائري من نقطة النقر + صعود الاسم + انكماش، portal z-95، مؤقّتات آمنة)
+- 7 تكاملات: page.tsx (routeVariants: دخول نابض/خروج متسارع بلا filter — قيد الخلفيات 3D الثابتة)، admin+admin-brand (LiquidTabsList underline بدل border-primary الثابت)، totals-block (MorphNumber للإجمالي الكبير)، quantity-stepper (عدّاد odometer باتجاه التغيير — نمط ضبط الحالة أثناء الرسم الرسمي)، products (تبدّل blur+expo على الفلترة/الترتيب/الصفحة — filter آمن هنا بلا عناصر fixed)، home (InkFloodLink لبطاقات العوالم والروابط السريعة بلون حبر كل علامة + HighlightSweep لعبارة CTA)
+- أزمة hydration اكتُشفت وحُلّت جذرياً: خبز router.href في DOM يكسر التطابق (الراوتر يقرأ localStorage أثناء hydration بينما i18n يبدأ بالافتراضي) → InkFloodLink يستقبل path وينقّل عبر navigate() عند النقر (نمط navbar المعماري) وhref المعروض يُبنى من لغة i18n (مستقر SSR)
+- إصلاحات lint قواعد React Compiler: liquid-tabs أُعيدت هيكلتها بلا setState (قياس إلزامي)، morph-number بلا كتابة ref أثناء الرسم، quantity-stepper بنمط ضبط الحالة أثناء الرسم
+- التحقق الحي الشامل: صفر أخطاء console/hydration/page · InkFlood دورة كاملة (circle 1345px → #/en/la-lounge → انكماش) · LiquidTabs x=96→263 · blur(6px) على الفلترة · odometer 1→2 والمجموع 440→480 · المسح 470×31 خلف العبارة · الجوال overflowX=0 والفوتر سليم · tsc نظيف وlint 0 أخطاء
+
+Stage Summary:
+- كتالوج prompt-motion كامل موثق (ANALYSIS.md، 140 سطراً) + 6 تقنيات مُطبّقة فعلياً عبر 5 ملفات جديدة و7 معدلة
+- لغة حركة موحّدة جديدة للموقع: كل التحولات نوابض بتجاوز طفيف، الانتقالات تصمت للفكرة (غمر الحبر بلون العلامة) وليس crossfades
+- كل التحقق رقمي وحّي ناجح؛ الصفحة تعمل بلا أي خطأ console
