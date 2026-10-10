@@ -40,6 +40,8 @@ import { ExperienceCard } from '@/components/landing/experience-card'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { Reveal } from '@/components/shared/reveal'
 import { MaskedWords } from '@/components/shared/masked-words'
+import { InkFloodLink } from '@/components/fx/ink-flood'
+import { HighlightSweep } from '@/components/fx/highlight-sweep'
 import {
   SectionHeading,
   ProcessSteps,
@@ -72,6 +74,9 @@ const WORLDS = [
     productsHref: '/products',
     /** Button text color on the brand accent (yellow needs dark text). */
     onAccent: '#ffffff',
+    /** Flood ink (Task 42, prompt-motion T8) — the literal --tri hex so
+     *  the body-level portal can resolve it outside the card's scope. */
+    ink: '#8b6b3d',
   },
   {
     key: 'lalounge' as const,
@@ -84,6 +89,7 @@ const WORLDS = [
     href: '/la-lounge',
     productsHref: '/la-lounge/products',
     onAccent: '#ffffff',
+    ink: '#e6007e',
   },
   {
     key: 'birthday' as const,
@@ -96,6 +102,7 @@ const WORLDS = [
     href: '/your-birthday',
     productsHref: '/your-birthday/products',
     onAccent: '#1a1a2e',
+    ink: '#f5b914',
   },
 ]
 
@@ -437,11 +444,18 @@ export default function HomePage() {
                         {t(world.descKey)}
                       </p>
 
-                      {/* Dual CTAs — enter the world + browse its products */}
+                      {/* Dual CTAs — enter the world + browse its products.
+                          The primary CTA is an InkFloodLink (Task 42,
+                          prompt-motion T8+T9): clicking floods the viewport
+                          with the brand ink from the exact click point, the
+                          world's name rises inside it while the SPA swaps
+                          beneath, then the ink contracts into the new scene. */}
                       <div className="mt-auto flex flex-col gap-2.5">
-                        <button
-                          type="button"
-                          onClick={() => navigate(world.href)}
+                        <InkFloodLink
+                          path={world.href}
+                          accent={world.ink}
+                          label={t(world.nameKey)}
+                          labelColor={world.onAccent}
                           className="group/enter relative flex min-h-[44px] items-center justify-center gap-2 rounded-full px-5 text-sm font-bold transition-transform duration-300 hover:-translate-y-0.5 active:scale-[0.98]"
                           style={{
                             backgroundColor: 'var(--tri)',
@@ -458,7 +472,7 @@ export default function HomePage() {
                             }`}
                             aria-hidden="true"
                           />
-                        </button>
+                        </InkFloodLink>
                         <button
                           type="button"
                           onClick={() => navigate(world.productsHref)}
@@ -558,7 +572,12 @@ export default function HomePage() {
                 }}
               />
               <h2 className="relative font-display text-2xl sm:text-3xl text-foreground mb-3">
-                {t('maison.cta.title')}
+                {/* One key phrase, one solid accent highlighter sweep
+                    (Task 42, prompt-motion T7 — antonio-kodheli's site
+                    promo: "A solid accent highlighter sweeps one phrase"). */}
+                <HighlightSweep highlightClassName="bg-primary/20">
+                  {t('maison.cta.title')}
+                </HighlightSweep>
               </h2>
               <p className="relative mb-7 text-sm sm:text-base text-muted-foreground max-w-xl mx-auto">
                 {t('maison.cta.subtitle')}
@@ -577,13 +596,16 @@ export default function HomePage() {
 
               {/* Tri-brand quick links — 44px touch targets + lifted
                   WCAG-safe text (raw hexes land 3.9–4.3:1 at 12px on the
-                  dark glass panel; Task 41) */}
+                  dark glass panel; Task 41). Each is an InkFloodLink too
+                  (Task 42): the brand ink floods from the dot you pressed. */}
               <div className="relative mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
                 {WORLDS.map((world) => (
-                  <button
+                  <InkFloodLink
                     key={world.key}
-                    type="button"
-                    onClick={() => navigate(world.href)}
+                    path={world.href}
+                    accent={world.ink}
+                    label={t(world.nameKey)}
+                    labelColor={world.onAccent}
                     className={`group/dot inline-flex min-h-[44px] items-center gap-2 rounded-full px-3.5 text-xs font-semibold tracking-wide transition-all duration-300 hover:bg-foreground/[0.06] active:scale-95 ${world.tri}`}
                     style={{ color: 'var(--tri-ink)' }}
                   >
@@ -593,7 +615,7 @@ export default function HomePage() {
                       aria-hidden="true"
                     />
                     {t(world.nameKey)}
-                  </button>
+                  </InkFloodLink>
                 ))}
               </div>
             </div>

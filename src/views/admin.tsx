@@ -50,7 +50,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs'
+import { LiquidTabsList } from '@/components/fx/liquid-tabs'
 import { Reveal } from '@/components/shared/reveal'
 import { AnimatedCounter } from '@/components/shared/upgrade/animated-counter'
 import { useI18n } from '@/lib/i18n'
@@ -558,17 +559,24 @@ export default function AdminPage() {
             }}
             className="gap-0"
           >
-            <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b border-border/70 bg-transparent p-0 sm:w-fit">
+            {/* Liquid underline (Task 42, prompt-motion T1): the active
+                indicator's two edges ride different springs — the leading
+                edge stretches toward the travel direction, then the
+                trailing edge catches up and it equalizes. */}
+            <LiquidTabsList
+              variant="underline"
+              className="h-auto w-full justify-start gap-1 rounded-none border-b border-border/70 bg-transparent p-0 sm:w-fit"
+            >
               {TABS.map((id) => (
                 <TabsTrigger
                   key={id}
                   value={id}
-                  className="min-h-11 flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent px-4 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                  className="min-h-11 flex-none rounded-none border-0 border-b-2 border-transparent bg-transparent px-4 text-sm font-medium text-muted-foreground shadow-none data-[state=active]:bg-transparent data-[state=active]:font-semibold data-[state=active]:text-foreground data-[state=active]:shadow-none"
                 >
                   {t(`admin.tabs.${id}`)}
                 </TabsTrigger>
               ))}
-            </TabsList>
+            </LiquidTabsList>
 
             <TabsContent value="orders" className="pt-6">
               <OrdersPanel />

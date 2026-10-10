@@ -34,6 +34,7 @@ import {
 import { PageHeader } from '@/components/shared/page-header'
 import { Reveal } from '@/components/shared/reveal'
 import { StaggerGroup } from '@/components/shared/upgrade'
+import { swapEnter, swapExit } from '@/lib/motion'
 import { ProductCard } from '@/components/shop/product-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -320,13 +321,19 @@ export default function ProductsPage() {
           <EmptyState onClear={clearFilters} />
         ) : (
           <>
+            {/* Content swap with a short blur (Task 42, prompt-motion T3,
+                twoclipping): "its content swaps with a short blur" — the
+                outgoing set blurs out on an accelerating exit, the incoming
+                set de-blurs ALREADY MOVING (expo ease-out). No fixed-position
+                children live under this wrapper, so filter is safe here
+                (unlike the route transition — see page.tsx). */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${page}-${category ?? 'all'}-${sort}-${search}`}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                variants={{ ...swapEnter, ...swapExit }}
+                initial="initial"
+                animate="animate"
+                exit="exit"
               >
                 <StaggerGroup className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
                   {products.map((product) => (

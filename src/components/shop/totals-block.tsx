@@ -8,6 +8,7 @@
 import { useI18n } from '@/lib/i18n'
 import { formatKwd } from '@/lib/money'
 import { cn } from '@/lib/utils'
+import { MorphNumber } from '@/components/fx/morph-number'
 
 export function TotalsBlock({
   rentalTotal,
@@ -48,7 +49,12 @@ export function TotalsBlock({
   )
 }
 
-/** Grand total row (rental + deposit) with a gold display figure. */
+/** Grand total row (rental + deposit) with a gold display figure.
+ *  The figure is a MorphNumber (Task 42, prompt-motion T10): it rides
+ *  a real spring with a tiny overshoot, so quantity/duration changes
+ *  make the total land like the spring graphs in the gallery — never
+ *  a hard number swap. Hydration-safe: first paint renders the exact
+ *  formatted value; the spring engages only on later changes. */
 export function GrandTotalRow({
   total,
   labels,
@@ -59,6 +65,7 @@ export function GrandTotalRow({
   className?: string
 }) {
   const { locale } = useI18n()
+  const fmt = (v: number) => formatKwd(v, locale)
   return (
     <div
       className={cn(
@@ -68,7 +75,10 @@ export function GrandTotalRow({
     >
       <span className="text-sm font-bold text-foreground">{labels.total}</span>
       <span className="font-display text-xl font-bold tabular-nums text-primary">
-        <span dir="ltr">{formatKwd(total, locale)}</span> {labels.currency}
+        <span dir="ltr">
+          <MorphNumber value={total} format={fmt} />
+        </span>{' '}
+        {labels.currency}
       </span>
     </div>
   )

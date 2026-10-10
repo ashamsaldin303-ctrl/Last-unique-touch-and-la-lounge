@@ -10,9 +10,11 @@
  * stock) is honoured but never allowed past the 100 hard cap.
  */
 
-import { type KeyboardEvent } from 'react'
+import { type KeyboardEvent, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Minus, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { popSpring } from '@/lib/motion'
 
 /** Mirrors MAX_QUANTITY_PER_ITEM in lib/cart-store (kept local to stay a
  *  pure presentational component with no store import). */
@@ -52,6 +54,20 @@ export function QuantityStepper({
   const icon = compact ? 'size-3' : 'size-4'
   const effectiveMax = Math.min(max ?? HARD_MAX, HARD_MAX)
   const atMax = value >= effectiveMax
+  const reduceMotion = useReducedMotion()
+
+  /* Odometer (Task 42, prompt-motion T2/T5): the digit pops on a spring
+     in the direction of the change — increases roll up from below,
+     decreases drop down from above — like a mechanical counter, never a
+     hard swap. Direction derived during render via the official
+     "adjusting state when a prop changes" pattern (no effect). Reduced
+     motion: plain text swap. */
+  const [lastValue, setLastValue] = useState(value)
+  const [dir, setDir] = useState<1 | -1>(1)
+  if (value !== lastValue) {
+    setLastValue(value)
+    setDir(value > lastValue ? 1 : -1)
+  }
 
   /* WAI-ARIA spinbutton on the value itself: keyboard users can focus the
      figure and adjust with ArrowUp/ArrowDown (mirroring the +/- buttons)
@@ -92,7 +108,22 @@ export function QuantityStepper({
           compact ? 'w-7 text-sm' : 'w-10'
         )}
       >
-        {value}
+        {reduceMotion ? (
+          value
+        ) : (
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={value}
+              className="inline-block"
+              initial={{ y: dir * 12, opacity: 0, scale: 0.85 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: dir * -12, opacity: 0, scale: 0.85 }}
+              transition={popSpring}
+            >
+              {value}
+            </motion.span>
+          </AnimatePresence>
+        )}
       </span>
       <button
         type="button"

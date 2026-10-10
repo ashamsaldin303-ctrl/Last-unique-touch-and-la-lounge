@@ -16,6 +16,7 @@ import { ScrollProgress, BackToTop } from '@/components/shared/upgrade'
 import { CursorGlow } from '@/components/shared/cursor-glow'
 import { SpotlightField } from '@/components/shared/spotlight-field'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
+import { routeVariants } from '@/lib/motion'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useI18n } from '@/lib/i18n'
 import { useCart } from '@/lib/cart-store'
@@ -239,13 +240,19 @@ function AppShell() {
           {/* NOTE: no `filter` in this transition — a lingering blur(0px)
               creates a containing block that breaks `position: fixed` for
               the full-screen 3D brand backgrounds (they would scroll away
-              with the page instead of staying pinned to the viewport). */}
+              with the page instead of staying pinned to the viewport).
+              Transforms settle to identity → framer emits `transform:
+              none`, so nothing lingers after the swap.
+              Choreography (Task 42, prompt-motion T17): the incoming view
+              ENTERS ALREADY MOVING and settles on a gentle spring; the
+              outgoing view LEAVES ON AN ACCELERATING MOVE (fast pull
+              up-and-out) — never a still fade. */}
           <motion.div
             key={path}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            variants={routeVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
             className="flex-1 flex flex-col"
           >
             <PageForPath path={path} />
