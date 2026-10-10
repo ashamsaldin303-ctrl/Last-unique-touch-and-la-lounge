@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { AnimClock } from './anim-clock'
 import { shouldEnable3D } from '@/lib/device-capabilities'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
@@ -535,7 +536,7 @@ export default function Lut3DBackground() {
     }
     window.addEventListener('mousemove', onMouseMove)
 
-    const clock = new THREE.Clock()
+    const clock = new AnimClock()
     let camPos_x = 5,
       camPos_y = 5,
       camPos_z = 15

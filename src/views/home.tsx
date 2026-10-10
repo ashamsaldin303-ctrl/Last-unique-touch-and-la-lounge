@@ -411,12 +411,14 @@ export default function HomePage() {
                     </div>
 
                     <div className="flex flex-1 flex-col p-6">
-                      {/* Tagline chip */}
+                      {/* Tagline chip — text uses the WCAG-safe --tri-ink
+                          (raw brand hexes land 3.6–4:1 at 11px on the warm
+                          near-black maison card; Task 41 visual-audit fix) */}
                       <span
                         className="mb-2.5 inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.6875rem] font-semibold tracking-wide"
                         style={{
                           borderColor: 'color-mix(in srgb, var(--tri) 45%, transparent)',
-                          color: 'var(--tri)',
+                          color: 'var(--tri-ink)',
                           backgroundColor: 'color-mix(in srgb, var(--tri) 10%, transparent)',
                         }}
                       >
@@ -462,8 +464,10 @@ export default function HomePage() {
                           onClick={() => navigate(world.productsHref)}
                           className="flex min-h-[44px] items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold transition-colors duration-300"
                           style={{
-                            borderColor: 'color-mix(in srgb, var(--tri) 40%, transparent)',
-                            color: 'var(--tri)',
+                            /* Text-safe lifted variant — the raw hex fails AA
+                               on the dark maison card (Task 41) */
+                            borderColor: 'color-mix(in srgb, var(--tri-ink) 42%, transparent)',
+                            color: 'var(--tri-ink)',
                           }}
                         >
                           {t('maison.worlds.products')}
@@ -571,15 +575,17 @@ export default function HomePage() {
                 />
               </MagneticButton>
 
-              {/* Tri-brand quick links */}
-              <div className="relative mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+              {/* Tri-brand quick links — 44px touch targets + lifted
+                  WCAG-safe text (raw hexes land 3.9–4.3:1 at 12px on the
+                  dark glass panel; Task 41) */}
+              <div className="relative mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
                 {WORLDS.map((world) => (
                   <button
                     key={world.key}
                     type="button"
                     onClick={() => navigate(world.href)}
-                    className={`group/dot inline-flex items-center gap-2 text-xs font-semibold tracking-wide transition-transform duration-300 hover:-translate-y-0.5 ${world.tri}`}
-                    style={{ color: 'var(--tri)' }}
+                    className={`group/dot inline-flex min-h-[44px] items-center gap-2 rounded-full px-3.5 text-xs font-semibold tracking-wide transition-all duration-300 hover:bg-foreground/[0.06] active:scale-95 ${world.tri}`}
+                    style={{ color: 'var(--tri-ink)' }}
                   >
                     <span
                       className="inline-block size-2 rounded-full transition-transform duration-300 group-hover/dot:scale-125"

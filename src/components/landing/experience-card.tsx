@@ -214,6 +214,9 @@ export function ExperienceCard({
               alt={title}
               width={112}
               height={112}
+              /* Above-the-fold on the home hero — eager per the Next.js LCP
+                 advisory (Task 41 console hygiene). */
+              loading="eager"
               className="relative w-[85%] h-[85%] object-contain rounded-sm"
             />
           </div>

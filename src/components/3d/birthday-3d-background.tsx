@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { AnimClock } from './anim-clock'
 import { getDeviceTier, isReducedMotion, type DeviceTier } from '@/lib/device-capabilities'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
@@ -1617,7 +1618,7 @@ function Birthday3DBackground() {
     // ============================================
 
     // ---- Animation loop ----
-    const clock = new THREE.Clock()
+    const clock = new AnimClock()
     const mouse = { x: 0, y: 0 }
     const targetMouse = { x: 0, y: 0 }
     let animationId = 0

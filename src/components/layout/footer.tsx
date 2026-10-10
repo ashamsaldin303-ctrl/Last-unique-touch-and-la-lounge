@@ -80,9 +80,11 @@ export function Footer() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-          {/* Brand + tagline */}
+          {/* Brand + tagline — heading uses the ink-safe gold token: the
+              light-surface LUT gold (#8b6b3d) lands 4.02:1 on the fixed ink
+              plate at 20px/400; champagne clears 8:1. (Task 41) */}
           <Reveal direction="up">
-            <h3 className="font-display text-xl text-gold mb-3 tracking-wide">Last Unique Touch</h3>
+            <h3 className="footer-brand-title font-display text-xl text-gold-ink mb-3 tracking-wide">Last Unique Touch</h3>
             <p className="text-sm text-paper/60 leading-relaxed mb-4">{t('footer.tagline')}</p>
             <p className="text-xs text-paper/60">{t('footer.craftedIn')}</p>
           </Reveal>
@@ -149,30 +151,30 @@ export function Footer() {
             <div>
               <h4 className="eyebrow text-paper/50 mb-4">{t('footer.contact')}</h4>
               <ul className="space-y-3 list-none p-0 m-0">
-                <li className="group flex items-center gap-3 text-sm text-paper/70">
+                <li className="group flex min-h-[44px] items-center gap-3 text-sm text-paper/70">
                   <span className="icon-ring flex items-center justify-center w-8 h-8 rounded-full border border-gold/20 text-gold transition-colors duration-300 group-hover:border-gold/50">
                     <Phone className="w-4 h-4" strokeWidth={1.5} />
                   </span>
                   <a
                     href="tel:+96550000000"
                     dir="ltr"
-                    className="link-slide text-sm text-paper/70 hover:text-gold transition-colors duration-300 no-underline"
+                    className="link-slide flex min-h-[44px] items-center text-sm text-paper/70 hover:text-gold transition-colors duration-300 no-underline"
                   >
                     {t('footer.phone')}
                   </a>
                 </li>
-                <li className="group flex items-center gap-3 text-sm text-paper/70">
+                <li className="group flex min-h-[44px] items-center gap-3 text-sm text-paper/70">
                   <span className="icon-ring flex items-center justify-center w-8 h-8 rounded-full border border-gold/20 text-gold transition-colors duration-300 group-hover:border-gold/50">
                     <Mail className="w-4 h-4" strokeWidth={1.5} />
                   </span>
                   <a
                     href="mailto:info@lastuniquetouch.com"
-                    className="link-slide text-sm text-paper/70 hover:text-gold transition-colors duration-300 no-underline"
+                    className="link-slide flex min-h-[44px] items-center text-sm text-paper/70 hover:text-gold transition-colors duration-300 no-underline"
                   >
                     {t('footer.email')}
                   </a>
                 </li>
-                <li className="group flex items-center gap-3 text-sm text-paper/70">
+                <li className="group flex min-h-[44px] items-center gap-3 text-sm text-paper/70">
                   <span className="icon-ring flex items-center justify-center w-8 h-8 rounded-full border border-gold/20 text-gold transition-colors duration-300 group-hover:border-gold/50">
                     <MapPin className="w-4 h-4" strokeWidth={1.5} />
                   </span>

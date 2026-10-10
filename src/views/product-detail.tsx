@@ -303,7 +303,8 @@ function Breadcrumbs({
           <button
             type="button"
             onClick={() => onNavigate(crumb.path)}
-            className="crumb-lux rounded text-muted-foreground hover:underline hover:decoration-gold/50 hover:underline-offset-4"
+            /* 44px touch target — crumbs were 20px tall on mobile (Task 41). */
+            className="crumb-lux inline-flex min-h-[44px] items-center rounded px-2 text-muted-foreground hover:underline hover:decoration-gold/50 hover:underline-offset-4"
           >
             {crumb.label}
           </button>

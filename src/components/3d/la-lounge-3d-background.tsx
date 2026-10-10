@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { AnimClock } from './anim-clock'
 import { isSoftwareRenderer, shouldEnable3D } from '@/lib/device-capabilities'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
@@ -903,7 +904,7 @@ export default function LaLounge3DBackground() {
       // ============================================
       // ANIMATION LOOP
       // ============================================
-      const clock = new THREE.Clock()
+      const clock = new AnimClock()
       let animFrameId = 0
 
       // v42: software rasterizers render the canvas at 30Hz (every 2nd

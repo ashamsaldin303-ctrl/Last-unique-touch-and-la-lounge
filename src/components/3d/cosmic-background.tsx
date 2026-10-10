@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { AnimClock } from './anim-clock'
 import { isSoftwareRenderer, shouldEnable3D } from '@/lib/device-capabilities';
 
 // ============ SHADERS ============
@@ -153,7 +154,7 @@ const CosmicBackground: React.FC = () => {
     
     let mouseX = 0, mouseY = 0, tMX = 0, tMY = 0;
     let introProgress = 0;
-    const clock = new THREE.Clock();
+    const clock = new AnimClock();
 
     const initScene = () => {
       const width = container.clientWidth;

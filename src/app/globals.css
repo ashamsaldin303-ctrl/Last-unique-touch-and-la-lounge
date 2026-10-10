@@ -63,6 +63,9 @@
 /* ============ LUT (default brand) ============ */
 :root,
 :root[data-brand='lut'] {
+  /* Text-safe gold for the fixed dark ink plate (footer): the deep LUT gold
+     #8b6b3d lands 4.02:1 at 20px/400 — champagne clears 8:1. (Task 41) */
+  --gold-on-ink: #c9a25e;
   --primary: #8b6b3d;
   --accent: #a9812e;
   --ring: #8b6b3d;
@@ -93,6 +96,8 @@
 
 /* ============ LA LOUNGE ============ */
 :root[data-brand='lalounge'] {
+  /* Magenta on ink lands 4.4:1 — lifted variant clears 7:1. (Task 41) */
+  --gold-on-ink: #ff5fa8;
   --primary: #e6007e;
   --primary-foreground: #ffffff;
   --accent: #c9a24b; /* deco gold */
@@ -128,6 +133,8 @@
 
 /* ============ YOUR BIRTHDAY ============ */
 :root[data-brand='birthday'] {
+  /* Amber on ink already passes (11:1) — kept for explicitness. (Task 41) */
+  --gold-on-ink: #f5b914;
   --c-birthday-bg: #020204;
   --c-birthday-card: #09090f;
   --c-birthday-gold: #ffcc00;
@@ -278,6 +285,9 @@
   --color-lalounge: #e6007e;
   --color-birthday: #f5b914;
   --color-taupe: #999999;
+  /* Ink-safe gold (footer headings on the fixed dark plate) — see brand
+     scopes. Resolves per active brand at runtime. (Task 41) */
+  --color-gold-ink: var(--gold-on-ink, #c9a25e);
 
   --font-display: var(--font-display);
   --font-body: var(--font-body);
@@ -2237,21 +2247,39 @@ body::after {
 }
 
 /* Tri-brand accent scope: set --tri on any subtree, then consume via
-   the tri-accent utilities below. */
+   the tri-accent utilities below.
+   --tri-ink (Task 41, visual-audit fix): the WCAG-safe TEXT variant of each
+   brand accent. The maison surfaces that carry tri text are the WARM
+   NEAR-BLACK cinema plates (worlds cards rgb(25,23,18), house-CTA glass
+   panel) in BOTH themes — where the raw brand hexes land short of AA for
+   small text (LUT #8b6b3d → 3.64:1 · LL #e6007e → 3.98:1). The lifted
+   variants clear 6–10:1 and mirror ExperienceCard's BRAND_HEX_LABEL
+   (Task 2b) so every brand-colored label on the site matches:
+     LUT champagne #C9A25E ≈ 8:1 · LL #FF5FA8 ≈ 6:1 · Bday #F5B914 ≈ 10:1
+   Decorative uses (borders, dots, glows, gradients, button fills) keep
+   consuming --tri unchanged. */
 .tri-lut {
   --tri: #8b6b3d;
+  --tri-ink: #c9a25e;
 }
 .tri-ll {
   --tri: #e6007e;
+  --tri-ink: #ff5fa8;
 }
 .tri-bday {
   --tri: #f5b914;
+  --tri-ink: #f5b914;
 }
 .tri-house {
   --tri: #c9a25e;
+  --tri-ink: #c9a25e;
 }
 .tri-accent {
   color: var(--tri);
+}
+/* Text-safe variant — small text on the dark maison plates. */
+.tri-ink-accent {
+  color: var(--tri-ink);
 }
 .tri-line {
   background: var(--tri);

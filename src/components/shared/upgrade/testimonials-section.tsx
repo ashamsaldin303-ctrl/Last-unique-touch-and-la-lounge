@@ -170,22 +170,29 @@ export function TestimonialsSection({
               </motion.blockquote>
             </AnimatePresence>
 
-            {/* Dots */}
+            {/* Dots — 44px hit areas with a small visual dot inside (the
+                bare 10px dots were the smallest touch targets on the site;
+                Task 41 visual-audit fix). */}
             {items.length > 1 && (
-              <div className="flex items-center justify-center gap-2.5 mt-8">
+              <div className="flex items-center justify-center gap-1 mt-8">
                 {items.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setIndex(i)}
                     aria-label={`${i + 1} / ${items.length}`}
                     aria-current={i === index ? 'true' : undefined}
-                    className="w-2.5 h-2.5 rounded-full cursor-pointer border-0 transition-all duration-300 p-0"
-                    style={{
-                      backgroundColor: i === index ? accentHex : 'transparent',
-                      boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${accentHex} 55%, transparent)`,
-                      transform: i === index ? 'scale(1.25)' : 'scale(1)',
-                    }}
-                  />
+                    className="flex size-11 cursor-pointer items-center justify-center rounded-full border-0 bg-transparent p-0 transition-transform duration-300 hover:scale-110 active:scale-90"
+                  >
+                    <span
+                      className="block rounded-full transition-all duration-300"
+                      style={{
+                        width: i === index ? '0.75rem' : '0.625rem',
+                        height: i === index ? '0.75rem' : '0.625rem',
+                        backgroundColor: i === index ? accentHex : 'transparent',
+                        boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${accentHex} 55%, transparent)`,
+                      }}
+                    />
+                  </button>
                 ))}
               </div>
             )}

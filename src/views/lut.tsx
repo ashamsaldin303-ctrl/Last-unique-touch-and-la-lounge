@@ -214,12 +214,14 @@ export default function LutPage() {
             {t('lut.subtitle')}
           </p>
 
-          {/* Products button — magnetic hover + gold shine sweep (upgrade) */}
+          {/* Products button — magnetic hover + gold shine sweep (upgrade).
+              Shadow hue aligned to the LUT gold (was a leftover red rgba —
+              Task 41 visual-audit fix). */}
           <div className="animate-hero-up" style={{ animationDelay: '0.7s' }}>
             <MagneticButton
               onClick={() => navigate('/products')}
               ariaLabel={t('lut.productsButton')}
-              className="bg-lut hover:bg-lut/90 text-primary-foreground px-10 shadow-[0_4px_20px_rgba(230,33,41,0.3)]"
+              className="bg-lut hover:bg-lut/90 text-primary-foreground px-10 shadow-[0_4px_20px_rgba(139,107,61,0.35)]"
             >
               {t('lut.productsButton')}
             </MagneticButton>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { AnimClock } from './anim-clock'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
@@ -471,7 +472,7 @@ export function BirthdayVisualizer() {
     disposablesRef.current.push(ringGeo, ringMat, celebrationRing)
 
     // === ANIMATION LOOP ===
-    const clock = new THREE.Clock()
+    const clock = new AnimClock()
     const mouse = { x: 0, y: 0 }
     const targetMouse = { x: 0, y: 0 }
 

@@ -236,7 +236,11 @@ export function Navbar() {
                     e.preventDefault()
                     navigate(brandHomeHref)
                   }}
-                  className="shine-sweep group flex items-baseline gap-2 min-w-0 shrink-0 no-underline"
+                  /* 44px touch target (was ~28px tall; Task 41) — vertical
+                     padding preserves the baseline alignment of the
+                     wordmark pair while enlarging the hit area; horizontal
+                     padding lifts the short "LUT" monogram past 44px too. */
+                  className="shine-sweep group flex min-h-[44px] items-baseline gap-2 py-2 px-2 -mx-2 min-w-0 shrink-0 no-underline"
                   aria-label={wordmark.main}
                 >
                   <span className="font-display tracking-tight whitespace-nowrap transition-colors duration-300 text-primary text-lg sm:text-xl lg:text-2xl">
