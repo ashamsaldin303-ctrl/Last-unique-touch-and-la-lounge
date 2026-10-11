@@ -85,6 +85,32 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" data-brand="neutral" suppressHydrationWarning>
+      <head>
+        {/*
+          BOOT GATE (Task 43, prompt-motion "single dot on a black screen"):
+          runs BEFORE first paint. First visit of the session → paints a
+          full ink veil + static gold dot via CSS (html.lux-boot-pending)
+          so the page NEVER flashes before the curtain; flags
+          window.__LUX_BOOT__ so the hero choreography can wait for the
+          lift. Returning visitors / reduced-motion users: no class, no
+          veil, nothing. A 6s watchdog guarantees the content even if
+          hydration dies. sessionStorage survives SPA navigation.
+        */}
+        <script
+          id="lux-boot-gate"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{
+var k='lut-booted';
+if(sessionStorage.getItem(k))return;
+if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){sessionStorage.setItem(k,'1');return}
+window.__LUX_BOOT__=true;
+var d=document.documentElement;
+d.classList.add('lux-boot-pending');
+setTimeout(function(){d.classList.remove('lux-boot-pending')},6000);
+}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body
         className={`${amiri.variable} ${tajawal.variable} ${cormorant.variable} ${lalezar.variable} ${baloo.variable} antialiased`}
       >

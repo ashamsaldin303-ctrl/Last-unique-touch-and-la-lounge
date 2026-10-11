@@ -8,16 +8,19 @@
  * out-of-stock veil, refined category chip, price-display hierarchy
  * with entrance pop, image shimmer while loading, gold hairline that
  * draws across the card's bottom edge on hover and a "rent now" CTA
- * whose arrow slides forward on hover (direction-aware).
+ * whose arrow slides forward on hover (direction-aware). Task 43 adds
+ * the BloomZoom signature: a plain primary click blooms the tile into
+ * the product entry page (see handleOpen below).
  */
 
-import { useState } from 'react'
+import { useRef, useState, type MouseEvent } from 'react'
 import Image from 'next/image'
 import { ArrowLeft, ArrowRight, Box, Eye } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
 import { useRouter } from '@/lib/router'
 import { localizedName, localizedDescription, formatKwd, type ProductDTO } from '@/lib/products'
 import { cn } from '@/lib/utils'
+import { useBloom } from '@/components/fx/bloom-zoom'
 
 export function ProductCard({
   product,
@@ -27,9 +30,12 @@ export function ProductCard({
   className?: string
 }) {
   const { t, locale } = useI18n()
-  const { href } = useRouter()
+  const { href, navigate } = useRouter()
+  const bloomApi = useBloom()
   const [imgLoaded, setImgLoaded] = useState(false)
   const [imgErrored, setImgErrored] = useState(false)
+  /* The tile rect handed to BloomZoom — the exact box that blooms. */
+  const imgWrapRef = useRef<HTMLDivElement | null>(null)
   // A 404 (e.g. pending generated images) must not shimmer forever —
   // once <Image> errors out, fall back to the no-image monogram.
   const firstImage = product.images?.[0]
@@ -42,9 +48,35 @@ export function ProductCard({
   // Arrow direction follows reading direction: AR → left, EN → right.
   const ArrowIcon = locale === 'ar' ? ArrowLeft : ArrowRight
 
+  /* BloomZoom (Task 43 — antonio-kodheli: "that tile blooms into its
+     entry page"): on a plain primary click the card's image expands to
+     a full-bleed cover while the SPA navigates underneath ~190ms later
+     (the ink backdrop covers the grid first; BrandThemeSetter scrolls
+     the new page to top on the lut:navigate event). EVERY guard
+     failure — modified click (⌘/Ctrl/Shift/Alt → new tab), non-primary
+     button, missing/errored image, no provider, reduced-motion — falls
+     through untouched so the anchor's native hash navigation runs. */
+  const handleOpen = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (e.defaultPrevented) return
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+    if (!firstImage || imgErrored) return
+    if (!bloomApi) return
+    const el = imgWrapRef.current
+    if (!el) return
+    const played = bloomApi.bloom({
+      rect: el.getBoundingClientRect(),
+      src: firstImage,
+      radius: parseFloat(getComputedStyle(el).borderTopLeftRadius) || 8,
+    })
+    if (!played) return
+    e.preventDefault()
+    window.setTimeout(() => navigate(`/products/${product.slug}`), 190)
+  }
+
   return (
     <a
       href={href(`/products/${product.slug}`)}
+      onClick={handleOpen}
       className={cn(
         // Explicit outline style+color: outline-2 alone leaves the CSS
         // initial `outline-style: none` (an invisible ring). The global
@@ -63,6 +95,7 @@ export function ProductCard({
       >
         {/* Image */}
         <div
+          ref={imgWrapRef}
           className={cn('img-shimmer relative aspect-square overflow-hidden bg-muted/40')}
           data-loaded={imgLoaded ? 'true' : 'false'}
         >

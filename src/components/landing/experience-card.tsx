@@ -4,6 +4,9 @@ import { useRef, useState, useEffect } from 'react'
 import Image from 'next/image'
 import { ArrowRight, ArrowLeft, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ClipReveal } from '@/components/fx/clip-reveal'
+import { RollLabel } from '@/components/fx/roll-label'
+import { bootOffset } from '@/components/fx/boot-curtain'
 
 interface ExperienceCardProps {
   category: string
@@ -158,19 +161,37 @@ export function ExperienceCard({
           <div className="absolute w-4 h-[1px] bg-white/15" />
           <div className="absolute h-4 w-[1px] bg-white/15" />
 
-          {/* Product Image */}
+          {/* Product Image — ClipReveal (Task 43, prompt-motion round 2
+              — pankajkumar-dev: "a poster breaking out of its own
+              frame"): the product starts as an inset window inside the
+              circular bezel and expands to fill it while counter-zooming
+              from 1.22 — the poster punches out of its mount. It is
+              scroll-triggered (not hover), so it composes with the
+              bezel's own load pop (holo-image-anim) and every
+              group-hover transform above. The delay staggers the three
+              cards 0.14s apart and waits out the first-visit boot
+              curtain via bootOffset() — transition-delay only, never
+              rendered DOM, so SSR stays hydration-stable. */}
           <div
             className="holo-image-anim relative w-[85%] h-[85%] z-10 group-hover:opacity-90 transition-opacity duration-700"
             style={{ animationDelay: `${delay + 0.2}s` }}
           >
-            <Image
-              src={productImageUrl}
-              alt={title}
-              fill
-              priority
-              sizes="(max-width: 768px) 150px, 280px"
-              className="object-contain pointer-events-none"
-            />
+            <ClipReveal
+              delay={bootOffset() + delay + cardIdx * 0.14}
+              className="h-full w-full"
+              /* `relative` on the inner wrapper — next/image fill requires
+                 a positioned direct parent (console hygiene). */
+              innerClassName="relative"
+            >
+              <Image
+                src={productImageUrl}
+                alt={title}
+                fill
+                priority
+                sizes="(max-width: 768px) 150px, 280px"
+                className="object-contain pointer-events-none"
+              />
+            </ClipReveal>
           </div>
         </div>
       </div>
@@ -248,7 +269,13 @@ export function ExperienceCard({
               isComingSoon ? 'text-white/35' : 'text-white/65 group-hover:text-white',
             )}
           >
-            <span>{actionText}</span>
+            {/* RollLabel (Task 43, showreel: type "transforms into the
+                next scene"): on card hover the action label rolls up out
+                of its mask while an identical twin rolls in — one unit
+                (never per-letter), descender-safe, driven by the card
+                root's `group`. Sits as a flex item exactly like the plain
+                span it replaces. */}
+            <RollLabel text={actionText} />
             <span
               className={cn(
                 'transition-transform duration-500',

@@ -42,6 +42,10 @@ import { Reveal } from '@/components/shared/reveal'
 import { MaskedWords } from '@/components/shared/masked-words'
 import { InkFloodLink } from '@/components/fx/ink-flood'
 import { HighlightSweep } from '@/components/fx/highlight-sweep'
+import { ClipReveal } from '@/components/fx/clip-reveal'
+import { RollLabel } from '@/components/fx/roll-label'
+import { KineticWords } from '@/components/fx/kinetic-heading'
+import { VelocityMarquee } from '@/components/fx/velocity-marquee'
 import {
   SectionHeading,
   ProcessSteps,
@@ -285,12 +289,15 @@ export default function HomePage() {
       </section>
 
       {/* ============ MARQUEE V3 — bilingual brand strip (Latin house name
-          + Arabic craft, ✦ glyph separators, edge-masked) ============ */}
+          + Arabic craft, ✦ glyph separators, edge-masked).
+          Task 43: now driven by VelocityMarquee — the ribbon accelerates
+          with the reader's scroll, leans into the travel direction, and
+          slows to a courteous drift on hover (never dead). ============ */}
       <section
         className="marquee-v2 marquee-v3 bg-ink border-y border-white/[0.06] py-4 overflow-hidden"
         aria-hidden="true"
       >
-        <div className="marquee-track flex w-max items-center gap-10">
+        <VelocityMarquee baseSpeed={52}>
           {Array.from({ length: 2 }).map((_, dup) => (
             <div key={dup} className="flex items-center gap-10">
               {[
@@ -320,7 +327,7 @@ export default function HomePage() {
               ])}
             </div>
           ))}
-        </div>
+        </VelocityMarquee>
       </section>
 
       {/* ============ HOUSE STATEMENT — the editorial set-piece (Task 39,
@@ -380,15 +387,35 @@ export default function HomePage() {
                     data-spotlight
                     className="glow-border card-lift spotlight-surface group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card"
                   >
-                    {/* Brand imagery — clip-path bottom reveal */}
+                    {/* Brand imagery — ClipReveal (Task 43, prompt-motion
+                        round 2 — pankajkumar-dev: "a poster breaking out of
+                        its own frame"): the poster starts as an inset
+                        window inside the card's image mount and expands to
+                        full-bleed while counter-zooming from 1.22. Only the
+                        image layer is wrapped — the tri gradient veil, the
+                        oversized index and the corner frames stay siblings
+                        OUTSIDE the clip so nothing they paint is ever
+                        clipped. Scroll-triggered, so it composes with the
+                        card's hover choreography (hover zoom lives on the
+                        image itself). Replaces the old CSS bottom-up
+                        clip-reveal-img. Stagger: i * 0.12 per card. */}
                     <div className="relative h-52 overflow-hidden">
-                      <Image
-                        src={world.image}
-                        alt={t(world.nameKey)}
-                        fill
-                        sizes="(max-width: 767px) 100vw, 33vw"
-                        className="clip-reveal-img object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                      />
+                      <ClipReveal
+                        delay={i * 0.12}
+                        className="h-full w-full"
+                        /* `relative` on the inner wrapper — next/image fill
+                           requires a positioned direct parent (Task 41
+                           console-hygiene standard). */
+                        innerClassName="relative"
+                      >
+                        <Image
+                          src={world.image}
+                          alt={t(world.nameKey)}
+                          fill
+                          sizes="(max-width: 767px) 100vw, 33vw"
+                          className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                        />
+                      </ClipReveal>
                       <div
                         className="absolute inset-0 transition-opacity duration-500 group-hover:opacity-80"
                         style={{
@@ -463,7 +490,12 @@ export default function HomePage() {
                             boxShadow: '0 14px 34px -14px color-mix(in srgb, var(--tri) 70%, transparent)',
                           }}
                         >
-                          {t('maison.worlds.enter')}
+                          {/* RollLabel (Task 43, showreel: type
+                              "transforms into the next scene"): on card
+                              hover the label rolls up out of its mask while
+                              an identical twin rolls in — the article's
+                              `group` drives it alongside the image zoom. */}
+                          <RollLabel text={t('maison.worlds.enter')} />
                           <ArrowLeft
                             className={`size-4 transition-transform duration-300 ${
                               locale === 'ar'
@@ -476,7 +508,7 @@ export default function HomePage() {
                         <button
                           type="button"
                           onClick={() => navigate(world.productsHref)}
-                          className="flex min-h-[44px] items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold transition-colors duration-300"
+                          className="group flex min-h-[44px] items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold transition-colors duration-300"
                           style={{
                             /* Text-safe lifted variant — the raw hex fails AA
                                on the dark maison card (Task 41) */
@@ -484,7 +516,7 @@ export default function HomePage() {
                             color: 'var(--tri-ink)',
                           }}
                         >
-                          {t('maison.worlds.products')}
+                          <RollLabel text={t('maison.worlds.products')} />
                         </button>
                       </div>
                     </div>
@@ -541,11 +573,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ============ PROCESS — 3 steps with drawn connector ============ */}
+      {/* ============ PROCESS — 3 steps: pinned horizontal film on
+          desktop (scroll-driven), classic grid on mobile ============ */}
       <ProcessSteps
         eyebrow={t('home.process.eyebrow')}
         title={t('home.process.title')}
         steps={processSteps}
+        pin
       />
 
       {/* ============ TESTIMONIALS — auto-rotating, editorial (Task 39) ============ */}
@@ -574,9 +608,12 @@ export default function HomePage() {
               <h2 className="relative font-display text-2xl sm:text-3xl text-foreground mb-3">
                 {/* One key phrase, one solid accent highlighter sweep
                     (Task 42, prompt-motion T7 — antonio-kodheli's site
-                    promo: "A solid accent highlighter sweeps one phrase"). */}
+                    promo: "A solid accent highlighter sweeps one phrase")
+                    + KineticWords (Task 43): every word rises out of its
+                    own clip mask IN FRONT of the sweeping bar — word-
+                    granular only, Arabic-safe (never per-letter). */}
                 <HighlightSweep highlightClassName="bg-primary/20">
-                  {t('maison.cta.title')}
+                  <KineticWords text={t('maison.cta.title')} delay={0.1} />
                 </HighlightSweep>
               </h2>
               <p className="relative mb-7 text-sm sm:text-base text-muted-foreground max-w-xl mx-auto">
@@ -584,10 +621,10 @@ export default function HomePage() {
               </p>
               <MagneticButton
                 onClick={() => navigate('/products')}
-                className="bg-primary text-primary-foreground"
+                className="group bg-primary text-primary-foreground"
                 ariaLabel={t('maison.cta.shopAll')}
               >
-                {t('maison.cta.shopAll')}
+                <RollLabel text={t('maison.cta.shopAll')} />
                 <ArrowLeft
                   className={`w-4 h-4 ${locale === 'ar' ? '' : 'rotate-180'}`}
                   aria-hidden="true"
@@ -606,7 +643,7 @@ export default function HomePage() {
                     accent={world.ink}
                     label={t(world.nameKey)}
                     labelColor={world.onAccent}
-                    className={`group/dot inline-flex min-h-[44px] items-center gap-2 rounded-full px-3.5 text-xs font-semibold tracking-wide transition-all duration-300 hover:bg-foreground/[0.06] active:scale-95 ${world.tri}`}
+                    className={`group group/dot inline-flex min-h-[44px] items-center gap-2 rounded-full px-3.5 text-xs font-semibold tracking-wide transition-all duration-300 hover:bg-foreground/[0.06] active:scale-95 ${world.tri}`}
                     style={{ color: 'var(--tri-ink)' }}
                   >
                     <span
@@ -614,7 +651,7 @@ export default function HomePage() {
                       style={{ backgroundColor: 'var(--tri)', boxShadow: '0 0 10px var(--tri)' }}
                       aria-hidden="true"
                     />
-                    {t(world.nameKey)}
+                    <RollLabel text={t(world.nameKey)} />
                   </InkFloodLink>
                 ))}
               </div>

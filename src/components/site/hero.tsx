@@ -13,6 +13,8 @@ import { ArrowDown, Sparkles, Crown, Gem } from "lucide-react";
 import { useLanguage } from "@/components/providers/language-provider";
 import { GoldDust } from "@/components/fx/gold-dust";
 import { Magnetic } from "@/components/fx/magnetic";
+import { RollLabel } from "@/components/fx/roll-label";
+import { bootOffset } from "@/components/fx/boot-curtain";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -90,6 +92,10 @@ function RotatingWord({ words }: { words: string[] }) {
 export function Hero() {
   const { t, locale } = useLanguage();
   const ref = useRef<HTMLElement>(null);
+  /* Task 43: when the boot curtain will play (pre-hydration flag), the
+     whole entrance waits for the lift — the words rise AS the halves
+     part. Transition-delay only, so SSR/hydration DOM is identical. */
+  const BOOT = bootOffset();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
@@ -152,7 +158,7 @@ export function Hero() {
         <motion.div
           initial={{ opacity: 0, x: 60, rotate: 8 }}
           animate={{ opacity: 1, x: 0, rotate: 0 }}
-          transition={{ duration: 1.6, delay: 1, ease: EASE }}
+          transition={{ duration: 1.6, delay: 1 + BOOT, ease: EASE }}
           className="absolute end-[6%] top-[22%] hidden w-44 sm:block lg:w-56"
         >
           <div className="animate-drift opacity-55 drop-shadow-[0_30px_70px_rgba(201,162,75,0.25)]">
@@ -169,7 +175,7 @@ export function Hero() {
         <motion.div
           initial={{ opacity: 0, x: -60, rotate: -8 }}
           animate={{ opacity: 1, x: 0, rotate: 0 }}
-          transition={{ duration: 1.6, delay: 1.2, ease: EASE }}
+          transition={{ duration: 1.6, delay: 1.2 + BOOT, ease: EASE }}
           className="absolute start-[5%] bottom-[18%] hidden w-36 sm:block lg:w-44"
         >
           <div
@@ -197,7 +203,7 @@ export function Hero() {
         <motion.div
           initial={{ opacity: 0, y: -14 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5, ease: EASE }}
+          transition={{ duration: 0.8, delay: 0.5 + BOOT, ease: EASE }}
           className="mb-6 flex items-center gap-3 sm:gap-4"
         >
           <span className="h-px w-10 bg-gradient-to-l from-transparent to-gold/60 sm:w-16" />
@@ -209,13 +215,13 @@ export function Hero() {
 
         {/* Display title */}
         <h1 className="font-display text-[2.6rem] leading-[1.3] text-paper sm:text-6xl md:text-7xl">
-          <StaggeredWords text={t.hero.titleA} delay={0.65} />
+          <StaggeredWords text={t.hero.titleA} delay={0.65 + BOOT} />
           <br />
-          <StaggeredWords text={t.hero.titleB} delay={1.05} />{" "}
+          <StaggeredWords text={t.hero.titleB} delay={1.05 + BOOT} />{" "}
           <RotatingWord words={[...t.hero.rotating]} />
           <br />
           <span className="text-gold-gradient">
-            <StaggeredWords text={t.hero.titleC} delay={1.5} />
+            <StaggeredWords text={t.hero.titleC} delay={1.5 + BOOT} />
           </span>
         </h1>
 
@@ -223,7 +229,7 @@ export function Hero() {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1.4, delay: 2 }}
+          transition={{ duration: 1.4, delay: 2 + BOOT }}
           className="font-display-en mt-6 text-sm italic tracking-[0.28em] text-paper/35 sm:text-base"
         >
           {t.hero.latinMark}
@@ -233,7 +239,7 @@ export function Hero() {
         <motion.p
           initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 1, delay: 1.9, ease: EASE }}
+          transition={{ duration: 1, delay: 1.9 + BOOT, ease: EASE }}
           className="mt-7 max-w-xl text-sm leading-8 text-paper/60 sm:text-base sm:leading-9"
         >
           {t.hero.subtitle}
@@ -243,7 +249,7 @@ export function Hero() {
         <motion.div
           initial={{ opacity: 0, y: 26 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 2.15, ease: EASE }}
+          transition={{ duration: 1, delay: 2.15 + BOOT, ease: EASE }}
           className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:gap-6"
         >
           <Magnetic strength={0.3}>
@@ -252,7 +258,7 @@ export function Hero() {
               className="group relative flex items-center gap-2.5 overflow-hidden rounded-full bg-gradient-to-l from-gold-deep via-gold to-gold-light px-8 py-4 text-sm font-bold text-ink shadow-[0_14px_44px_-10px_rgba(201,162,75,0.65)] transition-transform duration-300 hover:scale-[1.045] active:scale-95"
             >
               <Gem className="h-4 w-4" />
-              {t.hero.ctaPrimary}
+              <RollLabel text={t.hero.ctaPrimary} className="font-bold" />
               <span className="absolute inset-0 -translate-x-full bg-gradient-to-l from-transparent via-white/35 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
             </button>
           </Magnetic>
@@ -273,7 +279,7 @@ export function Hero() {
         onClick={() => go("brands")}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 2.8, duration: 1 }}
+        transition={{ delay: 2.8 + BOOT, duration: 1 }}
         className="absolute bottom-7 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2"
         aria-label={t.hero.scroll}
       >

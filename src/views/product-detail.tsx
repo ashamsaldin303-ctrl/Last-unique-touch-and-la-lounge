@@ -9,6 +9,9 @@
  * gold backdrop, spotlight gallery with cursor-follow glow + keyboard
  * navigation, gold-seal 3D badge, price display, concierge rental
  * section, ornamental related header and an end-of-page finial.
+ * Task 43: the main gallery image punches out of its frame on arrival
+ * (ClipReveal — "a poster breaking out of its own frame") and the
+ * product title rises through a kinetic mask (KineticLine).
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -27,6 +30,8 @@ import {
 } from '@/lib/products'
 import { Reveal } from '@/components/shared/reveal'
 import { StaggerGroup } from '@/components/shared/upgrade'
+import { ClipReveal } from '@/components/fx/clip-reveal'
+import { KineticLine } from '@/components/fx/kinetic-heading'
 import { ProductCard } from '@/components/shop/product-card'
 import { RentalPicker } from '@/components/shop/rental-picker'
 import { TrustBadges } from '@/components/shop/trust-badges'
@@ -191,7 +196,11 @@ export default function ProductDetailPage({ slug }: { slug: string }) {
                 </div>
 
                 <h1 className="font-display text-3xl font-bold leading-tight text-foreground sm:text-4xl">
-                  {name}
+                  {/* KineticLine (Task 43) — the name rises through a single
+                      word-safe mask (no per-letter split for the joined Arabic
+                      script); textContent stays the plain string for the
+                      route-announcement live region. */}
+                  <KineticLine delay={0.12}>{name}</KineticLine>
                 </h1>
 
                 {/* Title flourish */}
@@ -396,34 +405,45 @@ function Gallery({
           aria-label={t('product.gallery.label')}
           className="bezel-core spotlight-frame relative aspect-square overflow-hidden rounded-md border border-border bg-card"
         >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={current ?? 'empty'}
-              initial={{ opacity: 0, scale: 1.02 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0"
-            >
-              {current && current !== failedSrc ? (
-                <Image
-                  src={current}
-                  alt={productName}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  onLoad={() => setImgLoaded(true)}
-                  onError={() => setFailedSrc(current)}
-                  className="img-shimmer object-cover transition-transform duration-[1200ms] ease-out group-hover/gallery:scale-[1.03]"
-                  data-loaded={imgLoaded ? 'true' : 'false'}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-                  {t('common.noImage')}
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+          {/* ClipReveal (Task 43 — pankajkumar-dev: "a poster breaking
+              out of its own frame"): ONLY the image layer is wrapped, so
+              the poster starts as an inset window inside the bezel mount
+              and expands to full-bleed while counter-zooming from 1.22.
+              The bezel plate + its deep shadow, the gold ring, counter,
+              arrows, badges and cursor spotlight are siblings OUTSIDE the
+              clip — nothing they paint is ever clipped and the frame reads
+              as the poster's own mount. No filter and no fixed-position
+              descendant live under this wrapper. */}
+          <ClipReveal className="absolute inset-0" delay={0.15}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current ?? 'empty'}
+                initial={{ opacity: 0, scale: 1.02 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0"
+              >
+                {current && current !== failedSrc ? (
+                  <Image
+                    src={current}
+                    alt={productName}
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    onLoad={() => setImgLoaded(true)}
+                    onError={() => setFailedSrc(current)}
+                    className="img-shimmer object-cover transition-transform duration-[1200ms] ease-out group-hover/gallery:scale-[1.03]"
+                    data-loaded={imgLoaded ? 'true' : 'false'}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                    {t('common.noImage')}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </ClipReveal>
 
           {/* Cursor-follow spotlight veil */}
           <div className="gallery-spot" aria-hidden="true" />

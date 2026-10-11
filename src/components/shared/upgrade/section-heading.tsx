@@ -1,13 +1,20 @@
 'use client'
 
 /**
- * SectionHeading — eyebrow + title + animated gold accent lines that draw in
- * on scroll reveal. Light/dark aware via `light` prop (over dark 3D
- * backgrounds the text switches to paper tones).
+ * SectionHeading (shared/upgrade) — eyebrow + title + gold accents.
+ *
+ * Task 43 (prompt-motion round 2): upgraded to the KINETIC language —
+ * eyebrow hairlines DRAW themselves, the title rises word-by-word out
+ * of clip masks ("every shot enters already moving" — showreel
+ * doctrine), the subtitle follows on a single mask line. Replaces the
+ * CSS-observer MaskedWords with framer variant propagation from the
+ * mask level (IO-clip fix). Light/dark aware via `light` prop (over
+ * dark 3D backgrounds the text switches to paper tones).
  */
 
-import { Reveal } from '@/components/shared/reveal'
-import { MaskedWords } from '@/components/shared/masked-words'
+import { KineticWords, KineticLine, HairlineDraw } from '@/components/fx/kinetic-heading'
+import { motion } from 'framer-motion'
+import { easeExpoOut } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 interface SectionHeadingProps {
@@ -29,8 +36,7 @@ export function SectionHeading({
   align = 'center',
 }: SectionHeadingProps) {
   return (
-    <Reveal
-      direction="none"
+    <div
       className={cn(
         'mb-12',
         align === 'center' ? 'text-center' : 'text-start',
@@ -44,11 +50,17 @@ export function SectionHeading({
             align === 'center' ? 'justify-center' : 'justify-start'
           )}
         >
-          <span className="line-draw-start w-10 h-px bg-primary/60" aria-hidden="true" />
-          <span className={cn('eyebrow', light ? 'text-gold/80' : 'text-primary/80')}>
+          <HairlineDraw className="w-10" />
+          <motion.span
+            className={cn('eyebrow inline-block', light ? 'text-gold/80' : 'text-primary/80')}
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-10% 0px' }}
+            transition={{ duration: 0.65, ease: easeExpoOut, delay: 0.05 }}
+          >
             {eyebrow}
-          </span>
-          <span className="line-draw-end w-10 h-px bg-primary/60" aria-hidden="true" />
+          </motion.span>
+          <HairlineDraw className="w-10" delay={0.05} />
         </div>
       )}
       <h2
@@ -57,7 +69,7 @@ export function SectionHeading({
           light ? 'text-paper' : 'text-foreground'
         )}
       >
-        <MaskedWords text={title} />
+        <KineticWords text={title} delay={0.12} stagger={0.07} />
       </h2>
       {subtitle && (
         <p
@@ -67,9 +79,9 @@ export function SectionHeading({
             light ? 'text-paper/70' : 'text-muted-foreground'
           )}
         >
-          {subtitle}
+          <KineticLine delay={0.3}>{subtitle}</KineticLine>
         </p>
       )}
-    </Reveal>
+    </div>
   )
 }

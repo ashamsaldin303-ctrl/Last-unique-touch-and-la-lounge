@@ -15,6 +15,8 @@ import {
 import { useLanguage } from "@/components/providers/language-provider";
 import { SectionHeading } from "@/components/fx/section-heading";
 import { Reveal } from "@/components/fx/reveal";
+import { ClipReveal } from "@/components/fx/clip-reveal";
+import { RollLabel } from "@/components/fx/roll-label";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -75,13 +77,28 @@ function ProductCard({
           <div className="absolute inset-0 bg-gradient-to-b from-ink-3/40 to-ink-2" />
           {/* museum spotlight */}
           <div className="absolute left-1/2 top-1/2 h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(201,162,75,0.14),transparent_65%)] blur-md transition-all duration-700 group-hover:h-48 group-hover:w-48 group-hover:bg-[radial-gradient(circle,rgba(201,162,75,0.22),transparent_65%)]" />
-          <Image
-            src={product.image}
-            alt={name}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            className="img-zoom-hover object-contain p-5 drop-shadow-[0_18px_36px_rgba(0,0,0,0.65)]"
-          />
+          {/* ClipReveal (Task 43, prompt-motion round 2 — pankajkumar-dev:
+              "a poster breaking out of its own frame"): the product image
+              starts as an inset window inside the card mount and expands
+              to full-bleed while counter-zooming from 1.22. Only the image
+              layer is wrapped — the gradient, spotlight, chips, stock veil
+              and quick-view bar stay siblings OUTSIDE the clip. Stagger
+              follows the 4-column grid rhythm: (index % 4) * 0.12. */}
+          <ClipReveal
+            delay={(index % 4) * 0.12}
+            className="h-full w-full"
+            /* `relative` on the inner wrapper — next/image fill requires
+               a positioned direct parent (console hygiene). */
+            innerClassName="relative"
+          >
+            <Image
+              src={product.image}
+              alt={name}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+              className="img-zoom-hover object-contain p-5 drop-shadow-[0_18px_36px_rgba(0,0,0,0.65)]"
+            />
+          </ClipReveal>
           {/* category chip */}
           <span className="absolute start-3.5 top-3.5 z-10 rounded-full border border-gold/25 bg-ink/70 px-3 py-1 text-[10px] tracking-[0.14em] text-gold backdrop-blur-md">
             {t.products.categories[product.category]}
@@ -107,7 +124,12 @@ function ProductCard({
             aria-label={`${t.products.quickView} — ${name}`}
           >
             <Eye className="h-4 w-4" />
-            {t.products.quickView}
+            {/* RollLabel (Task 43): the label rolls up while its twin rolls
+                in on card hover — in sync with the bar's own slide-up
+                (group-hover:translate-y-0). The article's `group` drives
+                it; the label sits as a flex item like the text it
+                replaced. */}
+            <RollLabel text={t.products.quickView} />
           </button>
         </div>
 
@@ -260,7 +282,10 @@ function QuickView({
                 rel="noopener noreferrer"
                 className="group relative flex items-center justify-center gap-2 overflow-hidden rounded-full bg-gradient-to-l from-gold-deep via-gold to-gold-light py-3.5 text-sm font-bold text-ink shadow-[0_12px_36px_-10px_rgba(201,162,75,0.6)] transition-transform hover:scale-[1.02] active:scale-95"
               >
-                {t.products.rent}
+                {/* RollLabel (Task 43): the anchor already carries `group`
+                    — on hover the label rolls up out of its mask while an
+                    identical twin rolls in below the Phone icon. */}
+                <RollLabel text={t.products.rent} />
                 <Phone className="h-4 w-4" />
               </a>
               <p className="text-center text-[11px] text-paper/40">

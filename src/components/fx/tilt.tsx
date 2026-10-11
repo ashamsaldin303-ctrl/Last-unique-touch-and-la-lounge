@@ -47,6 +47,10 @@ export function Tilt({
   const glareBg = useMotionTemplate`radial-gradient(circle at ${glareX} ${glareY}, rgba(232,207,143,0.15), transparent 55%)`;
 
   const onMove = (e: React.PointerEvent) => {
+    // Fine pointers only (bthreeagency doctrine: the badge "tilts toward
+    // the cursor following the rules of physics" — a finger dragging is
+    // not a cursor; touch must never fight scroll).
+    if (e.pointerType !== "mouse") return;
     const el = ref.current;
     if (!el) return;
     const r = el.getBoundingClientRect();

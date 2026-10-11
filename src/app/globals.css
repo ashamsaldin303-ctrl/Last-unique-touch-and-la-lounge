@@ -3256,3 +3256,78 @@ html[dir='rtl'] .statement em {
 }
 
 /* rebuild-trigger: task-39 cinematic kit v1 */
+
+/* ============================================================
+   TASK 43 — prompt-motion ROUND 2: THE POWERFUL PATTERNS
+   ============================================================ */
+
+/* ---- BootCurtain pre-paint veil (dale-vaz: "a single dot on a black
+   screen") — painted from the FIRST frame by the inline gate script,
+   then handed off to the React curtain. Scroll locked while pending. */
+html.lux-boot-pending {
+  overflow: hidden;
+}
+html.lux-boot-pending::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #0b0a08;
+  /* the single gold dot, dead center — matches the React curtain's
+     ignition frame exactly, so the handoff is invisible */
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    rgba(201, 162, 75, 0.95) 0 5px,
+    rgba(201, 162, 75, 0.25) 5px 9px,
+    transparent 10px
+  );
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* ---- HorizontalPin panels (ercankeskinx "scroll-based sections") —
+   the panel IGNITES at center: scale + opacity + gold frame, all on
+   the house ease. Toggled imperatively via data-active by the engine. */
+[data-pin-panel] {
+  transform: scale(0.93);
+  opacity: 0.5;
+  border-color: rgba(201, 162, 75, 0.14);
+  box-shadow: 0 18px 60px -30px rgba(0, 0, 0, 0.7);
+  transition:
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.7s ease,
+    box-shadow 0.7s ease;
+}
+[data-pin-panel][data-active='true'] {
+  transform: scale(1);
+  opacity: 1;
+  border-color: rgba(201, 162, 75, 0.45);
+  box-shadow:
+    0 30px 90px -30px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(201, 162, 75, 0.12),
+    0 0 44px -8px rgba(201, 162, 75, 0.16);
+}
+.pin-panel-seam {
+  opacity: 0.25;
+  transition: opacity 0.7s ease;
+}
+[data-pin-panel][data-active='true'] .pin-panel-seam {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.lux-boot-pending {
+    overflow: auto;
+  }
+  [data-pin-panel] {
+    transform: none;
+    opacity: 1;
+    transition: none;
+  }
+  .pin-panel-seam {
+    opacity: 1;
+    transition: none;
+  }
+}
+/* rebuild-trigger: task-43 power pack */

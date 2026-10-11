@@ -17,6 +17,8 @@ import { CursorGlow } from '@/components/shared/cursor-glow'
 import { SpotlightField } from '@/components/shared/spotlight-field'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { routeVariants } from '@/lib/motion'
+import { BootCurtain } from '@/components/fx/boot-curtain'
+import { BloomProvider } from '@/components/fx/bloom-zoom'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useI18n } from '@/lib/i18n'
 import { useCart } from '@/lib/cart-store'
@@ -212,6 +214,7 @@ function AppShell() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <BloomProvider>
       <a
         href="#main-content"
         onClick={(e) => {
@@ -265,6 +268,8 @@ function AppShell() {
       <BackToTop />
       <CursorGlow />
       <SpotlightField />
+      <BootCurtain />
+      </BloomProvider>
     </div>
   )
 }

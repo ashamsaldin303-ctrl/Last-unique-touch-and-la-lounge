@@ -2674,3 +2674,92 @@ Stage Summary:
 - كتالوج prompt-motion كامل موثق (ANALYSIS.md، 140 سطراً) + 6 تقنيات مُطبّقة فعلياً عبر 5 ملفات جديدة و7 معدلة
 - لغة حركة موحّدة جديدة للموقع: كل التحولات نوابض بتجاوز طفيف، الانتقالات تصمت للفكرة (غمر الحبر بلون العلامة) وليس crossfades
 - كل التحقق رقمي وحّي ناجح؛ الصفحة تعمل بلا أي خطأ console
+
+---
+Task ID: 43 (in-progress)
+Agent: main (Z.ai Code)
+Task: User feedback: Task 42 additions were too simple — re-enter prompt-motion.com, extract POWERFUL animations + strong UI/UX touches, raise the site to a "mythical" level
+
+Work Log:
+- Re-fetched prompt-motion.com (curl; Cloudflare blocks browser): full 233-entry RSC payload decoded (slugs/titles/contentTags) + 21 key entry pages + /templates/realtime + /templates/showreel official prompts extracted verbatim
+- The most powerful patterns found (documented in agent-ctx/pm-analysis/ANALYSIS-2-POWER.md):
+  * dale-vaz "Sahi terminal": opens "with a single dot on a black screen" → macro-to-cosmic scale
+  * antonio-kodheli (site's own promo): "one continuous camera", "that tile blooms into its entry page", "corner radius goes to 0 as a tile reaches full-bleed"
+  * ercankeskinx: "Five scroll-based sections"
+  * wani-shola: "a rhythm that speeds up and slows down with the story" (velocity-reactive)
+  * pankajkumar-dev: "a poster breaking out of its own frame"
+  * bthreeagency: badge as "solid 3D object that tilts toward the cursor following rules of physics. Fast and smooth, not bouncy"
+  * official showreel: "every shot is made out of the previous one", "blur follows speed", no crossfades/holds
+- Inventory audit of current site: CursorGlow/ScrollProgress/parallax hero/Tilt/journey thread already exist; the LEGENDARY gaps = preloader, bloom-zoom into detail, pinned horizontal scroll, velocity marquee, kinetic masked headings, clip-path image reveals, CTA roll labels
+- Planned 7 new fx components + 8 integration points (building now)
+
+Stage Summary:
+- (in progress) analysis complete, implementation starting
+
+---
+Task ID: 43-b
+Agent: general-purpose (bloom integration)
+Task: Integrate BloomZoom into product cards + ClipReveal/KineticLine into the product detail hero
+
+Work Log:
+- Read worklog (Task 42/43), bloom-zoom.tsx, clip-reveal.tsx, kinetic-heading.tsx, router.tsx, page.tsx (BloomProvider confirmed mounted app-wide at src/app/page.tsx:217)
+- Scroll-top audit: navigate()/hashchange both emit `lut:navigate`, and BrandThemeSetter listens and calls window.scrollTo(0, 'instant') on every navigation → NO extra scrollTo needed in the card (verified live: scrollY === 0 after bloom arrival)
+- src/components/shop/product-card.tsx: added imgWrapRef on div.img-shimmer; root <a> now has onClick handleOpen implementing the bloom pattern — guards (defaultPrevented, meta/ctrl/shift/alt, button !== 0, !firstImage, imgErrored, useBloom() null, bloom() false) all fall through to the native hash-anchor navigation; on success preventDefault + window.setTimeout(() => navigate('/products/<slug>'), 190) so the ink backdrop covers the grid first; radius read via parseFloat(getComputedStyle(el).borderTopLeftRadius) || 8. href/aria-label/hover sheen/quick-view/badge untouched
+- src/views/product-detail.tsx: wrapped ONLY the main gallery image layer (AnimatePresence + next/image + no-image fallback) in <ClipReveal className="absolute inset-0" delay={0.15}> inside .bezel-core — deliberately NOT the bezel plate/halo, because ClipReveal's overflow-hidden would clip the plate's deep box-shadow and the spotlight-gallery halo's 26px blur bleed; overlays (counter, arrows, 3D badge, gold ring, cursor spotlight) stay siblings outside the clip so nothing they paint is clipped and the bezel reads as the poster's mount. Verified NO position:fixed element lives under the wrapper (catalog-ambient is absolute)
+- product title h1 (plain string render {name}) wrapped in <KineticLine delay={0.12}> — word-safe single mask, textContent unchanged so the route-announcement live region still reads the name
+- src/views/products.tsx: read + verified no changes needed — StaggerGroup wraps children in plain divs (no prop injection), ProductCard root/structure unchanged, swap-blur AnimatePresence untouched → stagger entrance + bloom coexist cleanly
+- ENV FIX (pre-existing, found during live verify): db/custom.db had 0 products (mtime predates this task) → grid showed the empty state; restored the catalog with the documented idempotent seed (`bun prisma/seed.ts`: 6 categories, 21 products, demo bookings/messages; SecurityLog untouched)
+- Live browser verification (agent-browser): products grid renders 12 cards; click → bloom overlay mounts (z-[150], img src matches the clicked card's firstImage, birthday_atelier.webp) while hash still unchanged; ~190ms later navigate lands on #/ar/products/led-dance-floor with h1 text intact, gallery img + alt intact, scrollY 0, computed ClipReveal settled at inset(0%), KineticLine span inline-block in h1; second bloom from the related-products rail → #/ar/products/balloon-arch, scrollY 0; ZERO console errors / page errors / hydration warnings across all steps (only the pre-existing framer-motion non-static-position warning that also fires on untouched /about)
+
+Stage Summary:
+- Files changed: src/components/shop/product-card.tsx (bloom trigger), src/views/product-detail.tsx (ClipReveal hero + KineticLine title); src/views/products.tsx read-only, no change; demo DB re-seeded (env restore, not code)
+- Verification: bunx tsc --noEmit → 0 errors; bun run lint → 0 errors (only the pre-existing src/pages/checkout.tsx warning); curl / → 200; dev.log clean (all 200s, no compile errors); live bloom cycle verified end-to-end twice (grid + related rail) with zero console errors
+- Risks: (1) rapid double-click on two cards fires both delayed navigations (harmless — final route wins, history keeps both; bloom overlay itself is seq-guarded by clearTimers); (2) img wrapper has no own border-radius so the formula's || 8 fallback is used (visual corner is rounded-md ≈ 6px — imperceptible during the 560ms expansion); (3) the framer-motion "non-static position" console warning is PRE-EXISTING (reproduced on /about before/after) — not introduced here
+
+---
+Task ID: 43-c
+Agent: general-purpose (home cinematics)
+Task: Adopt ClipReveal (poster breaking out of its frame) + RollLabel (hover text roll) + KineticWords across the HOME page sections for a cinematic scroll experience.
+
+Work Log:
+- Read worklog Task 42/43 sections + all three fx components (clip-reveal, roll-label, kinetic-heading) before touching anything.
+- Explored the home composition: views/home.tsx renders ExperienceCard×3 (hero), marquee, MaskedWords statement, THREE WORLDS door cards (the home's image showcase), why-us, ProcessSteps, TestimonialsSection, house CTA. Audit finding: components/site/collection.tsx + site/features.tsx are ORPHANED (no live importer — grep verified; the live route table is src/app/page.tsx → views/*), and features.tsx has no images (skipped per instruction).
+- home.tsx — WORLDS images: wrapped each Image in ClipReveal (delay i*0.12, innerClassName="relative"); removed the old CSS `clip-reveal-img` bottom-up reveal from the Image (motion upgrade only); tri gradient veil / oversized index / corner frames stay siblings OUTSIDE the clip; hover zoom (group-hover:scale-110) left on the image so it composes with the settled counter-zoom.
+- home.tsx — CTAs → RollLabel: worlds enter (InkFloodLink children, rolls via the article's `group` alongside the image zoom), worlds products button (+ `group` added), house CTA MagneticButton (+ `group`), tri-brand quick links (`group/dot` → `group group/dot`). 13 RollLabels total.
+- home.tsx — house CTA h2 (the only home heading not using SectionHeading): HighlightSweep now wraps KineticWords — words rise through their masks IN FRONT of the sweeping gold bar (word-granular, Arabic-safe).
+- experience-card.tsx — holo-chamber product Image wrapped in ClipReveal (stagger 0.14 via cardIdx*0.14, + bootOffset() so the punch plays after the first-visit boot curtain; transition-delay only → SSR/hydration-stable); actionText (استكشف/EXPLORE) → RollLabel driven by the card root's `group`; `priority` kept (above-fold LCP).
+- collection.tsx (orphaned, edited per task file list): ProductCard image → ClipReveal (stagger (index%4)*0.12 — grid-rhythm-capped so late rows aren't delayed seconds); quick-view bar + modal rent CTA → RollLabel.
+- BUG FOUND + FIXED in fx/kinetic-heading.tsx (component fix, not a rebuild): IntersectionObserver computes the intersection rect AFTER ancestor clipping — a word parked at translateY(120%) is fully outside its mask's overflow-hidden box, so whileInView attached to the word itself NEVER fires (heading stays invisible). Proven live: word-IO=false, mask-IO=true, y0-IO=true. Fix: the visible MASK now carries initial="hidden"/whileInView="show" (viewport/once/margins unchanged) and framer variant propagation drives the inner word with its own delay/stagger — same DOM, same values, same props API. This also repairs the stuck KineticLine product name on product-detail.tsx (shared component; their view file untouched).
+- Fixed the next/image "fill + static parent" console warnings I introduced by passing innerClassName="relative" to every ClipReveal wrapping a fill Image (Task 41 zero-warning standard restored).
+- Live headless-Chrome verification: 6 clip-paths settle inset(0%) on view-entry (hero at load / worlds on scroll); 13 RollLabels in DOM with the twin parked exactly one label-height+0.14em below the mask (roll mechanics proven with a media-query-free :hover simulation — the headless env reports (hover:hover)=false so ALL Tailwind hover variants are inert there, a test-env artifact, not a bug); KineticWords CTA h2 rises (transforms → none, opacity 1) in EN and AR; VLM checks on worlds/CTA/Arabic-CTA screenshots: full images, unclipped labels, joined Arabic glyphs, no layout breakage; console clean apart from ONE pre-existing framer useScroll warning (hero parallax, untouched — git diff confirms).
+- ENVIRONMENT INCIDENT: the kernel OOM-killer killed next-server (1.8GB RSS, 4GB box) mid-verification — dev.log ended on 200s with no crash trace. Recovered via the project's own idempotent scripts/start-dev-daemon.py (double-fork → PID 1, same port 3000, appends dev.log) — same recovery path as Task 41. Killed my browser session to return the memory.
+
+Stage Summary:
+- Files changed (4): src/views/home.tsx (ClipReveal×3 worlds images w/ i*0.12 stagger; RollLabel×7; KineticWords on the CTA h2 inside HighlightSweep; group classes added where needed), src/components/landing/experience-card.tsx (ClipReveal on holo product image w/ 0.14 stagger + bootOffset; RollLabel on actionText), src/components/site/collection.tsx (orphaned file — ClipReveal on product images + RollLabel on quick-view/rent CTAs), src/components/fx/kinetic-heading.tsx (IO-clip bug fix: trigger moved to the visible mask + variant propagation; KineticWords + KineticLine repaired, HairlineDraw untouched).
+- Deliberately skipped: site/features.tsx (no images — per instruction); hero h1 (has its own CSS choreography + gradient text, and plan said h2 only); house-statement (already MaskedWords kinetic); ProcessSteps/TestimonialsSection (no images, no text CTAs); product-card/products/product-detail views (other agent's property — only the shared fx component they import was bug-fixed).
+- Verification: bunx tsc --noEmit → 0 errors; bun run lint → 0 errors (only the pre-existing checkout.tsx warning); curl / → 200 (×3 after OOM recovery); dev.log clean (no compile errors, GET / 200); SSR markup contains 6 clip-path insets + 6 scale(1.22) + 26 roll-label class pairs + 5 kinetic word masks; live browser: all reveals fire, RollLabel geometry verified, Arabic RTL intact, touch targets/aria-labels untouched, no filter CSS added anywhere near the (non-home) fixed 3D backgrounds.
+
+---
+Task ID: 43 (completed)
+Agent: main (Z.ai Code) + subagents 43-b/43-c
+Task: prompt-motion.com round 2 — extract POWERFUL animations + strong UI/UX touches, raise the site to a "mythical" level (user: round 42 was too simple)
+
+Work Log:
+- Re-extracted the full gallery (curl → RSC decode: 233 entries + 21 key pages + both /templates prompts verbatim) → agent-ctx/pm-analysis/ANALYSIS-2-POWER.md: dale-vaz single-dot boot, antonio-kodheli bloom-into-entry (radius→0 at full-bleed), ercankeskinx scroll sections, wani-shola velocity rhythm, pankajkumar poster-out-of-frame, bthreeagency physics tilt, showreel no-cuts doctrine
+- 7 NEW fx components (src/components/fx/):
+  * boot-curtain.tsx — cinematic pre-paint boot: inline gate script in layout <head> (sessionStorage+reduced-motion gate, CSS ::after veil from FIRST paint, 6s watchdog) → React curtain: eased 0→100 counter, gold dot ignition, wordmark, curtain SNATCHED apart on accelerating ease; hero entrance offset via pre-hydration window.__LUX_BOOT__ flag (transition-delay only → hydration-safe); React-Compiler-safe phase machine (setState only in async callbacks)
+  * kinetic-heading.tsx — KineticWords/KineticLine/HairlineDraw: word-granular mask-rise (Arabic-safe), mask-level whileInView with variant propagation (43-c fixed the IO-clip bug: word parked at translateY(120%) inside overflow-hidden mask is never "intersecting" — trigger must live on the mask)
+  * velocity-marquee.tsx — rAF engine, zero re-renders: base drift + scroll-velocity boost (reversal on upward flicks), skewY lean (±3.4°) = "blur follows speed" cheaper, IO sleep off-screen, hover slows to 0.16× (never dead), direction-aware (RTL rightward = original marquee-rtl keyframes), reduced-motion static
+  * horizontal-panel.tsx — pinned horizontal film: sticky 100svh + spring-smoothed x, RTL-aware sign, imperative panel ignition (data-active scale+gold frame), jump-dot rail 44px targets + counter + fill, ResizeObserver re-measure, reduced-motion snap
+  * bloom-zoom.tsx — THE signature: card image rect → 101.5vw full-bleed (ultimaxbt "scale past all four corners") with borderRadius→0 (antonio), ink backdrop floods, navigate underneath at 190ms, overlay dissolves into arriving detail page; modified-click/reduced-motion fall back to plain anchor
+  * clip-reveal.tsx — clip-path inset expand + inner counter-zoom 1.22→1 ("poster breaking out of its frame")
+  * roll-label.tsx — CTA label roll with descender-safe mask (transform into next scene, no cuts)
+- Integrations: page.tsx (BloomProvider + BootCurtain), layout.tsx (boot gate script), globals.css (veil + pin-panel ignition styles + reduced-motion), hero.tsx (BOOT offset on all 9 entrance delays + RollLabel on primary CTA), section-heading ×2 (fx + shared/upgrade — the LIVE one used by home/process/testimonials upgraded to kinetic language with light prop), marquee: home's real inline marquee-v3 rewired to VelocityMarquee (found site/marquee.tsx + site/journey.tsx are ORPHANS — no live importers; also fixed a latent bug: old track class marquee-track-rtl had NO CSS → the old marquee never animated), ProcessSteps: new pin prop → home renders pinned horizontal film on desktop (panels 01/02/03 verified activating), grid on mobile
+- Subagent 43-b: product-card BloomZoom wiring (guards for modified clicks/no-image/reduced-motion), product-detail ClipReveal + KineticLine title, re-seeded DB (box reset had 0 products → 21 restored)
+- Subagent 43-c: home THREE WORLDS images + experience-card holo images → ClipReveal (stagger + bootOffset), 13 RollLabels across home CTAs, house CTA h2 → KineticWords inside HighlightSweep, IO-clip fix in kinetic-heading
+- Verification (mine, agent-browser): boot cycle full (count 064%@900ms → split → overlay gone → session marked → no replay); velocity marquee moves when visible & sleeps off-screen (RTL rightward, LTR leftward, scroll energy reverses drift); pinned film: sticky, wrapH measured, panels activate 01→02→03 with counter, track translates -161px/-340px; BLOOM: card rect 288×288 → left -0.75vw/width 101.5vw/radius 0px → overlay dissolves → detail h1 "Organic Balloon Arch" + ClipReveal applied + scrollY 0; AR RTL golden path (dir=rtl, Arabic h1); mobile 375×812: overflowX=0, pin wrapper display:none, grid fallback, footer at document bottom; console clean (non-static-position warnings proven pre-existing via git-stash test on clean HEAD; LCP advisory pre-existing); tsc 0 · lint 0 errors (1 pre-existing checkout warning) · HTTP 200
+
+Stage Summary:
+- 7 new fx + 12 files modified — the "legendary package": cinematic boot curtain, bloom-zoom into product detail, pinned horizontal process film, velocity-reactive marquee, kinetic masked headings (all sections), clip-path image reveals, CTA roll labels, physics tilt gating
+- All patterns sourced verbatim from prompt-motion's most powerful entries (documented in agent-ctx/pm-analysis/ANALYSIS-2-POWER.md)
+- Full golden path verified live end-to-end, zero new console errors, hydration-safe, reduced-motion-safe, RTL-correct
