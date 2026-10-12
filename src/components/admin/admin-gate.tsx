@@ -14,13 +14,22 @@
  */
 
 import { useState, type FormEvent } from 'react'
+import { motion } from 'framer-motion'
 import { AlertTriangle, Loader2, Lock, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Reveal } from '@/components/shared/reveal'
+import { PopOnMount } from '@/components/fx/badge-pop'
+import { RippleLayer } from '@/components/fx/ink-ripple'
 import { useI18n } from '@/lib/i18n'
 import type { AdminLoginResult } from '@/components/admin/use-admin-session'
+
+/** Wrong-password shake: 3 quick ±6px oscillations (symmetric — RTL-safe).
+ * Replayed via a key-remount (shakeNonce) so framer's keyframes restart
+ * deterministically on every failed attempt; no animate-controls state. */
+const SHAKE_X: number[] = [0, -6, 6, -6, 6, 0]
+const SHAKE_TRANSITION = { duration: 0.36, ease: 'easeInOut' } as const
 
 type LoginError = Exclude<AdminLoginResult, 'ok'> | 'empty' | null
 
@@ -37,12 +46,16 @@ export function AdminGate({ onLogin, sessionExpired }: AdminGateProps) {
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [loginError, setLoginError] = useState<LoginError>(null)
+  /** Increments on every failed attempt — remounts the panel to replay the
+   * shake. Pure presentation: the session/auth flow below is untouched. */
+  const [shakeNonce, setShakeNonce] = useState(0)
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (submitting) return
     if (!password.trim()) {
       setLoginError('empty')
+      setShakeNonce((n) => n + 1)
       return
     }
     setSubmitting(true)
@@ -54,8 +67,10 @@ export function AdminGate({ onLogin, sessionExpired }: AdminGateProps) {
         return
       }
       setLoginError(result)
+      setShakeNonce((n) => n + 1)
     } catch {
       setLoginError('server')
+      setShakeNonce((n) => n + 1)
     } finally {
       setSubmitting(false)
     }
@@ -73,7 +88,16 @@ export function AdminGate({ onLogin, sessionExpired }: AdminGateProps) {
   return (
     <div className="relative flex flex-1 items-center justify-center px-4 py-16 sm:py-24">
       <Reveal className="w-full max-w-sm">
-        <div className="glass-panel flex flex-col gap-6 rounded-2xl p-6 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)] sm:p-8">
+        {/* Keyed by shakeNonce: a wrong password replays the shake. The
+            remount is presentation-only — the form state lives above it,
+            and autoFocus re-focuses the password field after a miss. */}
+        <motion.div
+          key={shakeNonce}
+          initial={{ x: 0 }}
+          animate={shakeNonce > 0 ? { x: SHAKE_X } : { x: 0 }}
+          transition={SHAKE_TRANSITION}
+          className="glass-panel flex flex-col gap-6 rounded-2xl p-6 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)] sm:p-8"
+        >
           <div className="flex flex-col items-center gap-4 text-center">
             {/* Glowing gold medallion */}
             <span className="animate-pulse-ring inline-flex size-16 items-center justify-center rounded-full border border-primary/40 bg-primary/10">
@@ -131,15 +155,19 @@ export function AdminGate({ onLogin, sessionExpired }: AdminGateProps) {
               disabled={submitting}
               className="btn-lux min-h-11 rounded-md px-6 py-2.5 text-base font-semibold"
             >
+              {/* btn-lux is already relative + overflow-hidden → ripple host */}
+              <RippleLayer duration={600} />
               {submitting ? (
                 <Loader2 className="animate-spin" aria-hidden="true" />
               ) : (
-                <Lock aria-hidden="true" />
+                <PopOnMount from={0.4}>
+                  <Lock aria-hidden="true" />
+                </PopOnMount>
               )}
               {submitting ? t('admin.common.loading') : t('admin.login.submit')}
             </Button>
           </form>
-        </div>
+        </motion.div>
       </Reveal>
     </div>
   )

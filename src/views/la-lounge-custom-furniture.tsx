@@ -26,6 +26,9 @@ import { useRouter } from '@/lib/router'
 import { Reveal } from '@/components/shared/reveal'
 import { PageHeader } from '@/components/shared/page-header'
 import { SectionHeading, TiltCard, MagneticButton } from '@/components/shared/upgrade'
+import { ClipReveal } from '@/components/fx/clip-reveal'
+import { ScrollImage } from '@/components/fx/scroll-image'
+import { SpotlightCard } from '@/components/fx/spotlight-card'
 
 export default function LaLoungeCustomFurniturePage() {
   const { t, locale, dir } = useI18n()
@@ -125,14 +128,22 @@ export default function LaLoungeCustomFurniturePage() {
                       />
                     </motion.div>
 
-                    {/* Step card */}
-                    <article className="glass-card lux-card flex-1 lg:mt-6 rounded-2xl p-5 lg:p-6 flex flex-col lg:items-center lg:text-center h-full">
-                      <div className="mb-4 flex size-12 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
-                        <Icon className="size-5 text-primary" aria-hidden="true" />
-                      </div>
-                      <h3 className="font-display text-base lg:text-lg text-foreground mb-2">{step.title}</h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
-                    </article>
+                    {/* Step card — cursor-tracked magenta glow (Task 44-d);
+                        NOT inside TiltCard, so there is no double-paint
+                        with the tilt glare. `article` semantics kept. */}
+                    <SpotlightCard
+                      tint="rgba(230,0,126,0.10)"
+                      radius={280}
+                      className="flex-1 lg:mt-6"
+                    >
+                      <article className="glass-card lux-card rounded-2xl p-5 lg:p-6 flex flex-col lg:items-center lg:text-center h-full">
+                        <div className="mb-4 flex size-12 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
+                          <Icon className="size-5 text-primary" aria-hidden="true" />
+                        </div>
+                        <h3 className="font-display text-base lg:text-lg text-foreground mb-2">{step.title}</h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
+                      </article>
+                    </SpotlightCard>
                   </Reveal>
                 )
               })}
@@ -177,16 +188,32 @@ export default function LaLoungeCustomFurniturePage() {
                       {/* Photograph mounted on an ivory plate — the product
                           assets ship with white backgrounds, so a light
                           plate makes them read as framed catalog photos on
-                          the dark drafting board instead of raw rectangles. */}
-                      <div className="absolute inset-2.5 sm:inset-3 rounded-xl bg-[#F7F3EC] overflow-hidden shadow-[0_10px_30px_-12px_rgba(0,0,0,0.55)]">
-                        <Image
-                          src={item.src}
-                          alt={item.name}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          className="object-contain p-4 sm:p-5 transition-transform duration-500 group-hover:scale-105"
-                        />
-                      </div>
+                          the dark drafting board instead of raw rectangles.
+                          Task 44-d: the plate itself is the reveal surface —
+                          ClipReveal expands it out of an inset window while
+                          the photo counter-zooms ("poster breaking its
+                          frame"), staggered across the grid; ScrollImage
+                          (INSIDE the reveal) adds the living parallax drift.
+                          The relative shim keeps next/image `fill`'s direct
+                          parent positioned, and the img's group-hover zoom
+                          is a nested CSS transform — transforms multiply,
+                          they don't fight. */}
+                      <ClipReveal
+                        className="absolute inset-2.5 sm:inset-3 rounded-xl bg-[#F7F3EC] shadow-[0_10px_30px_-12px_rgba(0,0,0,0.55)]"
+                        delay={(i % 3) * 0.12}
+                      >
+                        <ScrollImage className="h-full w-full" travel={6} scale={1.15}>
+                          <div className="relative h-full w-full">
+                            <Image
+                              src={item.src}
+                              alt={item.name}
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                              className="object-contain p-4 sm:p-5 transition-transform duration-500 group-hover:scale-105"
+                            />
+                          </div>
+                        </ScrollImage>
+                      </ClipReveal>
                       {/* Magenta hairline along the top of the image */}
                       <div
                         aria-hidden="true"

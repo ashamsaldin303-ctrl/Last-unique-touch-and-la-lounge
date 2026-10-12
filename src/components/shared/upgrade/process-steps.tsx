@@ -15,6 +15,8 @@ import type { LucideIcon } from 'lucide-react'
 import { SectionHeading } from './section-heading'
 import { HorizontalPin } from '@/components/fx/horizontal-panel'
 import { Reveal } from '@/components/shared/reveal'
+import { SpotlightCard } from '@/components/fx/spotlight-card'
+import { BadgePop } from '@/components/fx/badge-pop'
 import { cn } from '@/lib/utils'
 
 export interface ProcessStep {
@@ -45,6 +47,8 @@ export function ProcessSteps({
     const Icon = step.icon
     return (
       <Reveal key={`${step.title}-${i}`} delay={i * 0.18} as="li" className="text-center relative">
+        {/* Task 44: champagne glow tracks the cursor across each step */}
+        <SpotlightCard className="rounded-2xl px-2 py-4 -mx-2">
         <div className="relative z-10 flex items-center justify-center mb-5">
           <span
             className={cn(
@@ -55,12 +59,11 @@ export function ProcessSteps({
           >
             <Icon className="w-7 h-7 text-primary" strokeWidth={1.5} aria-hidden="true" />
           </span>
-          <span
-            aria-hidden="true"
-            className="absolute -top-1 -end-1 w-6 h-6 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center"
-          >
-            {i + 1}
-          </span>
+          {/* Task 44: the step number pops in on a snappy spring */}
+          <BadgePop
+            value={i + 1}
+            className="-top-1 -end-1 w-6 h-6 text-[11px] font-bold"
+          />
         </div>
         <h3
           className={cn(
@@ -78,6 +81,7 @@ export function ProcessSteps({
         >
           {step.desc}
         </p>
+        </SpotlightCard>
       </Reveal>
     )
   })

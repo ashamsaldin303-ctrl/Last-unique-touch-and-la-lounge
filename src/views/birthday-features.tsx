@@ -14,10 +14,18 @@
  * UPGRADE LAYER (visible polish — 3D scene & structure untouched): TiltCards
  * + glow-border/card-lift on service cards, icon-ring pulse on the circular
  * gold-ringed frames, and a magnetic gold bookNow button (same modal).
+ *
+ * TASK 44-e (motion pass): the title's gold bar DRAWS itself outward from
+ * the center, and each service's circular icon frame now rotates + scales
+ * on group-hover (the cards already carry the kit's cursor-tracked
+ * TiltCard glare, so SpotlightCard was deliberately skipped — two
+ * pointer-tracked glows would double-paint).
  */
 
 import { useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
+import { motion } from 'framer-motion'
+import { easeExpoOut } from '@/lib/motion'
 import { useI18n } from '@/lib/i18n'
 import { useRouter } from '@/lib/router'
 import { BookingModal } from '@/components/birthday/booking-modal'
@@ -114,7 +122,17 @@ export default function BirthdayFeaturesPage() {
               <p className="text-sm text-white/50 max-w-xl mx-auto">
                 {t('yourBirthday.features.subtitle')}
               </p>
-              <div className="w-24 h-1 bg-gradient-to-r from-[var(--c-birthday-gold)] via-[var(--c-birthday-gold-light)] to-[var(--c-birthday-gold-dark)] mx-auto rounded-full mt-6" />
+              {/* Task 44-e: the gold bar draws itself outward from the
+                  center once the header enters view. */}
+              <motion.div
+                aria-hidden="true"
+                className="w-24 h-1 bg-gradient-to-r from-[var(--c-birthday-gold)] via-[var(--c-birthday-gold-light)] to-[var(--c-birthday-gold-dark)] mx-auto rounded-full mt-6"
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true, margin: '-8% 0px' }}
+                transition={{ duration: 0.9, ease: easeExpoOut, delay: 0.2 }}
+                style={{ transformOrigin: 'center' }}
+              />
             </div>
 
             {/* Services grid */}
@@ -132,9 +150,13 @@ export default function BirthdayFeaturesPage() {
                     }}
                   />
                   <div className="relative z-10">
-                    {/* Birthday circular frame — signature ornament around each service icon */}
+                    {/* Birthday circular frame — signature ornament around each service icon
+                        (Task 44-e: the frame rotates + lifts on group-hover —
+                        ONE interaction per card; PopOnMount skipped because
+                        these icons mount below the fold, where a mount-pop
+                        fires invisibly before Reveal shows the card). */}
                     <div
-                      className="icon-ring relative size-20 rounded-full border-4 border-deep-purple bg-gold/10 flex items-center justify-center mx-auto mb-5 transition-transform duration-500 group-hover:rotate-3"
+                      className="icon-ring relative size-20 rounded-full border-4 border-deep-purple bg-gold/10 flex items-center justify-center mx-auto mb-5 transition-transform duration-500 group-hover:rotate-6 group-hover:scale-110"
                       style={{
                         boxShadow: `0 0 0 1px color-mix(in srgb, ${SERVICE_DECOR[i]?.color ?? 'var(--c-birthday-gold)'} 22%, transparent), 0 4px 16px rgba(75, 24, 88, 0.25)`,
                       }}

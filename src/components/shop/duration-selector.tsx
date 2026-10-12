@@ -18,12 +18,15 @@
  * availability flow, the birthday mini-form). The end >= start
  * invariant is enforced here (clearing the end date when the start
  * moves past it).
+ * Task 44-c: a chip's label pops on a snappy spring the instant that
+ * chip becomes the selected duration.
  */
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { CalendarRange, Sparkles } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
+import { springSnappy } from '@/lib/motion'
 import { formatDate, parseDateParts, rentalDays } from '@/components/shop/format'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -240,7 +243,18 @@ export function DurationSelector({
                   aria-hidden="true"
                 />
               )}
-              <span className="relative z-10 whitespace-nowrap">{t(PRESET_LABEL_KEY[diff])}</span>
+              {/* Task 44-c: the label pops on a snappy spring when its chip
+                  becomes the active duration (key-remount → one pop per
+                  selection). */}
+              <motion.span
+                key={active ? 'active' : 'idle'}
+                initial={{ scale: 0.82 }}
+                animate={{ scale: 1 }}
+                transition={springSnappy}
+                className="relative z-10 whitespace-nowrap"
+              >
+                {t(PRESET_LABEL_KEY[diff])}
+              </motion.span>
             </button>
           )
         })}
@@ -264,10 +278,17 @@ export function DurationSelector({
               aria-hidden="true"
             />
           )}
-          <span className="relative z-10 flex items-center gap-1.5 whitespace-nowrap">
+          {/* Task 44-c: same selection pop for the custom chip. */}
+          <motion.span
+            key={isCustom ? 'active' : 'idle'}
+            initial={{ scale: 0.82 }}
+            animate={{ scale: 1 }}
+            transition={springSnappy}
+            className="relative z-10 flex items-center gap-1.5 whitespace-nowrap"
+          >
             {isCustom && <Sparkles className="size-3" aria-hidden="true" />}
             {t('product.rental.presets.custom')}
-          </span>
+          </motion.span>
         </button>
       </div>
 

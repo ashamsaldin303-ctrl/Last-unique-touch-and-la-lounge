@@ -13,6 +13,7 @@
 
 import { useRef, type ReactNode, type MouseEvent } from 'react'
 import { motion, useMotionValue, useReducedMotion, useSpring } from 'framer-motion'
+import { RippleLayer } from '@/components/fx/ink-ripple'
 import { cn } from '@/lib/utils'
 
 interface MagneticButtonProps {
@@ -80,13 +81,16 @@ export function MagneticButton({
       transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
       aria-label={ariaLabel}
       className={cn(
-        'shine-sweep relative inline-flex items-center justify-center gap-2 rounded-full px-8 py-3.5 text-sm font-medium cursor-pointer border-0',
+        'shine-sweep relative inline-flex items-center justify-center gap-2 rounded-full px-8 py-3.5 text-sm font-medium cursor-pointer border-0 overflow-hidden',
         'transition-[box-shadow,background-color] duration-300 ease-out',
         'hover:shadow-[0_14px_38px_-10px_color-mix(in_srgb,var(--color-primary)_55%,transparent)]',
         'disabled:opacity-60 disabled:cursor-not-allowed',
         className
       )}
     >
+      {/* Task 44: the press confirms itself — an ink ripple expands from the
+          exact press point under the label (every MagneticButton site-wide). */}
+      <RippleLayer tint="rgba(255,236,189,0.28)" />
       <span className="relative z-10 inline-flex items-center gap-2">{children}</span>
     </motion.button>
   )

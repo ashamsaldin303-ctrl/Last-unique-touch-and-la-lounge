@@ -40,6 +40,9 @@ import { useToast } from '@/hooks/use-toast'
 import { DurationSelector } from '@/components/shop/duration-selector'
 import { Reveal } from '@/components/shared/reveal'
 import { TiltCard, MagneticButton } from '@/components/shared/upgrade'
+import { PopOnMount } from '@/components/fx/badge-pop'
+import { ShimmerText } from '@/components/fx/shimmer-text'
+import { TextScramble } from '@/components/fx/text-scramble'
 import { Button } from '@/components/ui/button'
 import { ToastAction } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
@@ -496,7 +499,9 @@ export default function BirthdayProductsPage() {
               <span aria-hidden="true" className="line-draw-start h-px w-8 bg-primary/50" />
               <span className="eyebrow inline-flex items-center gap-1.5 text-primary/80">
                 <PartyPopper aria-hidden="true" className="size-3.5" />
-                {t('yourBirthday.nav.brand')}
+                {/* Task 44-e: the header eyebrow DECODES (Latin brand name
+                    in both locales). */}
+                <TextScramble text={t('yourBirthday.nav.brand')} delay={0.15} />
               </span>
               <span aria-hidden="true" className="line-draw-end h-px w-8 bg-primary/50" />
             </div>
@@ -515,7 +520,9 @@ export default function BirthdayProductsPage() {
           <Reveal direction="up" delay={0.34}>
             <span className="relative z-10 mt-5 inline-flex items-center gap-2 rounded-full border-2 border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-foreground/80">
               <Sparkles aria-hidden="true" className="size-3.5 text-primary" />
-              {t('yourBirthdayProducts.collectionNote')}
+              {/* Task 44-e: the collection note gets one champagne gloss
+                  sweep on view-entry. */}
+              <ShimmerText>{t('yourBirthdayProducts.collectionNote')}</ShimmerText>
             </span>
           </Reveal>
         </header>
@@ -550,8 +557,11 @@ export default function BirthdayProductsPage() {
         {!loading && failed && (
           <Reveal direction="up" className="mx-auto mt-10 max-w-md">
             <div role="alert" className="bday-store-card p-8 text-center sm:p-10">
+              {/* Task 44-e: the error medallion pops in on a spring. */}
               <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full border-2 border-primary/40 bg-primary/10 text-primary">
-                <AlertCircle aria-hidden="true" className="size-6" />
+                <PopOnMount from={0.5}>
+                  <AlertCircle aria-hidden="true" className="size-6" />
+                </PopOnMount>
               </span>
               <p className="mb-5 text-sm text-muted-foreground">{t('common.error')}</p>
               <MagneticButton
@@ -575,6 +585,16 @@ export default function BirthdayProductsPage() {
                 stringClass="h-2.5"
                 color="#ffb6c1"
               />
+              {/* Task 44-e: the empty-state icon pops in on a spring and
+                  keeps floating gently (the medallion mounts only once the
+                  fetch resolves empty, so the pop is always seen). */}
+              <span className="relative z-10 mx-auto mb-4 flex size-12 items-center justify-center rounded-full border-2 border-primary/40 bg-primary/10 text-primary">
+                <span className="lux-float-y-soft">
+                  <PopOnMount from={0.5}>
+                    <PartyPopper aria-hidden="true" className="size-6" />
+                  </PopOnMount>
+                </span>
+              </span>
               <p className="font-display relative z-10 mb-2 text-xl text-foreground">
                 {t('products.empty.title')}
               </p>

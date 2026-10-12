@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
 import { useI18n, type Locale } from '@/lib/i18n'
 import { formatKwd } from '@/lib/money'
 import { useAdminApi } from '@/components/admin/use-admin-api'
@@ -26,6 +27,10 @@ import { formatDate } from '@/components/shop/format'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { adminListVariants, adminRowVariants } from '@/components/admin/admin-kit'
+import { RippleLayer } from '@/components/fx/ink-ripple'
+import { PopOnMount } from '@/components/fx/badge-pop'
+import { springSnappy, swapEnter } from '@/lib/motion'
 import {
   Select,
   SelectContent,
@@ -518,7 +523,10 @@ export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}
 
   /* ================================================================ */
   return (
-    <section
+    <motion.section
+      initial="initial"
+      animate="animate"
+      variants={swapEnter}
       aria-labelledby="orders-panel-title"
       className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-[#0F0D0A]/90 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.55)] backdrop-blur-xl"
     >
@@ -550,8 +558,9 @@ export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}
           variant="outline"
           onClick={reload}
           disabled={loading || sessionExpired}
-          className="h-11 gap-2 border-white/10 bg-white/[0.03] text-[13px] text-[#F2EDE2] hover:border-[#C9A25E]/30 hover:bg-[#C9A25E]/10 hover:text-[#F2EDE2] focus-visible:ring-[#C9A25E]/30"
+          className="relative h-11 overflow-hidden gap-2 border-white/10 bg-white/[0.03] text-[13px] text-[#F2EDE2] hover:border-[#C9A25E]/30 hover:bg-[#C9A25E]/10 hover:text-[#F2EDE2] focus-visible:ring-[#C9A25E]/30"
         >
+          <RippleLayer duration={600} />
           <RotateCcw className={loading ? 'size-4 animate-spin' : 'size-4'} aria-hidden="true" />
           {t('admin.common.refresh')}
         </Button>
@@ -560,7 +569,9 @@ export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}
       {sessionExpired ? (
         /* ---- Session expired (401) ---- */
         <div role="alert" className="flex flex-col items-center gap-3 border-t border-white/[0.05] px-6 py-14 text-center">
-          <ShieldAlert className="size-8 text-[#C9A25E]" aria-hidden="true" />
+          <PopOnMount from={0.5}>
+            <ShieldAlert className="size-8 text-[#C9A25E]" aria-hidden="true" />
+          </PopOnMount>
           <h3 className="font-display text-lg" style={{ color: INK }}>
             {t('admin.orders.sessionExpiredTitle')}
           </h3>
@@ -686,7 +697,9 @@ export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}
                 role="alert"
                 className="flex flex-col items-center gap-3 px-6 py-12 text-center"
               >
-                <CircleAlert className="size-8 text-[#FCA5A5]" aria-hidden="true" />
+                <PopOnMount from={0.5}>
+                  <CircleAlert className="size-8 text-[#FCA5A5]" aria-hidden="true" />
+                </PopOnMount>
                 <h3 className="font-display text-lg" style={{ color: INK }}>
                   {t('admin.common.error')}
                 </h3>
@@ -706,11 +719,13 @@ export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}
             ) : showEmpty ? (
               /* Empty */
               <div className="flex flex-col items-center gap-2.5 px-6 py-12 text-center">
-                {filtered ? (
-                  <SearchX className="size-8 text-[#C9A25E]/70" aria-hidden="true" />
-                ) : (
-                  <Inbox className="size-8 text-[#C9A25E]/70" aria-hidden="true" />
-                )}
+                <PopOnMount from={0.5}>
+                  {filtered ? (
+                    <SearchX className="size-8 text-[#C9A25E]/70" aria-hidden="true" />
+                  ) : (
+                    <Inbox className="size-8 text-[#C9A25E]/70" aria-hidden="true" />
+                  )}
+                </PopOnMount>
                 <p className="text-[13px] text-[#F2EDE2]/60">{t('admin.orders.noOrders')}</p>
                 {filtered && (
                   <Button
@@ -760,13 +775,18 @@ export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}
                         </th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <motion.tbody
+                      variants={adminListVariants}
+                      initial="hidden"
+                      animate="visible"
+                    >
                       {items.map((row) => {
                         const rowBusy = rowBusyId === row.id
                         const pname = resolveProductName(row, locale)
                         return (
-                          <tr
+                          <motion.tr
                             key={row.id}
+                            variants={adminRowVariants}
                             className="border-b border-white/[0.045] transition-colors hover:bg-[#C9A25E]/[0.04]"
                           >
                             <td className="whitespace-nowrap px-3 py-3">
@@ -831,31 +851,43 @@ export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}
                             </td>
                             <td className="whitespace-nowrap px-3 py-3">{createdCell(row)}</td>
                             <td className="whitespace-nowrap px-3 py-3">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`${t('admin.common.deleteConfirmTitle')} — #${shortId(row.id)}`}
-                                disabled={deletingId === row.id}
-                                onClick={() => setDeleteTarget(row)}
-                                className="size-9 rounded-md text-[#F2EDE2]/50 hover:bg-[#EF4444]/10 hover:text-[#FCA5A5]"
+                              <motion.span
+                                whileHover={{ scale: 1.08 }}
+                                transition={springSnappy}
+                                className="inline-flex"
                               >
-                                {deletingId === row.id ? (
-                                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                                ) : (
-                                  <Trash2 className="size-4" aria-hidden="true" />
-                                )}
-                              </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label={`${t('admin.common.deleteConfirmTitle')} — #${shortId(row.id)}`}
+                                  disabled={deletingId === row.id}
+                                  onClick={() => setDeleteTarget(row)}
+                                  className="relative size-9 overflow-hidden rounded-md text-[#F2EDE2]/50 hover:bg-[#EF4444]/10 hover:text-[#FCA5A5]"
+                                >
+                                  <RippleLayer tint="rgba(248,113,113,0.30)" duration={600} />
+                                  {deletingId === row.id ? (
+                                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                                  ) : (
+                                    <Trash2 className="size-4" aria-hidden="true" />
+                                  )}
+                                </Button>
+                              </motion.span>
                             </td>
-                          </tr>
+                          </motion.tr>
                         )
                       })}
-                    </tbody>
+                    </motion.tbody>
                   </table>
                 </div>
 
                 {/* ---- Mobile: stacked cards (md and up) ---- */}
-                <div className="orders-panel-scroll max-h-[30rem] divide-y divide-white/[0.045] overflow-y-auto overscroll-contain md:hidden">
+                <motion.div
+                  variants={adminListVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="orders-panel-scroll max-h-[30rem] divide-y divide-white/[0.045] overflow-y-auto overscroll-contain md:hidden"
+                >
                   {items.map((row) => {
                     const rowBusy = rowBusyId === row.id
                     const pname = resolveProductName(row, locale)
@@ -863,7 +895,11 @@ export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}
                       .filter(Boolean)
                       .join(locale === 'ar' ? '، ' : ', ')
                     return (
-                      <article key={row.id} className="space-y-3 p-4">
+                      <motion.article
+                        key={row.id}
+                        variants={adminRowVariants}
+                        className="space-y-3 p-4"
+                      >
                         <div className="flex items-center justify-between gap-2">
                           <span dir="ltr" className="font-mono text-[11px] text-[#F2EDE2]/50">
                             #{shortId(row.id)}
@@ -931,26 +967,33 @@ export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}
                               onChange={(next) => changeStatus(row, next)}
                             />
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={`${t('admin.common.deleteConfirmTitle')} — #${shortId(row.id)}`}
-                            disabled={deletingId === row.id}
-                            onClick={() => setDeleteTarget(row)}
-                            className="size-11 rounded-md text-[#F2EDE2]/50 hover:bg-[#EF4444]/10 hover:text-[#FCA5A5]"
+                          <motion.span
+                            whileHover={{ scale: 1.08 }}
+                            transition={springSnappy}
+                            className="inline-flex"
                           >
-                            {deletingId === row.id ? (
-                              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                            ) : (
-                              <Trash2 className="size-4" aria-hidden="true" />
-                            )}
-                          </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`${t('admin.common.deleteConfirmTitle')} — #${shortId(row.id)}`}
+                              disabled={deletingId === row.id}
+                              onClick={() => setDeleteTarget(row)}
+                              className="relative size-11 overflow-hidden rounded-md text-[#F2EDE2]/50 hover:bg-[#EF4444]/10 hover:text-[#FCA5A5]"
+                            >
+                              <RippleLayer tint="rgba(248,113,113,0.30)" duration={600} />
+                              {deletingId === row.id ? (
+                                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                              ) : (
+                                <Trash2 className="size-4" aria-hidden="true" />
+                              )}
+                            </Button>
+                          </motion.span>
                         </div>
-                      </article>
+                      </motion.article>
                     )
                   })}
-                </div>
+                </motion.div>
 
                 {/* ---- Pagination ---- */}
                 <nav
@@ -1046,6 +1089,6 @@ export default function OrdersPanel({ brand: fixedBrand }: OrdersPanelProps = {}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </section>
+    </motion.section>
   )
 }

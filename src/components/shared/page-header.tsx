@@ -9,8 +9,11 @@
  */
 
 import type { ReactNode } from 'react'
+import { motion } from 'framer-motion'
+import { easeExpoOut } from '@/lib/motion'
 import { Reveal } from '@/components/shared/reveal'
 import { MaskedTitle } from '@/components/shared/masked-words'
+import { TextScramble } from '@/components/fx/text-scramble'
 import { useI18n } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
@@ -31,7 +34,10 @@ export function PageHeader({ eyebrow, title, subtitle, className }: PageHeaderPr
       {eyebrow && (
         <div className="flex items-center justify-center gap-3 mb-4">
           <span className="line-draw-start w-8 h-px bg-primary/50" />
-          <span className="eyebrow text-primary/80">{eyebrow}</span>
+          <span className="eyebrow text-primary/80">
+            {/* Task 44: the eyebrow DECODES (Latin) / settles (Arabic) */}
+            <TextScramble text={eyebrow} delay={0.15} />
+          </span>
           <span className="line-draw-end w-8 h-px bg-primary/50" />
         </div>
       )}
@@ -50,7 +56,17 @@ export function PageHeader({ eyebrow, title, subtitle, className }: PageHeaderPr
           </p>
         </Reveal>
       )}
-      <div className="gold-divider w-40 mx-auto mt-8" />
+      {/* Task 44: the gold rule (with its diamond) draws itself outward
+          from the center once in view. */}
+      <motion.div
+        aria-hidden
+        className="gold-divider w-40 mx-auto mt-8"
+        initial={{ scaleX: 0, opacity: 0 }}
+        whileInView={{ scaleX: 1, opacity: 1 }}
+        viewport={{ once: true, margin: '-8% 0px' }}
+        transition={{ duration: 1, ease: easeExpoOut, delay: 0.5 }}
+        style={{ transformOrigin: 'center' }}
+      />
     </Reveal>
   )
 }

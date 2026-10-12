@@ -6,6 +6,7 @@ import { ArrowRight, ArrowLeft, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ClipReveal } from '@/components/fx/clip-reveal'
 import { RollLabel } from '@/components/fx/roll-label'
+import { KenBurns } from '@/components/fx/ken-burns'
 import { bootOffset } from '@/components/fx/boot-curtain'
 
 interface ExperienceCardProps {
@@ -171,26 +172,49 @@ export function ExperienceCard({
               group-hover transform above. The delay staggers the three
               cards 0.14s apart and waits out the first-visit boot
               curtain via bootOffset() — transition-delay only, never
-              rendered DOM, so SSR stays hydration-stable. */}
+              rendered DOM, so SSR stays hydration-stable.
+              (Task 44-a) bootOffset returns MILLISECONDS — divide by
+              1000 so the framer delay is 1.25s, not 1250s (units fix:
+              first-visit reveals used to park at the inset state).
+
+              KenBurns (Task 44-a, mission item 4): INSIDE the ClipReveal
+              the product breathes — a 26s ambient zoom+drift loop, pure
+              CSS on its own wrapper element so it composes with both
+              the counter-zoom above (nested transforms multiply) and
+              the wrapper's group-hover:opacity (no transform fight —
+              this image never had a hover scale). Variant 'a' pushes
+              in + rises on the first card; 'b' pulls back + drifts on
+              the other two, so the trio never breathes in lockstep.
+              The relative shim gives next/image's fill a positioned
+              direct parent (Task 41 console-hygiene standard). */}
           <div
             className="holo-image-anim relative w-[85%] h-[85%] z-10 group-hover:opacity-90 transition-opacity duration-700"
             style={{ animationDelay: `${delay + 0.2}s` }}
           >
             <ClipReveal
-              delay={bootOffset() + delay + cardIdx * 0.14}
+              delay={bootOffset() / 1000 + delay + cardIdx * 0.14}
               className="h-full w-full"
               /* `relative` on the inner wrapper — next/image fill requires
                  a positioned direct parent (console hygiene). */
               innerClassName="relative"
             >
-              <Image
-                src={productImageUrl}
-                alt={title}
-                fill
-                priority
-                sizes="(max-width: 768px) 150px, 280px"
-                className="object-contain pointer-events-none"
-              />
+              <KenBurns
+                duration={26}
+                variant={cardIdx === 0 ? 'a' : 'b'}
+                scale={1.1}
+                className="h-full w-full"
+              >
+                <div className="relative h-full w-full">
+                  <Image
+                    src={productImageUrl}
+                    alt={title}
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 150px, 280px"
+                    className="object-contain pointer-events-none"
+                  />
+                </div>
+              </KenBurns>
             </ClipReveal>
           </div>
         </div>

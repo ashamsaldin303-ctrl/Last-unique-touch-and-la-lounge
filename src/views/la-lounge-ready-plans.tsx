@@ -27,6 +27,8 @@ import { useRouter } from '@/lib/router'
 import { Reveal } from '@/components/shared/reveal'
 import { PageHeader } from '@/components/shared/page-header'
 import { SectionHeading, TiltCard, MagneticButton } from '@/components/shared/upgrade'
+import { SpringAccordion } from '@/components/fx/spring-accordion'
+import { BorderBeam } from '@/components/fx/border-beam'
 import arMessages from '@/messages/ar.json'
 import enMessages from '@/messages/en.json'
 
@@ -128,6 +130,15 @@ export default function LaLoungeReadyPlansPage() {
                     <article
                       className="glow-border glass-card lux-card group h-full rounded-2xl overflow-hidden flex flex-col hover:shadow-[0_12px_40px_-8px_rgba(230,0,126,0.35)]"
                     >
+                      {/* BorderBeam (Task 44-d) — ONLY the featured (first)
+                          plan card: a champagne beam orbits its border ring
+                          every 8s; the card reads as the lit vitrine of the
+                          set. glow-border gives the relative parent;
+                          invisible on non-@property browsers and under
+                          reduced-motion. */}
+                      {i === 0 && (
+                        <BorderBeam duration={8} thickness={2.5} className="opacity-70" />
+                      )}
                       {/* Visual header — gradient + icon monogram + price badge */}
                       <div className="relative flex h-36 sm:h-40 items-center justify-center overflow-hidden" style={{ background: visual.gradient }}>
                         <div
@@ -176,24 +187,43 @@ export default function LaLoungeReadyPlansPage() {
                           <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
                         </div>
 
-                        {/* Includes checklist */}
+                        {/* Includes — spring accordion (Task 44-d): the
+                            plan details collapse behind the "what's
+                            included" row and open with a real spring (the
+                            weighted-drawer feel, chevron rotating 180°).
+                            The price range + request CTA live BELOW, always
+                            visible — never inside the collapsed content.
+                            The first (featured) card ships open. */}
                         <div className="flex-1">
-                          <p
-                            style={labelTypo(locale)}
-                            className="text-[0.7rem] text-muted-foreground/80 mb-2.5"
-                          >
-                            {t('laLoungeReadyPlans.includedLabel')}
-                          </p>
-                          <ul className="space-y-2">
-                            {includes.map((item, idx) => (
-                              <li key={idx} className="flex items-start gap-2.5 text-sm text-foreground/85">
-                                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/12 border border-primary/30">
-                                  <Check className="size-3 text-primary" aria-hidden="true" />
-                                </span>
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          <SpringAccordion
+                            single={false}
+                            defaultOpen={i === 0 ? `plan-${key}` : null}
+                            items={[
+                              {
+                                id: `plan-${key}`,
+                                title: (
+                                  <span
+                                    style={labelTypo(locale)}
+                                    className="text-[0.7rem] font-medium text-muted-foreground/90"
+                                  >
+                                    {t('laLoungeReadyPlans.includedLabel')}
+                                  </span>
+                                ),
+                                content: (
+                                  <ul className="space-y-2">
+                                    {includes.map((item, idx) => (
+                                      <li key={idx} className="flex items-start gap-2.5 text-sm text-foreground/85">
+                                        <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/12 border border-primary/30">
+                                          <Check className="size-3 text-primary" aria-hidden="true" />
+                                        </span>
+                                        <span>{item}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ),
+                              },
+                            ]}
+                          />
                         </div>
 
                         {/* Price label + request CTA */}

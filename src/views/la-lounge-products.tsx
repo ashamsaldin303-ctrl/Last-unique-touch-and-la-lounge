@@ -31,6 +31,9 @@ import {
 } from '@/lib/products'
 import { Reveal } from '@/components/shared/reveal'
 import { TiltCard } from '@/components/shared/upgrade'
+import { PopOnMount } from '@/components/fx/badge-pop'
+import { TextScramble } from '@/components/fx/text-scramble'
+import { ShimmerText } from '@/components/fx/shimmer-text'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -223,7 +226,9 @@ function CollectionNote() {
         />
         <p className="text-[0.62rem] font-bold tracking-[0.4em] text-primary/80">{t('brand.lalounge')}</p>
         <p className="font-display max-w-[24ch] text-lg leading-relaxed text-foreground/90 sm:text-xl">
-          {t('laLoungeProducts.collectionNote')}
+          {/* Task 44-d: the closing note takes one champagne gloss on
+              view-entry (light over ink — joined Arabic untouched). */}
+          <ShimmerText>{t('laLoungeProducts.collectionNote')}</ShimmerText>
         </p>
         <div className="ll-store-rule w-24" aria-hidden="true" />
       </aside>
@@ -334,8 +339,11 @@ export default function LaLoungeProductsPage() {
           <Reveal direction="none">
             <div className="flex items-center gap-3">
               <span aria-hidden="true" className="h-px w-10 bg-primary/60" />
+              {/* Task 44-d: the editorial eyebrow DECODES (Latin) /
+                  blur-settles (Arabic); the typo style stays on the parent
+                  so letter-spacing inherits into the scramble span. */}
               <span style={eyebrowTypo(locale)} className="text-xs font-bold text-primary">
-                {t('laLounge.eyebrow')}
+                <TextScramble text={t('laLounge.eyebrow')} delay={0.15} />
               </span>
             </div>
           </Reveal>
@@ -409,7 +417,10 @@ export default function LaLoungeProductsPage() {
             ) : failed ? (
               <Reveal className="mx-auto max-w-md">
                 <div role="alert" className="ll-store-card rounded-xl px-6 py-12 text-center">
-                  <AlertCircle className="mx-auto mb-4 size-10 text-primary" aria-hidden="true" />
+                  {/* Task 44-d: the error icon pops on mount. */}
+                  <PopOnMount className="mb-4">
+                    <AlertCircle className="mx-auto size-10 text-primary" aria-hidden="true" />
+                  </PopOnMount>
                   <p className="mb-6 text-sm text-muted-foreground">{t('common.error')}</p>
                   <Button
                     onClick={handleRetry}
@@ -424,7 +435,14 @@ export default function LaLoungeProductsPage() {
             ) : products.length === 0 ? (
               <Reveal className="mx-auto max-w-md">
                 <div role="status" className="ll-store-card rounded-xl px-6 py-12 text-center">
-                  <SearchX className="mx-auto mb-4 size-10 text-muted-foreground" aria-hidden="true" />
+                  {/* Task 44-d: the empty-state icon pops on mount and
+                      floats softly — a living "nothing here yet". */}
+                  <PopOnMount className="mb-4">
+                    <SearchX
+                      className="lux-float-y-soft mx-auto size-10 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </PopOnMount>
                   <p className="font-display mb-2 text-xl text-foreground">{t('products.empty.title')}</p>
                   <p className="text-sm text-muted-foreground">{t('products.empty.subtitle')}</p>
                 </div>
@@ -454,7 +472,11 @@ export default function LaLoungeProductsPage() {
             />
             <div className="relative">
               <p className="text-[0.62rem] font-bold tracking-[0.4em] text-primary/80">{t('brand.lalounge')}</p>
-              <h2 className="font-display mt-3 text-2xl text-foreground sm:text-4xl">{t('laLounge.cta.title')}</h2>
+              <h2 className="font-display mt-3 text-2xl text-foreground sm:text-4xl">
+                {/* Task 44-d: the closing statement takes one champagne
+                    gloss sweep on view-entry. */}
+                <ShimmerText>{t('laLounge.cta.title')}</ShimmerText>
+              </h2>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
                 {t('laLounge.cta.subtitle')}
               </p>

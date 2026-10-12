@@ -44,8 +44,15 @@ import { InkFloodLink } from '@/components/fx/ink-flood'
 import { HighlightSweep } from '@/components/fx/highlight-sweep'
 import { ClipReveal } from '@/components/fx/clip-reveal'
 import { RollLabel } from '@/components/fx/roll-label'
-import { KineticWords } from '@/components/fx/kinetic-heading'
+import { KineticWords, HairlineDraw } from '@/components/fx/kinetic-heading'
 import { VelocityMarquee } from '@/components/fx/velocity-marquee'
+import { ScrollImage } from '@/components/fx/scroll-image'
+import { RotatingBadge } from '@/components/fx/rotating-badge'
+import { BorderBeam } from '@/components/fx/border-beam'
+import { TextScramble } from '@/components/fx/text-scramble'
+import { ShimmerText } from '@/components/fx/shimmer-text'
+import { Diamond } from '@/components/fx/section-heading'
+import { bootOffset } from '@/components/fx/boot-curtain'
 import {
   SectionHeading,
   ProcessSteps,
@@ -186,9 +193,17 @@ export default function HomePage() {
               <span className="size-1.5 rounded-full bg-lalounge" />
               <span className="size-1.5 rounded-full bg-birthday" />
             </span>
-            <span className="eyebrow text-gold/80 text-[10px] sm:text-xs">
-              {t('maison.eyebrow')}
-            </span>
+            {/* TextScramble (Task 44-a, mission item 6): the house eyebrow
+                decodes on entry — Latin locales get the terminal decode,
+                Arabic (joined script) settles as a whole blur→sharp, never
+                per-glyph. bootOffset/1000 waits out the first-visit boot
+                curtain so the decode is actually SEEN (ms→s, same units
+                convention as the experience cards). */}
+            <TextScramble
+              text={t('maison.eyebrow')}
+              className="eyebrow text-gold/80 text-[10px] sm:text-xs"
+              delay={bootOffset() / 1000 + 0.35}
+            />
             <span className="flex items-center gap-1.5" aria-hidden="true">
               <span className="size-1.5 rounded-full bg-lut" />
               <span className="size-1.5 rounded-full bg-lalounge" />
@@ -345,9 +360,18 @@ export default function HomePage() {
         <div className="relative max-w-4xl mx-auto text-center">
           <Reveal direction="none">
             <div className="flex items-center justify-center gap-3 mb-6">
-              <span className="w-10 h-px bg-primary/50" aria-hidden="true" />
-              <span className="eyebrow text-primary/80">{t('maison.statement.eyebrow')}</span>
-              <span className="w-10 h-px bg-primary/50" aria-hidden="true" />
+              {/* HairlineDraw (Task 44-a, mission item 8 — decorative
+                  dividers draw): the flanking rules now scale in from
+                  the reading edge (inline-start flips in RTL) instead
+                  of existing statically. TextScramble decodes the
+                  eyebrow (whole-text settle for Arabic). */}
+              <HairlineDraw className="w-10" delay={0.15} />
+              <TextScramble
+                text={t('maison.statement.eyebrow')}
+                className="eyebrow text-primary/80"
+                delay={0.2}
+              />
+              <HairlineDraw className="w-10" delay={0.15} />
             </div>
           </Reveal>
           <Reveal direction="none" className="statement text-foreground">
@@ -408,13 +432,29 @@ export default function HomePage() {
                            console-hygiene standard). */
                         innerClassName="relative"
                       >
-                        <Image
-                          src={world.image}
-                          alt={t(world.nameKey)}
-                          fill
-                          sizes="(max-width: 767px) 100vw, 33vw"
-                          className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-                        />
+                        {/* ScrollImage (Task 44-a, mission item 1): INSIDE
+                            the clip, the poster now parallax-travels ±8%
+                            of its own height inside the mask while the
+                            page scrolls — depth without weight. scale 1.2
+                            guarantees the ±10% edge headroom covers the
+                            travel band. It sits on its own wrapper element
+                            (framer transform), the image's group-hover
+                            zoom is a NESTED transform — they multiply
+                            (1.2 × 1.1) instead of fighting, so the hover
+                            choreography is untouched. The relative shim
+                            keeps next/image fill's direct parent
+                            positioned (console hygiene). */}
+                        <ScrollImage travel={8} scale={1.2} className="h-full w-full">
+                          <div className="relative h-full w-full">
+                            <Image
+                              src={world.image}
+                              alt={t(world.nameKey)}
+                              fill
+                              sizes="(max-width: 767px) 100vw, 33vw"
+                              className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                            />
+                          </div>
+                        </ScrollImage>
                       </ClipReveal>
                       <div
                         className="absolute inset-0 transition-opacity duration-500 group-hover:opacity-80"
@@ -541,16 +581,24 @@ export default function HomePage() {
               return (
                 <Reveal key={item.key} delay={i * 0.1} className={featured ? 'sm:col-span-2' : ''}>
                   <TiltCard className="h-full rounded-xl" max={6}>
+                    {/* Task 44-a: `group` on the value card — the icon ring
+                        below now reacts to hovering ANYWHERE on the card
+                        (group-hover rotate/scale), not just the ring's own
+                        hotspot. The whole card becomes one living surface.
+                        (SpotlightCard was evaluated per mission item 5 but
+                        these grids already carry the cursor-tracked glow
+                        via the global SpotlightField + spotlight-surface —
+                        a second glow layer would double-paint.) */}
                     <div
                       data-spotlight
-                      className={`glow-border card-lift spotlight-surface lux-card h-full p-6 rounded-xl ${
+                      className={`glow-border card-lift spotlight-surface lux-card group h-full p-6 rounded-xl ${
                         featured
                           ? 'flex items-center gap-6 text-start sm:text-start'
                           : 'text-center'
                       }`}
                     >
                       <div
-                        className={`icon-ring w-14 h-14 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 hover:rotate-12 hover:scale-110 shrink-0 ${
+                        className={`icon-ring w-14 h-14 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 hover:rotate-12 hover:scale-110 group-hover:rotate-12 group-hover:scale-110 shrink-0 ${
                           featured ? 'bg-primary/15 mx-0 mb-0' : 'bg-primary/10 mx-auto'
                         }`}
                       >
@@ -595,6 +643,35 @@ export default function HomePage() {
       <section className="py-16 sm:py-24 px-4 bg-background">
         <div className="max-w-4xl mx-auto">
           <Reveal>
+            {/* Relative stage — hosts the glass card AND lets the maison
+                seal breach the card's top edge (the card itself clips
+                overflow for its rounded corners, so the seal must be a
+                sibling, never a child). */}
+            <div className="relative">
+              {/* Maison seal (Task 44-a, mission item 2): ONE scroll-linked
+                  RotatingBadge — the circular Latin text ring makes exactly
+                  one turn as the CTA travels the viewport (rotation driven
+                  by scroll, not time). Latin circular text tracks best on
+                  a textPath; center = the house Diamond. Sits OUTSIDE the
+                  card's clip at the top inline-end corner (flips with the
+                  reading direction), floats gently (lux-float-y-soft),
+                  pointer-dead, purely decorative. Hidden below sm — the
+                  mobile card keeps its clean centered composition and no
+                  horizontal-overflow risk. */}
+              <div
+                aria-hidden="true"
+                className="lux-float-y-soft pointer-events-none absolute -top-10 end-6 z-20 hidden sm:block"
+              >
+                <RotatingBadge
+                  text="MAISON LUT · KUWAIT · EST 2019 ·"
+                  size={112}
+                  scrollLinked
+                  className="text-gold/70"
+                >
+                  <Diamond className="h-2.5 w-2.5" />
+                </RotatingBadge>
+              </div>
+
             <div className="relative overflow-hidden rounded-2xl glass-strong p-8 sm:p-12 text-center card-lift">
               {/* Tri-brand ambience — one radial glow per world */}
               <div
@@ -605,6 +682,14 @@ export default function HomePage() {
                     'radial-gradient(ellipse 40% 60% at 18% 0%, rgba(139,107,61,0.22), transparent 70%), radial-gradient(ellipse 40% 60% at 50% 100%, rgba(230,0,126,0.14), transparent 70%), radial-gradient(ellipse 40% 60% at 82% 0%, rgba(245,185,20,0.18), transparent 70%)',
                 }}
               />
+              {/* BorderBeam (Task 44-a, mission item 3): a champagne beam
+                  orbits the panel's border ring every 8s — the card reads
+                  as a lit vitrine. thickness 2.5 keeps ~1.5px visible
+                  inside the overflow-hidden rounded mask (the beam's
+                  -1px inset band is clipped by design); opacity kept low
+                  per the house's restraint. Degrades to invisible on
+                  non-@property browsers and under reduced-motion. */}
+              <BorderBeam duration={8} thickness={2.5} className="opacity-70" />
               <h2 className="relative font-display text-2xl sm:text-3xl text-foreground mb-3">
                 {/* One key phrase, one solid accent highlighter sweep
                     (Task 42, prompt-motion T7 — antonio-kodheli's site
@@ -655,6 +740,25 @@ export default function HomePage() {
                   </InkFloodLink>
                 ))}
               </div>
+
+              {/* Closing gloss (Task 44-a, mission item 7): the final line
+                  under the tri-brand dots — one champagne shimmer sweep on
+                  view-entry, again on hover. Light over ink, no glyph
+                  surgery, fully Arabic-safe (RTL sweep mirrors via the
+                  [dir] rules in the shimmer CSS).
+                  NOTE: the live catalog (src/messages) lacks
+                  maison.cta.orExplore (the root messages/ copy has it —
+                  sync gap), so the line is inlined per-locale exactly as
+                  catalogued there; if the key lands in src/messages later
+                  this can revert to t(). */}
+              <p className="relative mt-7 text-xs sm:text-sm text-muted-foreground">
+                <ShimmerText>
+                  {locale === 'ar'
+                    ? 'أو اكتشف العوالم الثلاثة بالأعلى'
+                    : 'or discover the three worlds above'}
+                </ShimmerText>
+              </p>
+            </div>
             </div>
           </Reveal>
         </div>

@@ -12,6 +12,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Star, Quote } from 'lucide-react'
 import { SectionHeading } from './section-heading'
 import { Reveal } from '@/components/shared/reveal'
+import { BorderBeam } from '@/components/fx/border-beam'
+import { swapEnter, swapExit, springSnappy } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 export interface TestimonialItem {
@@ -84,23 +86,33 @@ export function TestimonialsSection({
               style={{ color: accentHex }}
             />
 
+            {/* Task 44: a champagne beam orbits the testimonial card */}
+            <BorderBeam className="opacity-50" duration={7} size={90} />
+
             <AnimatePresence mode="wait">
               <motion.blockquote
                 key={index}
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                variants={{ ...swapEnter, ...swapExit }}
+                initial="initial"
+                animate="animate"
+                exit="exit"
                 className="relative"
               >
                 <div className="flex gap-1 mb-5" aria-label="5/5">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
+                    <motion.span
                       key={i}
-                      className="w-4 h-4 fill-current"
-                      style={{ color: accentHex }}
-                      aria-hidden="true"
-                    />
+                      initial={{ scale: 0, rotate: -30 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ ...springSnappy, delay: 0.08 + i * 0.055 }}
+                      style={{ display: 'inline-flex' }}
+                    >
+                      <Star
+                        className="w-4 h-4 fill-current"
+                        style={{ color: accentHex }}
+                        aria-hidden="true"
+                      />
+                    </motion.span>
                   ))}
                 </div>
                 <p

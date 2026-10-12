@@ -13,6 +13,11 @@
  * The amount shown is ALWAYS the stored order's server-confirmed total —
  * never the live cart (the cart is already cleared when this screen
  * mounts, and a re-filled cart must not re-price a placed order).
+ * Task 44-c: the card form carries an orbiting BorderBeam (the secure
+ * ring), the trust cards tilt under the cursor (glare included) and the
+ * SSL notice pings live. (NOTE: this display flow has NO payment-method
+ * selection cards — the mission's Tilt/BorderBeam targets were mapped
+ * onto the card set that actually exists here.)
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -35,6 +40,9 @@ import { formatKwd, localizedName } from '@/lib/products'
 import { formatDate } from '@/components/shop/format'
 import Image from 'next/image'
 import { Reveal } from '@/components/shared/reveal'
+import { Tilt } from '@/components/fx/tilt'
+import { BorderBeam } from '@/components/fx/border-beam'
+import { PulseDot } from '@/components/fx/pulse-dot'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -257,7 +265,11 @@ export default function PaymentPage() {
 
           {/* Card form — display only */}
           <Reveal delay={0.08}>
-            <div className="space-y-5 rounded-md border border-border bg-card p-5 shadow-lg shadow-primary/5 sm:p-6">
+            <div className="relative space-y-5 rounded-md border border-border bg-card p-5 shadow-lg shadow-primary/5 sm:p-6">
+              {/* Task 44-c: a champagne beam endlessly orbits the payment
+                  form's border ring — the "encrypted" halo. Gracefully
+                  invisible without @property and under reduced motion. */}
+              <BorderBeam duration={7} />
               <div className="flex items-start gap-2 rounded-md border border-primary/25 bg-primary/10 p-3 text-xs leading-relaxed text-foreground">
                 <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
                 <span>{t('payment.displayNote')}</span>
@@ -374,18 +386,25 @@ export default function PaymentPage() {
             </div>
           </Reveal>
 
-          {/* Trust badges */}
+          {/* Trust badges — Task 44-c: weighted-glass tilt (mouse only) +
+              live ping on the SSL notice. */}
           <Reveal delay={0.14}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <TrustBadge icon={<Lock className="size-4" aria-hidden="true" />} label={t('payment.trust.ssl')} />
-              <TrustBadge
-                icon={<ShieldCheck className="size-4" aria-hidden="true" />}
-                label={t('payment.trust.fraud')}
-              />
-              <TrustBadge
-                icon={<CreditCard className="size-4" aria-hidden="true" />}
-                label={t('payment.trust.cards')}
-              />
+              <Tilt max={6} glare className="group relative rounded-md">
+                <TrustBadge icon={<Lock className="size-4" aria-hidden="true" />} label={t('payment.trust.ssl')} pulse />
+              </Tilt>
+              <Tilt max={6} glare className="group relative rounded-md">
+                <TrustBadge
+                  icon={<ShieldCheck className="size-4" aria-hidden="true" />}
+                  label={t('payment.trust.fraud')}
+                />
+              </Tilt>
+              <Tilt max={6} glare className="group relative rounded-md">
+                <TrustBadge
+                  icon={<CreditCard className="size-4" aria-hidden="true" />}
+                  label={t('payment.trust.cards')}
+                />
+              </Tilt>
             </div>
           </Reveal>
         </div>
@@ -438,13 +457,23 @@ export default function PaymentPage() {
 
 /* ================= Helpers ================= */
 
-function TrustBadge({ icon, label }: { icon: React.ReactNode; label: string }) {
+function TrustBadge({
+  icon,
+  label,
+  pulse,
+}: {
+  icon: React.ReactNode
+  label: string
+  /** Task 44-c: renders a live green ping beside the label (secure/SSL). */
+  pulse?: boolean
+}) {
   return (
-    <div className="flex items-center gap-2 rounded-md border border-border bg-card p-3">
+    <div className="flex h-full items-center gap-2 rounded-md border border-border bg-card p-3">
       <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
         {icon}
       </span>
       <span className="text-xs text-foreground">{label}</span>
+      {pulse && <PulseDot className="ms-0.5" />}
     </div>
   )
 }

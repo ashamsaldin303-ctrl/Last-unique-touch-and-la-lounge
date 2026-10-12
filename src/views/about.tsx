@@ -22,6 +22,11 @@ import { useRouter } from '@/lib/router'
 import { Reveal } from '@/components/shared/reveal'
 import { PageHeader } from '@/components/shared/page-header'
 import { MarkdownCode } from '@/components/shared/markdown-code'
+import { KenBurns } from '@/components/fx/ken-burns'
+import { ScrollImage } from '@/components/fx/scroll-image'
+import { SpotlightCard } from '@/components/fx/spotlight-card'
+import { ShimmerText } from '@/components/fx/shimmer-text'
+import { TextScramble } from '@/components/fx/text-scramble'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Particles } from '@/components/shared/particles'
@@ -236,7 +241,11 @@ export default function AboutPage() {
           <div className="text-center lg:text-start">
             <div className="animate-hero-down flex items-center justify-center lg:justify-start gap-3 mb-5">
               <span className="h-px w-8 bg-primary/60" aria-hidden="true" />
-              <span className="eyebrow text-gold/90">{t('brand.kuwait')}</span>
+              <span className="eyebrow text-gold/90">
+                {/* Task 44-e: the hero eyebrow blur-settles (Arabic) /
+                    decodes (Latin) behind the hero-down entrance. */}
+                <TextScramble text={t('brand.kuwait')} delay={0.4} />
+              </span>
               <span className="h-px w-8 bg-primary/60 lg:hidden" aria-hidden="true" />
             </div>
             <h2 className="animate-hero-up font-display text-4xl sm:text-6xl lg:text-7xl leading-tight tracking-wide text-gold pb-2">
@@ -253,14 +262,26 @@ export default function AboutPage() {
             />
             <div className="relative animate-float-soft rounded-[1.75rem] border border-primary/45 bg-card/10 p-2.5 sm:p-3 backdrop-blur-sm shadow-2xl">
               <div className="relative aspect-[5/4] rounded-[1.35rem] overflow-hidden">
-                <Image
-                  src="/products/lut_heritage.webp"
-                  alt={`${t('brand.lut')} — ${t('brand.kuwait')}`}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover"
-                />
+                {/* Task 44-e: the story image lives — KenBurns ambient zoom
+                    OUTSIDE ScrollImage's parallax drift (separate transform
+                    layers, so the parallax, the breath, the card's float and
+                    the hover all multiply instead of fighting). */}
+                <KenBurns className="absolute inset-0" duration={28} scale={1.08} variant="a">
+                  <ScrollImage travel={6} scale={1.18} className="h-full w-full">
+                    {/* relative shim — keeps next/image's fill parent check
+                        quiet (dev console hygiene) */}
+                    <div className="relative h-full w-full">
+                      <Image
+                        src="/products/lut_heritage.webp"
+                        alt={`${t('brand.lut')} — ${t('brand.kuwait')}`}
+                        fill
+                        priority
+                        sizes="(max-width: 1024px) 100vw, 50vw"
+                        className="object-cover"
+                      />
+                    </div>
+                  </ScrollImage>
+                </KenBurns>
                 <div
                   aria-hidden="true"
                   className="absolute inset-0 bg-gradient-to-t from-ink/45 via-transparent to-transparent"
@@ -278,7 +299,10 @@ export default function AboutPage() {
       <section className="py-16 sm:py-24" aria-labelledby="about-values-title">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Reveal className="text-center mb-10 sm:mb-14">
-            <span className="eyebrow text-primary/80">{t('brand.lutShort')}</span>
+            <span className="eyebrow text-primary/80">
+              {/* Task 44-e: the values eyebrow DECODES (LUT is Latin). */}
+              <TextScramble text={t('brand.lutShort')} delay={0.15} />
+            </span>
             <h2 id="about-values-title" className="font-display text-3xl sm:text-4xl text-foreground mt-3 mb-2">
               {t('about.values.title')}
             </h2>
@@ -290,13 +314,18 @@ export default function AboutPage() {
               const Icon = value.icon
               return (
                 <Reveal key={value.title} delay={idx * 0.1}>
-                  <article className="glass-card lux-card rounded-2xl p-6 h-full">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-primary)_25%,transparent)]">
-                      <Icon className="size-6 text-primary" aria-hidden="true" />
-                    </div>
-                    <h3 className="font-semibold text-foreground mb-1.5">{value.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{value.desc}</p>
-                  </article>
+                  {/* Task 44-e: the champagne spotlight roams each value
+                      card, tracking the cursor (glass cards get their glow
+                      from ::before — no double-paint with lux-card). */}
+                  <SpotlightCard className="h-full rounded-2xl" tint="rgba(232,207,143,0.13)">
+                    <article className="glass-card lux-card rounded-2xl p-6 h-full">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-primary)_25%,transparent)]">
+                        <Icon className="size-6 text-primary" aria-hidden="true" />
+                      </div>
+                      <h3 className="font-semibold text-foreground mb-1.5">{value.title}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{value.desc}</p>
+                    </article>
+                  </SpotlightCard>
                 </Reveal>
               )
             })}
@@ -378,9 +407,14 @@ export default function AboutPage() {
       <section className="relative py-16 sm:py-24 bg-gradient-to-b from-background to-secondary/70" aria-labelledby="about-cta-title">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <Reveal>
-            <span className="eyebrow text-primary/80">{t('cta.eyebrow')}</span>
+            <span className="eyebrow text-primary/80">
+              {/* Task 44-e: the CTA eyebrow decodes/settles. */}
+              <TextScramble text={t('cta.eyebrow')} delay={0.15} />
+            </span>
             <h2 id="about-cta-title" className="font-display text-3xl sm:text-4xl md:text-5xl text-foreground mt-3 mb-6 leading-tight">
-              {t('about.cta.title')}
+              {/* Task 44-e: the closing statement carries the champagne
+                  gloss (one sweep on view-entry, again on hover). */}
+              <ShimmerText>{t('about.cta.title')}</ShimmerText>
             </h2>
             <div className="gold-divider w-40 mx-auto mb-9" aria-hidden="true" />
             <Button

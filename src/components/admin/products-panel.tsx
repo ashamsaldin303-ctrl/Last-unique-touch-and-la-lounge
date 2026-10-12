@@ -29,6 +29,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { motion } from 'framer-motion'
 import {
   AlertCircle,
   ChevronLeft,
@@ -41,6 +42,7 @@ import {
   RotateCw,
   Search,
   Trash2,
+  type LucideIcon,
 } from 'lucide-react'
 import { useI18n, type Locale } from '@/lib/i18n'
 import { formatKwd } from '@/lib/money'
@@ -75,7 +77,6 @@ import {
 } from '@/components/ui/select'
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -83,6 +84,10 @@ import {
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { useAdminApi } from '@/components/admin/use-admin-api'
+import { adminListVariants, adminRowVariants } from '@/components/admin/admin-kit'
+import { RippleLayer } from '@/components/fx/ink-ripple'
+import { PopOnMount } from '@/components/fx/badge-pop'
+import { springSnappy, swapEnter } from '@/lib/motion'
 import ProductsDialog, {
   BRAND_BADGE,
   BRAND_LABEL_KEY,
@@ -366,10 +371,19 @@ export default function ProductsPanel({ brand: fixedBrand }: ProductsPanelProps 
   const totalPages = Math.max(1, data?.totalPages ?? Math.ceil(total / PAGE_SIZE))
   const showPagination = !loading && !error && !sessionExpired && totalPages > 1
 
+  /* Result-set key (Task 44-f): remounts the row lists when the RESULT
+     changes (page / total / first row id), so every filter·search·page
+     swap replays the stagger ladder — while in-place optimistic patches
+     (toggle active, stock save) keep the rows mounted (no re-stagger). */
+  const listKey = data ? `${data.page}-${data.total}-${items[0]?.id ?? 'e'}` : 'pending'
+
   /* ================= Render ================= */
 
   return (
-    <section
+    <motion.section
+      initial="initial"
+      animate="animate"
+      variants={swapEnter}
       aria-labelledby="admin-products-title"
       className="lux-card relative overflow-hidden rounded-xl border border-[#C9A25E]/20 bg-[#14110B]/95 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.55)] backdrop-blur-md"
     >
@@ -406,8 +420,9 @@ export default function ProductsPanel({ brand: fixedBrand }: ProductsPanelProps 
             onClick={reload}
             disabled={loading}
             aria-label={t('admin.common.refresh')}
-            className="min-h-11 border-white/15 bg-white/[0.03] text-[#E5D9BE] hover:bg-white/[0.07] hover:text-[#F2EDE3] disabled:opacity-50"
+            className="relative min-h-11 overflow-hidden border-white/15 bg-white/[0.03] text-[#E5D9BE] hover:bg-white/[0.07] hover:text-[#F2EDE3] disabled:opacity-50"
           >
+            <RippleLayer duration={600} />
             <RotateCw className={cn('me-2 size-4', loading && 'animate-spin')} aria-hidden="true" />
             {t('admin.common.refresh')}
           </Button>
@@ -442,6 +457,7 @@ export default function ProductsPanel({ brand: fixedBrand }: ProductsPanelProps 
           <>
             {/* Desktop — table (dimmed while revalidating) */}
             <div
+              key={`products-table-${listKey}`}
               aria-busy={loading || undefined}
               className={cn(
                 'hidden max-h-[34rem] overflow-y-auto overscroll-contain rounded-lg border border-white/[0.08] transition-opacity md:block',
@@ -480,7 +496,12 @@ export default function ProductsPanel({ brand: fixedBrand }: ProductsPanelProps 
                     </TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <motion.tbody
+                  variants={adminListVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="[&_tr:last-child]:border-0"
+                >
                   {items.map((p) => (
                     <ProductRow
                       key={p.id}
@@ -495,12 +516,16 @@ export default function ProductsPanel({ brand: fixedBrand }: ProductsPanelProps 
                       onDelete={askDelete}
                     />
                   ))}
-                </TableBody>
+                </motion.tbody>
               </Table>
             </div>
 
             {/* Mobile — cards */}
-            <div
+            <motion.div
+              key={`products-cards-${listKey}`}
+              variants={adminListVariants}
+              initial="hidden"
+              animate="visible"
               aria-busy={loading || undefined}
               className={cn(
                 'space-y-2.5 transition-opacity md:hidden',
@@ -521,7 +546,7 @@ export default function ProductsPanel({ brand: fixedBrand }: ProductsPanelProps 
                   onDelete={askDelete}
                 />
               ))}
-            </div>
+            </motion.div>
           </>
         )}
 
@@ -647,7 +672,7 @@ export default function ProductsPanel({ brand: fixedBrand }: ProductsPanelProps 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </section>
+    </motion.section>
   )
 }
 
@@ -736,8 +761,9 @@ function ProductsToolbar({
         <Button
           type="button"
           onClick={onCreate}
-          className="ms-auto min-h-11 gap-2 bg-[#C9A25E] px-5 font-semibold text-[#17130A] hover:bg-[#D9B56E]"
+          className="relative ms-auto min-h-11 overflow-hidden gap-2 bg-[#C9A25E] px-5 font-semibold text-[#17130A] hover:bg-[#D9B56E]"
         >
+          <RippleLayer tint="rgba(23,19,10,0.22)" duration={600} />
           <Plus className="size-4" aria-hidden="true" />
           {t('admin.products.create')}
         </Button>
@@ -771,6 +797,54 @@ function ProductsToolbar({
 }
 
 /* ================= Row atoms ================= */
+
+/** Row action icon (Task 44-f): hover scale 1.08 spring + ink ripple.
+ * Self-contained icon button (no popovers inside) → overflow-hidden is
+ * safe. Used for edit · stock · delete in both row layouts. */
+function RowActionIcon({
+  icon: Icon,
+  ariaLabel,
+  onClick,
+  disabled,
+  tone = 'gold',
+  iconClass = 'size-4',
+}: {
+  icon: LucideIcon
+  ariaLabel: string
+  onClick: () => void
+  disabled: boolean
+  tone?: 'gold' | 'red'
+  iconClass?: string
+}) {
+  return (
+    <motion.span
+      whileHover={{ scale: 1.08 }}
+      transition={springSnappy}
+      className="inline-flex"
+    >
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        className={cn(
+          'relative size-11 overflow-hidden disabled:opacity-50',
+          tone === 'gold'
+            ? 'text-[#C9A25E] hover:bg-white/[0.06] hover:text-[#E5C878]'
+            : 'text-[#F87171] hover:bg-[#dc2626]/10 hover:text-[#FCA5A5]'
+        )}
+      >
+        <RippleLayer
+          tint={tone === 'red' ? 'rgba(248,113,113,0.30)' : undefined}
+          duration={600}
+        />
+        <Icon className={iconClass} aria-hidden="true" />
+      </Button>
+    </motion.span>
+  )
+}
 
 /** Thumbnail tile — first image or a gold monogram fallback. */
 function ProductThumb({
@@ -854,9 +928,11 @@ function ActiveSwitch({
       aria-label={`${t('admin.products.toggleActive')}: ${localizedName(product, locale)}`}
       onClick={() => onToggle(product)}
       className={cn(
-        'relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A25E]/60 disabled:cursor-not-allowed disabled:opacity-50'
+        'relative inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A25E]/60 disabled:cursor-not-allowed disabled:opacity-50'
       )}
     >
+      {/* 44px round host — the ripple ink-drop confirms the PATCH press */}
+      <RippleLayer duration={600} />
       <span
         aria-hidden="true"
         className={cn(
@@ -940,9 +1016,10 @@ const ProductRow = memo(function ProductRow({
   const name = localizedName(p, locale)
 
   return (
-    <TableRow
+    <motion.tr
+      variants={adminRowVariants}
       className={cn(
-        'border-white/[0.06] transition-colors hover:bg-white/[0.04]',
+        'border-b border-white/[0.06] transition-colors hover:bg-white/[0.04]',
         !p.isActive && 'opacity-55'
       )}
     >
@@ -983,17 +1060,13 @@ const ProductRow = memo(function ProductRow({
           <span dir="ltr" className="min-w-6 text-sm font-semibold tabular-nums text-[#F2EDE3]">
             {p.stock}
           </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
+          <RowActionIcon
+            icon={Pencil}
+            iconClass="size-3.5"
+            ariaLabel={`${t('admin.products.stockUpdate')}: ${name}`}
             onClick={() => onEditStock(p)}
             disabled={busy}
-            aria-label={`${t('admin.products.stockUpdate')}: ${name}`}
-            className="size-11 text-[#C9A25E] hover:bg-white/[0.06] hover:text-[#E5C878] disabled:opacity-50"
-          >
-            <Pencil className="size-3.5" aria-hidden="true" />
-          </Button>
+          />
         </div>
       </TableCell>
       <TableCell className="py-3">
@@ -1007,31 +1080,22 @@ const ProductRow = memo(function ProductRow({
       </TableCell>
       <TableCell className="pe-4 py-3">
         <div className="flex items-center justify-end gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
+          <RowActionIcon
+            icon={Pencil}
+            ariaLabel={`${t('admin.products.edit')}: ${name}`}
             onClick={() => onEdit(p)}
             disabled={busy}
-            aria-label={`${t('admin.products.edit')}: ${name}`}
-            className="size-11 text-[#C9A25E] hover:bg-white/[0.06] hover:text-[#E5C878] disabled:opacity-50"
-          >
-            <Pencil className="size-4" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
+          />
+          <RowActionIcon
+            icon={Trash2}
+            tone="red"
+            ariaLabel={`${t('admin.products.delete')}: ${name}`}
             onClick={() => onDelete(p)}
             disabled={busy}
-            aria-label={`${t('admin.products.delete')}: ${name}`}
-            className="size-11 text-[#F87171] hover:bg-[#dc2626]/10 hover:text-[#FCA5A5] disabled:opacity-50"
-          >
-            <Trash2 className="size-4" aria-hidden="true" />
-          </Button>
+          />
         </div>
       </TableCell>
-    </TableRow>
+    </motion.tr>
   )
 })
 
@@ -1053,7 +1117,8 @@ const ProductCardRow = memo(function ProductCardRow({
   const kwd = t('admin.common.kwd')
 
   return (
-    <article
+    <motion.article
+      variants={adminRowVariants}
       className={cn(
         'rounded-lg border border-white/[0.08] bg-white/[0.015] p-3.5 transition-colors hover:bg-white/[0.04]',
         !p.isActive && 'opacity-55'
@@ -1114,17 +1179,13 @@ const ProductCardRow = memo(function ProductCardRow({
             <span dir="ltr" className="text-sm font-semibold tabular-nums text-[#F2EDE3]">
               {p.stock}
             </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
+            <RowActionIcon
+              icon={Pencil}
+              iconClass="size-3.5"
+              ariaLabel={`${t('admin.products.stockUpdate')}: ${name}`}
               onClick={() => onEditStock(p)}
               disabled={busy}
-              aria-label={`${t('admin.products.stockUpdate')}: ${name}`}
-              className="size-11 text-[#C9A25E] hover:bg-white/[0.06] hover:text-[#E5C878] disabled:opacity-50"
-            >
-              <Pencil className="size-3.5" aria-hidden="true" />
-            </Button>
+            />
           </dd>
         </div>
         <div className="flex flex-col gap-0.5">
@@ -1138,35 +1199,26 @@ const ProductCardRow = memo(function ProductCardRow({
       {/* Status + actions */}
       <div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3">
         <div className="flex items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
+          <RowActionIcon
+            icon={Pencil}
+            ariaLabel={`${t('admin.products.edit')}: ${name}`}
             onClick={() => onEdit(p)}
             disabled={busy}
-            aria-label={`${t('admin.products.edit')}: ${name}`}
-            className="size-11 text-[#C9A25E] hover:bg-white/[0.06] hover:text-[#E5C878] disabled:opacity-50"
-          >
-            <Pencil className="size-4" aria-hidden="true" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
+          />
+          <RowActionIcon
+            icon={Trash2}
+            tone="red"
+            ariaLabel={`${t('admin.products.delete')}: ${name}`}
             onClick={() => onDelete(p)}
             disabled={busy}
-            aria-label={`${t('admin.products.delete')}: ${name}`}
-            className="size-11 text-[#F87171] hover:bg-[#dc2626]/10 hover:text-[#FCA5A5] disabled:opacity-50"
-          >
-            <Trash2 className="size-4" aria-hidden="true" />
-          </Button>
+          />
         </div>
         <div className="flex items-center gap-2">
           <StatusText isActive={p.isActive} />
           <ActiveSwitch product={p} locale={locale} busy={busy} onToggle={onToggleActive} />
         </div>
       </div>
-    </article>
+    </motion.article>
   )
 })
 
@@ -1207,9 +1259,11 @@ function EmptyProducts({ label }: { label: string }) {
       role="status"
       className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center"
     >
-      <div className="flex size-14 items-center justify-center rounded-full border border-[#C9A25E]/30 bg-[#C9A25E]/10">
-        <PackageX className="size-6 text-[#C9A25E]" aria-hidden="true" />
-      </div>
+      <PopOnMount from={0.5}>
+        <div className="flex size-14 items-center justify-center rounded-full border border-[#C9A25E]/30 bg-[#C9A25E]/10">
+          <PackageX className="size-6 text-[#C9A25E]" aria-hidden="true" />
+        </div>
+      </PopOnMount>
       <p className="text-sm text-[#B6AD9C]">{label}</p>
     </div>
   )
@@ -1229,16 +1283,19 @@ function ErrorNotice({
       role="alert"
       className="flex flex-col items-center justify-center gap-4 px-6 py-16 text-center"
     >
-      <div className="flex size-14 items-center justify-center rounded-full border border-[#dc2626]/40 bg-[#dc2626]/10">
-        <AlertCircle className="size-6 text-[#F87171]" aria-hidden="true" />
-      </div>
+      <PopOnMount from={0.5}>
+        <div className="flex size-14 items-center justify-center rounded-full border border-[#dc2626]/40 bg-[#dc2626]/10">
+          <AlertCircle className="size-6 text-[#F87171]" aria-hidden="true" />
+        </div>
+      </PopOnMount>
       <p className="text-sm text-[#B6AD9C]">{message}</p>
       <Button
         type="button"
         variant="outline"
         onClick={onRetry}
-        className="min-h-11 border-white/15 bg-white/[0.03] text-[#E5D9BE] hover:bg-white/[0.07] hover:text-[#F2EDE3]"
+        className="relative min-h-11 overflow-hidden border-white/15 bg-white/[0.03] text-[#E5D9BE] hover:bg-white/[0.07] hover:text-[#F2EDE3]"
       >
+        <RippleLayer duration={600} />
         <RotateCw className="me-2 size-4" aria-hidden="true" />
         {retryLabel}
       </Button>
@@ -1252,9 +1309,11 @@ function UnauthorizedNotice({ label }: { label: string }) {
       role="alert"
       className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center"
     >
-      <div className="flex size-14 items-center justify-center rounded-full border border-[#C9A25E]/40 bg-[#C9A25E]/10">
-        <KeyRound className="size-6 text-[#C9A25E]" aria-hidden="true" />
-      </div>
+      <PopOnMount from={0.5}>
+        <div className="flex size-14 items-center justify-center rounded-full border border-[#C9A25E]/40 bg-[#C9A25E]/10">
+          <KeyRound className="size-6 text-[#C9A25E]" aria-hidden="true" />
+        </div>
+      </PopOnMount>
       <p className="font-display text-base font-bold text-[#E5C878]">{label}</p>
     </div>
   )

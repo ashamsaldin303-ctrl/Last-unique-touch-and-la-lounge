@@ -3,17 +3,20 @@
 /**
  * BackToTop v2 — floating button with a circular SVG progress ring that
  * fills as the user scrolls, appearing after one viewport height. Spring
- * entrance, smooth scroll to top on click. Positioned above the WhatsApp
- * button (stacked on mobile). Glass surface + gold ring.
+ * pop-in from scale 0 (springSnappy), a locale-aware arrow tilt on hover
+ * (toward the reading direction — "onward and upward"), smooth scroll to
+ * top on click. Positioned above the WhatsApp button (stacked on mobile).
+ * Glass surface + gold ring.
  */
 
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence, useScroll, useSpring, useReducedMotion } from 'framer-motion'
 import { ArrowUp } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
+import { springSnappy } from '@/lib/motion'
 
 export function BackToTop() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [visible, setVisible] = useState(false)
   const { scrollYProgress } = useScroll()
   const ringProgress = useSpring(scrollYProgress, { stiffness: 160, damping: 30, mass: 0.4 })
@@ -22,6 +25,9 @@ export function BackToTop() {
   // springs (a global <MotionConfig reducedMotion="user"> wrapper at the
   // app root is the follow-up; this file only owns the local variant).
   const prefersReduced = useReducedMotion()
+  // Arrow tilt direction: toward the reading direction (up-forward) —
+  // counterclockwise (left) in RTL, clockwise (right) in LTR.
+  const hoverTilt = locale === 'ar' ? -45 : 45
 
   useEffect(() => {
     let ticking = false
@@ -42,9 +48,9 @@ export function BackToTop() {
     <AnimatePresence>
       {visible && (
         <motion.button
-          initial={{ opacity: 0, scale: 0.6, y: 16 }}
+          initial={{ opacity: 0, scale: 0, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.6, y: 16 }}
+          exit={{ opacity: 0, scale: 0, y: 16 }}
           // v45-audit: unconditional whileTap — a server/client difference here
           // (useReducedMotion is null on server, true/false on client) made
           // framer-motion drop `tabindex="0"` on reduced-motion clients and
@@ -52,10 +58,13 @@ export function BackToTop() {
           // <MotionConfig reducedMotion="user"> wrapper at the app root
           // already suppresses the transform for those users.
           whileTap={{ scale: 0.92 }}
+          // Variant label: propagates the hover gesture to the arrow tilt
+          // below (the button itself keeps its CSS border/shadow hover).
+          whileHover="hover"
           transition={
             prefersReduced
               ? { duration: 0 } // instant for vestibular-sensitive users
-              : { type: 'spring', stiffness: 320, damping: 22 }
+              : springSnappy
           }
           onClick={() =>
             window.scrollTo({ top: 0, behavior: prefersReduced ? 'auto' : 'smooth' })
@@ -90,7 +99,13 @@ export function BackToTop() {
               style={{ pathLength: ringProgress }}
             />
           </svg>
-          <ArrowUp className="w-5 h-5 relative z-[1]" strokeWidth={2} />
+          <motion.span
+            variants={{ hover: { rotate: hoverTilt } }}
+            transition={springSnappy}
+            className="relative z-[1] inline-flex"
+          >
+            <ArrowUp className="w-5 h-5" strokeWidth={2} />
+          </motion.span>
         </motion.button>
       )}
     </AnimatePresence>

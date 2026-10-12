@@ -10,13 +10,18 @@
  * colored status badges, quantity stepper capped at the actually
  * bookable stock, concierge price summary with receipt leader dots,
  * tweened total, and the add-to-cart action (toast + view-cart link).
+ * Task 44-c: each availability verdict pops in on a snappy spring, and
+ * the "متاح" verdict carries a live green ping.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AlertCircle, CalendarRange, Check, CheckCircle2, Loader2, ShoppingCart } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useI18n } from '@/lib/i18n'
 import { useRouter } from '@/lib/router'
 import { checkAvailability, formatKwd, localizedName, type ProductDTO } from '@/lib/products'
+import { springSnappy } from '@/lib/motion'
+import { PulseDot } from '@/components/fx/pulse-dot'
 import { useCart } from '@/lib/cart-store'
 import { useToast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/ui/toast'
@@ -179,9 +184,19 @@ export function RentalPicker({ product }: { product: ProductDTO }) {
           disabled={isOutOfStock}
         />
 
-        {/* Availability status — live region for screen readers */}
+        {/* Availability status — live region for screen readers.
+            Task 44-c: each verdict pops in on a snappy spring (the answer
+            LANDS — checking spinner → verdict is a state change, not a
+            text swap). */}
         <div aria-live="polite" role="status" aria-busy={shownAvailability === 'checking'}>
-          <AvailabilityBadge state={shownAvailability} />
+          <motion.div
+            key={shownAvailability}
+            initial={{ opacity: 0, y: 6, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={springSnappy}
+          >
+            <AvailabilityBadge state={shownAvailability} />
+          </motion.div>
         </div>
 
         {/* Quantity */}
@@ -333,6 +348,8 @@ function AvailabilityBadge({ state }: { state: AvailabilityState }) {
         <span className={cn(base, 'border-emerald-600/30 bg-emerald-500/10 text-emerald-700')}>
           <CheckCircle2 className="size-4" aria-hidden="true" />
           {t('product.rental.available')}
+          {/* Task 44-c: a live ping beside the "متاح" verdict. */}
+          <PulseDot className="ms-0.5" />
         </span>
       )
     case 'unavailable':

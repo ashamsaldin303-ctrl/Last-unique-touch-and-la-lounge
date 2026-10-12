@@ -1,15 +1,22 @@
 'use client'
 
 /**
- * Brand-aware navbar — mirrors the original repo's navbar.tsx, upgraded to v2:
+ * Brand-aware navbar — mirrors the original repo's navbar.tsx, upgraded:
  * - wordmark hidden on home page (umbrella landing for 3 brands)
  * - nav links resolve per current brand (home/products/contact)
- * - locale switcher (ar/en), theme toggle, cart badge
- * - mobile drawer with focus trap + staggered link animations
- * - SMART HIDE: hides on scroll-down, returns on scroll-up (never at top,
- *   never while the drawer is open)
- * - ACTIVE PILL: a gold indicator that slides between links (layoutId)
- * - WORDMARK SHINE: gold light sweep on hover
+ * - nav links use ElasticLink hairlines that DRAW from the reading
+ *   edge (RTL/LTR aware); the active route keeps the line drawn
+ * - locale switcher (ar/en) with a key-based label pop, theme toggle,
+ *   cart badge that pops on every count change (BadgePop)
+ * - mobile drawer with focus trap + variant-staggered link animations
+ *   (0.04s) on a springGentle slide from the drawer edge
+ * - SMART HIDE on a framer spring: hides on scroll-down past 120px,
+ *   returns on scroll-up (never at top, never while the drawer is
+ *   open, fully disabled for reduced-motion users). Coordinated with
+ *   the CSS entrance: the `navbar-slide-in` class owns the transform
+ *   until its 0.9s animation completes, then framer takes over.
+ * - WORDMARK SHINE: gold light sweep on hover + pop on brand/locale
+ *   change (PopOnMount key remount)
  */
 
 import { useState, useEffect, useLayoutEffect, useRef } from 'react'
@@ -19,8 +26,18 @@ import { resolveBrandFromPath, isHomePage } from '@/lib/brand'
 import { useCart, cartTotals } from '@/lib/cart-store'
 import { useTheme } from 'next-themes'
 import { Menu, X, Globe, Moon, Sun, ShoppingCart } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import {
+  motion,
+  AnimatePresence,
+  useScroll,
+  useMotionValueEvent,
+  useReducedMotion,
+  type Variants,
+} from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { springGentle, springSoft } from '@/lib/motion'
+import { ElasticLink } from '@/components/fx/elastic-underline'
+import { BadgePop, PopOnMount } from '@/components/fx/badge-pop'
 
 /** Brand wordmark shown in navbar per brand. */
 function useWordmark(brand: 'neutral' | 'lut' | 'lalounge' | 'birthday') {
@@ -46,9 +63,18 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [navHidden, setNavHidden] = useState(false)
+  /* Entrance coordination: the CSS `navbar-slide-in` animation (0.8s +
+     0.1s delay, fill both) owns the transform while it runs — CSS
+     animations beat inline styles in the cascade. After it completes we
+     drop the class and let framer's spring own translateY. The smart-hide
+     is gated on `entranceDone` so the two systems never fight. */
+  const [entranceDone, setEntranceDone] = useState(false)
   const drawerRef = useRef<HTMLDivElement>(null)
-  const firstLinkRef = useRef<HTMLAnchorElement>(null)
   const hamburgerRef = useRef<HTMLButtonElement>(null)
+  // Reduced-motion: useReducedMotion() is null on the server — coalesce to
+  // a boolean. It only gates event-handler logic (never markup), so the
+  // server/client render trees stay identical (no hydration mismatch).
+  const prefersReduced = useReducedMotion() ?? false
 
   // HYDRATION-SAFE PATH: the hash router's initial state reads
   // window.location.hash on the client while SSR always renders the '/'
@@ -77,6 +103,13 @@ export function Navbar() {
     setMounted(true)
   }, [])
 
+  // Hand the transform over to framer once the CSS entrance animation
+  // (0.8s + 0.1s delay) has fully completed.
+  useEffect(() => {
+    const id = window.setTimeout(() => setEntranceDone(true), 950)
+    return () => window.clearTimeout(id)
+  }, [])
+
   // Lock body scroll while the mobile drawer is open; restore on
   // close/unmount (returns the previous inline value, not a blank slate).
   useEffect(() => {
@@ -88,34 +121,38 @@ export function Navbar() {
     }
   }, [mobileOpen])
 
-  useEffect(() => {
-    let ticking = false
-    let lastY = window.scrollY
-    const onScroll = () => {
-      if (ticking) return
-      ticking = true
-      requestAnimationFrame(() => {
-        const y = window.scrollY
-        setScrolled(y > 40)
-        // Smart hide: only after passing 140px, with a small delta guard
-        // so tiny scroll jitter (mobile url-bar) doesn't flap the navbar.
-        const delta = y - lastY
-        if (Math.abs(delta) > 6) {
-          setNavHidden(delta > 0 && y > 140 && !mobileOpen)
-          lastY = y
-        }
-        ticking = false
-      })
+  /* SMART HIDE — framer useScroll + useMotionValueEvent (Task 44-b).
+     useMotionValueEvent re-subscribes whenever the inline callback's
+     identity changes, so the closure below always sees the latest
+     `mobileOpen` / `entranceDone` / `prefersReduced` state. */
+  const { scrollY } = useScroll()
+  const lastYRef = useRef(0)
+  useIsomorphicLayoutEffect(() => {
+    lastYRef.current = window.scrollY
+  }, [])
+  useMotionValueEvent(scrollY, 'change', (y) => {
+    setScrolled(y > 40)
+    // Small delta guard so tiny scroll jitter (mobile url-bar) doesn't
+    // flap the navbar.
+    const delta = y - lastYRef.current
+    if (Math.abs(delta) <= 6) return
+    lastYRef.current = y
+    // Only hide after the entrance settles, past 120px, never for
+    // reduced-motion users and never while the drawer is open.
+    if (!prefersReduced && entranceDone && !mobileOpen) {
+      setNavHidden(delta > 0 && y > 120)
     }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [mobileOpen])
+  })
 
   // Focus trap + Escape for the mobile drawer
   useEffect(() => {
     if (!mobileOpen) return
     const previouslyFocused = document.activeElement as HTMLElement | null
-    const rafId = requestAnimationFrame(() => firstLinkRef.current?.focus())
+    // The drawer's first anchor (nav links render before the cart row);
+    // queried because ElasticLink does not forward refs.
+    const rafId = requestAnimationFrame(() => {
+      drawerRef.current?.querySelector<HTMLElement>('a[href]')?.focus()
+    })
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -202,7 +239,8 @@ export function Navbar() {
 
   const linkTextCls = (active: boolean) =>
     cn(
-      'relative text-sm font-medium transition-colors duration-300 group',
+      // lux-underline (from ElasticLink) owns position + the drawn hairline.
+      'text-sm font-medium transition-colors duration-300',
       // letter-spacing breaks Arabic letter joining — apply to Latin only.
       locale !== 'ar' && 'tracking-wide',
       active
@@ -212,14 +250,48 @@ export function Navbar() {
           : 'text-foreground/70 hover:text-foreground'
     )
 
+  /* Mobile drawer choreography: the panel slides in on springGentle from
+     its own edge (locale-aware), the link list staggers its items at
+     0.04s per item via variant propagation. */
+  const drawerListVariants: Variants = {
+    hidden: {},
+    show: { transition: { staggerChildren: 0.04, delayChildren: 0.06 } },
+  }
+  const drawerItemVariants: Variants = {
+    hidden: { opacity: 0, x: locale === 'ar' ? -20 : 20 },
+    show: { opacity: 1, x: 0, transition: springSoft },
+  }
+
+  // Router-aware anchor click (shared by every chrome link): real anchor
+  // semantics for middle/modified clicks, plain left clicks go through the
+  // client hash router.
+  const routerClick =
+    (target: string, extra?: () => void) =>
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      e.preventDefault()
+      navigate(target)
+      extra?.()
+    }
+
   return (
     <>
-      <nav
+      <motion.nav
         aria-label={t('nav.primary')}
+        initial={false}
+        animate={{ y: navHidden ? '-110%' : '0%' }}
+        transition={springSoft}
+        /* Inline transition override: nav-smart's CSS list includes
+           `transform` (legacy class-based hide) — CSS transitions would
+           fight framer's per-frame spring updates, so transform is dropped
+           here while background/padding/shadow keep the 420ms ease. */
+        style={{
+          transition: 'background-color 420ms ease, padding 420ms ease, box-shadow 420ms ease',
+        }}
         className={cn(
-          'navbar-slide-in nav-smart fixed top-0 inset-x-0 z-50',
+          'nav-smart fixed top-0 inset-x-0 z-50',
+          !entranceDone && 'navbar-slide-in',
           scrolled ? 'glass-dark py-3' : 'bg-transparent py-5',
-          navHidden && 'nav-hidden'
         )}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -229,13 +301,7 @@ export function Navbar() {
               {!homePage && (
                 <a
                   href={`#/${locale}${brandHomeHref === '/' ? '' : brandHomeHref}`}
-                  onClick={(e) => {
-                    // Real anchor (middle/ctrl+click opens the hash URL);
-                    // plain left clicks go through the client router.
-                    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-                    e.preventDefault()
-                    navigate(brandHomeHref)
-                  }}
+                  onClick={routerClick(brandHomeHref)}
                   /* 44px touch target (was ~28px tall; Task 41) — vertical
                      padding preserves the baseline alignment of the
                      wordmark pair while enlarging the hit area; horizontal
@@ -243,9 +309,15 @@ export function Navbar() {
                   className="shine-sweep group flex min-h-[44px] items-baseline gap-2 py-2 px-2 -mx-2 min-w-0 shrink-0 no-underline"
                   aria-label={wordmark.main}
                 >
-                  <span className="font-display tracking-tight whitespace-nowrap transition-colors duration-300 text-primary text-lg sm:text-xl lg:text-2xl">
+                  {/* Key-based remount pop when the active brand or locale
+                      changes (the wordmark re-settles on a spring). */}
+                  <PopOnMount
+                    key={`${brand}-${locale}`}
+                    from={0.72}
+                    className="font-display tracking-tight whitespace-nowrap transition-colors duration-300 text-primary text-lg sm:text-xl lg:text-2xl"
+                  >
                     {wordmark.main}
-                  </span>
+                  </PopOnMount>
                   {wordmark.subtitle && (
                     <span
                       className={cn(
@@ -263,35 +335,15 @@ export function Navbar() {
                 {navLinks.map((link) => {
                   const active = isLinkActive(link.path)
                   return (
-                    <a
+                    <ElasticLink
                       key={link.path}
                       href={`#/${locale}${link.path === '/' ? '' : link.path}`}
-                      onClick={(e) => {
-                        // Real anchor (middle/ctrl+click opens the hash URL);
-                        // plain left clicks go through the client router.
-                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-                        e.preventDefault()
-                        navigate(link.path)
-                      }}
-                      aria-current={active ? 'page' : undefined}
+                      onClick={routerClick(link.path)}
+                      active={active}
                       className={linkTextCls(active)}
                     >
                       {link.label}
-                      {active ? (
-                        <motion.span
-                          layoutId="nav-active-underline"
-                          transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-                          className="absolute -bottom-1.5 start-0 w-full h-[2px] rounded-full bg-gold shadow-[0_2px_10px_rgba(201,162,75,0.65)]"
-                        />
-                      ) : (
-                        <span
-                          className={cn(
-                            'absolute -bottom-1.5 start-0 h-px bg-gold/60 transition-[width] duration-300',
-                            'w-0 group-hover:w-full'
-                          )}
-                        />
-                      )}
-                    </a>
+                    </ElasticLink>
                   )
                 })}
               </div>
@@ -331,7 +383,10 @@ export function Navbar() {
                 aria-label={t('a11y.switchLanguage')}
               >
                 <Globe className="w-4 h-4" strokeWidth={1.3} />
-                <span>{locale === 'ar' ? 'EN' : 'عربي'}</span>
+                {/* Locale label pops on every language switch (key remount). */}
+                <PopOnMount key={locale} from={0.55}>
+                  {locale === 'ar' ? 'EN' : 'عربي'}
+                </PopOnMount>
               </motion.button>
 
               <button
@@ -345,17 +400,8 @@ export function Navbar() {
                 aria-label={t('cart.title')}
               >
                 <ShoppingCart className="w-5 h-5" strokeWidth={1.5} />
-                {cartCount > 0 && (
-                  <motion.span
-                    key={cartCount}
-                    initial={{ scale: 0.6, opacity: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                    className="absolute -top-0.5 -end-0.5 min-w-4 h-4 px-0.5 rounded-full bg-gold text-ink text-[10px] font-bold flex items-center justify-center"
-                  >
-                    {cartCount}
-                  </motion.span>
-                )}
+                {/* Count badge springs on every add-to-cart (BadgePop). */}
+                <BadgePop value={cartCount} className="-top-0.5 -end-0.5" />
               </button>
 
               <button
@@ -364,7 +410,12 @@ export function Navbar() {
                   'md:hidden p-2 min-w-[44px] min-h-[44px] cursor-pointer bg-transparent border-0',
                   darkHero || scrolled ? 'text-paper' : 'text-foreground'
                 )}
-                onClick={() => setMobileOpen(!mobileOpen)}
+                onClick={() => {
+                  // Opening the menu always reveals the navbar (smart-hide
+                  // stands down while the drawer is open).
+                  if (!mobileOpen) setNavHidden(false)
+                  setMobileOpen(!mobileOpen)
+                }}
                 aria-label={t('nav.menu')}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-nav-drawer"
@@ -374,7 +425,7 @@ export function Navbar() {
             </div>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Mobile drawer */}
       <AnimatePresence>
@@ -396,7 +447,7 @@ export function Navbar() {
               initial={{ x: locale === 'ar' ? '-100%' : '100%' }}
               animate={{ x: 0 }}
               exit={{ x: locale === 'ar' ? '-100%' : '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              transition={springGentle}
               className="fixed top-0 end-0 bottom-0 z-50 w-80 max-w-[85vw] bg-ink md:hidden flex flex-col overscroll-contain"
             >
               <div className="p-6 border-b border-paper/10 flex items-center justify-between">
@@ -412,62 +463,43 @@ export function Navbar() {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="flex-1 p-6 space-y-2 overflow-y-auto max-h-96 overscroll-contain">
-                {navLinks.map((link, idx) => (
-                  <motion.div
-                    key={link.path}
-                    initial={{ opacity: 0, x: locale === 'ar' ? -20 : 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.08 }}
-                  >
-                    <a
-                      ref={idx === 0 ? firstLinkRef : undefined}
+              <motion.div
+                variants={drawerListVariants}
+                initial="hidden"
+                animate="show"
+                className="flex-1 p-6 space-y-2 overflow-y-auto max-h-96 overscroll-contain"
+              >
+                {navLinks.map((link) => (
+                  <motion.div key={link.path} variants={drawerItemVariants}>
+                    <ElasticLink
                       href={`#/${locale}${link.path === '/' ? '' : link.path}`}
-                      onClick={(e) => {
-                        // Real anchor (middle/ctrl+click opens the hash URL);
-                        // plain left clicks go through the client router.
-                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-                        e.preventDefault()
-                        navigate(link.path)
-                        setMobileOpen(false)
-                      }}
-                      aria-current={isLinkActive(link.path) ? 'page' : undefined}
+                      onClick={routerClick(link.path, () => setMobileOpen(false))}
+                      active={isLinkActive(link.path)}
                       className={cn(
-                        'block py-3 text-lg font-display no-underline',
+                        'w-full py-3 text-lg font-display no-underline',
                         isLinkActive(link.path) ? 'text-gold' : 'text-paper/70'
                       )}
                     >
                       {link.label}
-                    </a>
+                    </ElasticLink>
                   </motion.div>
                 ))}
-                <motion.div
-                  initial={{ opacity: 0, x: locale === 'ar' ? -20 : 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: navLinks.length * 0.08 }}
-                >
+                <motion.div variants={drawerItemVariants}>
                   <a
                     href={`#/${locale}${brandCartHref === '/' ? '' : brandCartHref}`}
-                    onClick={(e) => {
-                      // Real anchor (middle/ctrl+click opens the hash URL);
-                      // plain left clicks go through the client router.
-                      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-                      e.preventDefault()
-                      navigate(brandCartHref)
-                      setMobileOpen(false)
-                    }}
+                    onClick={routerClick(brandCartHref, () => setMobileOpen(false))}
                     className="flex items-center gap-3 py-3 text-lg font-display text-paper/70 no-underline"
                   >
                     <ShoppingCart className="w-5 h-5" />
                     {t('cart.title')}
                     {cartCount > 0 && (
-                      <span className="w-5 h-5 rounded-full bg-gold text-ink text-xs font-bold flex items-center justify-center">
-                        {cartCount}
+                      <span className="relative inline-grid place-items-center w-5 h-5">
+                        <BadgePop value={cartCount} className="inset-0 m-auto" />
                       </span>
                     )}
                   </a>
                 </motion.div>
-              </div>
+              </motion.div>
             </motion.div>
           </>
         )}

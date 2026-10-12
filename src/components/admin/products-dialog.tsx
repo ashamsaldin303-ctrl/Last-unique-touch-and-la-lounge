@@ -42,6 +42,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { motion, type Variants } from 'framer-motion'
 import {
   ChevronLeft,
   ChevronRight,
@@ -80,13 +81,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { RippleLayer } from '@/components/fx/ink-ripple'
+import { popSpring, springGentle, springSoft } from '@/lib/motion'
 
 /* ================= Shared product domain (imported by the panel) ================= */
 
@@ -327,6 +325,20 @@ function initialImages(product: ProductItem | null): ImageEntry[] {
     .map((url) => ({ kind: 'remote', url }))
 }
 
+/* ================= Motion (Task 44-f) ================= */
+
+/** Form section stagger: 60ms ladder, y 12, blur-free (the house row rule —
+ *  never animate filter on rows). Composes with the dialog's entrance. */
+const formVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.14 } },
+}
+
+const sectionVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: springSoft },
+}
+
 /* ================= The dialog ================= */
 
 export interface ProductsDialogProps {
@@ -381,6 +393,17 @@ export default function ProductsDialog({
   const [newCatAr, setNewCatAr] = useState('')
   const [newCatEn, setNewCatEn] = useState('')
   const [catBusy, setCatBusy] = useState(false)
+
+  /* Keys of the entries seeded at dialog-open (Task 44-f): tiles picked
+   * AFTER open pop in on a spring; seeded tiles render settled. Derived,
+   * never written during render. */
+  const initialKeys = useMemo(() => {
+    const keys = new Set<string>()
+    for (const entry of initialImages(product)) {
+      keys.add(entry.kind === 'local' ? entry.objectUrl : `${entry.kind}-${entry.url}`)
+    }
+    return keys
+  }, [product])
 
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   /** Latest entries — used by the unmount cleanup to revoke object URLs. */
@@ -790,6 +813,15 @@ export default function ProductsDialog({
           closeAriaLabel={t('common.close')}
           className="max-h-[88vh] overflow-y-auto border-[#C9A25E]/25 bg-[#1A160E] text-[#F2EDE3] sm:max-w-2xl"
         >
+          {/* Task 44-f: entrance spring (scale 0.96→1 + y 16→0) — composes
+              with the DialogContent's own CSS zoom-in. The dialog is mounted
+              on demand (keyed), so the spring fires exactly once per open. */}
+          <motion.div
+            initial={{ scale: 0.96, y: 16, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            transition={springGentle}
+            className="flex flex-col gap-4"
+          >
           <DialogHeader>
             <DialogTitle className="font-display text-lg text-[#F2EDE3]">
               {isEdit ? t('admin.products.edit') : t('admin.products.create')}
@@ -799,7 +831,10 @@ export default function ProductsDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <form
+          <motion.form
+            variants={formVariants}
+            initial="hidden"
+            animate="visible"
             onSubmit={(e) => {
               void handleSubmit(e)
             }}
@@ -807,7 +842,10 @@ export default function ProductsDialog({
             noValidate
           >
             {/* ---- Section 1 · البيانات ---- */}
-            <fieldset className="flex min-w-0 flex-col gap-4">
+            <motion.fieldset
+              variants={sectionVariants}
+              className="flex min-w-0 flex-col gap-4"
+            >
               <legend className="mb-1 flex w-full items-center gap-3">
                 <span className={sectionTitleClass}>{t('admin.products.dialog.sections.data')}</span>
                 <span className="h-px flex-1 bg-white/[0.08]" aria-hidden="true" />
@@ -1058,8 +1096,9 @@ export default function ProductsDialog({
                             type="button"
                             onClick={() => void createCategory()}
                             disabled={catBusy || !newCatAr.trim() || !newCatEn.trim()}
-                            className="min-h-11 gap-2 bg-[#C9A25E] font-semibold text-[#17130A] hover:bg-[#D9B56E]"
+                            className="relative min-h-11 overflow-hidden gap-2 bg-[#C9A25E] font-semibold text-[#17130A] hover:bg-[#D9B56E]"
                           >
+                            <RippleLayer tint="rgba(23,19,10,0.22)" duration={600} />
                             {catBusy ? (
                               <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                             ) : (
@@ -1086,10 +1125,13 @@ export default function ProductsDialog({
                   <FieldError id={`${FIELD_IDS.categoryId}-error`} message={fieldErrors.categoryId} />
                 </div>
               </div>
-            </fieldset>
+            </motion.fieldset>
 
             {/* ---- Section 2 · السعر والكمية ---- */}
-            <fieldset className="flex min-w-0 flex-col gap-4">
+            <motion.fieldset
+              variants={sectionVariants}
+              className="flex min-w-0 flex-col gap-4"
+            >
               <legend className="mb-1 flex w-full items-center gap-3">
                 <span className={sectionTitleClass}>{t('admin.products.dialog.sections.pricing')}</span>
                 <span className="h-px flex-1 bg-white/[0.08]" aria-hidden="true" />
@@ -1158,10 +1200,13 @@ export default function ProductsDialog({
                   <FieldError id={`${FIELD_IDS.stock}-error`} message={fieldErrors.stock} />
                 </div>
               </div>
-            </fieldset>
+            </motion.fieldset>
 
             {/* ---- Section 3 · الصور ---- */}
-            <fieldset className="flex min-w-0 flex-col gap-3">
+            <motion.fieldset
+              variants={sectionVariants}
+              className="flex min-w-0 flex-col gap-3"
+            >
               <legend className="mb-1 flex w-full items-center gap-3">
                 <span className={sectionTitleClass}>{t('admin.products.dialog.sections.images')}</span>
                 <span className="h-px flex-1 bg-white/[0.08]" aria-hidden="true" />
@@ -1176,27 +1221,37 @@ export default function ProductsDialog({
                 aria-label={t('admin.products.images.reorder')}
                 className="grid grid-cols-3 gap-3 sm:grid-cols-4"
               >
-                {entries.map((entry, index) => (
-                  <ImageTile
-                    key={entry.kind === 'local' ? entry.objectUrl : `${entry.kind}-${entry.url}`}
-                    src={entry.kind === 'remote' ? entry.url : entry.objectUrl}
-                    alt={productAlt}
-                    locale={locale}
-                    isFirst={index === 0}
-                    isLast={index === entries.length - 1}
-                    onRemove={() => removeEntry(index)}
-                    onMoveEarlier={() => moveEntry(index, -1)}
-                    onMoveLater={() => moveEntry(index, 1)}
-                  />
-                ))}
+                {entries.map((entry, index) => {
+                  const key =
+                    entry.kind === 'local' ? entry.objectUrl : `${entry.kind}-${entry.url}`
+                  return (
+                    <ImageTile
+                      key={key}
+                      src={entry.kind === 'remote' ? entry.url : entry.objectUrl}
+                      alt={productAlt}
+                      locale={locale}
+                      isFirst={index === 0}
+                      isLast={index === entries.length - 1}
+                      popIn={!initialKeys.has(key)}
+                      onRemove={() => removeEntry(index)}
+                      onMoveEarlier={() => moveEntry(index, -1)}
+                      onMoveLater={() => moveEntry(index, 1)}
+                    />
+                  )
+                })}
 
-                {/* Add tile (hidden multi-file input behind it) */}
+                {/* Add tile (hidden multi-file input behind it) — the dashed
+                    border breathes while it can accept picks (CSS class is
+                    reduced-motion gated; compose-safe with transition-colors) */}
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={entries.length >= MAX_IMAGES}
                   aria-label={t('admin.products.images.add')}
-                  className="flex aspect-square min-h-11 flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-white/15 bg-white/[0.02] text-[#8A8072] transition-colors hover:border-[#C9A25E]/40 hover:bg-[#C9A25E]/[0.06] hover:text-[#E5C878] disabled:cursor-not-allowed disabled:opacity-50"
+                  className={cn(
+                    'flex aspect-square min-h-11 flex-col items-center justify-center gap-1.5 rounded-md border border-dashed border-white/15 bg-white/[0.02] text-[#8A8072] transition-colors hover:border-[#C9A25E]/40 hover:bg-[#C9A25E]/[0.06] hover:text-[#E5C878] disabled:cursor-not-allowed disabled:opacity-50',
+                    entries.length < MAX_IMAGES && 'lux-breathe'
+                  )}
                 >
                   <ImagePlus className="size-5" aria-hidden="true" />
                   <span className="px-1 text-center text-[0.625rem] leading-tight">
@@ -1217,35 +1272,39 @@ export default function ProductsDialog({
                 />
               </div>
               <FieldError id="product-images-error" message={fieldErrors.images} />
-            </fieldset>
+            </motion.fieldset>
 
             {/* ---- Footer ---- */}
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={requestClose}
-                disabled={submitting}
-                className="min-h-11 border-white/15 bg-transparent text-[#E5D9BE] hover:bg-white/[0.06] hover:text-[#F2EDE3]"
-              >
-                {t('admin.common.cancel')}
-              </Button>
-              <Button
-                type="submit"
-                disabled={submitting || uploading}
-                className="min-h-11 min-w-32 gap-2 bg-[#C9A25E] font-semibold text-[#17130A] hover:bg-[#D9B56E]"
-              >
-                {submitting || uploading ? (
-                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                ) : null}
-                {uploading
-                  ? t('admin.products.images.uploading')
-                  : submitting
-                    ? t('admin.common.loading')
-                    : t('admin.common.save')}
-              </Button>
-            </DialogFooter>
-          </form>
+            <motion.div variants={sectionVariants}>
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={requestClose}
+                  disabled={submitting}
+                  className="min-h-11 border-white/15 bg-transparent text-[#E5D9BE] hover:bg-white/[0.06] hover:text-[#F2EDE3]"
+                >
+                  {t('admin.common.cancel')}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submitting || uploading}
+                  className="relative min-h-11 min-w-32 overflow-hidden gap-2 bg-[#C9A25E] font-semibold text-[#17130A] hover:bg-[#D9B56E]"
+                >
+                  <RippleLayer tint="rgba(23,19,10,0.22)" duration={600} />
+                  {submitting || uploading ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                  ) : null}
+                  {uploading
+                    ? t('admin.products.images.uploading')
+                    : submitting
+                      ? t('admin.common.loading')
+                      : t('admin.common.save')}
+                </Button>
+              </DialogFooter>
+            </motion.div>
+          </motion.form>
+          </motion.div>
         </DialogContent>
       </Dialog>
 
@@ -1288,6 +1347,7 @@ function ImageTile({
   locale,
   isFirst,
   isLast,
+  popIn = false,
   onRemove,
   onMoveEarlier,
   onMoveLater,
@@ -1297,6 +1357,8 @@ function ImageTile({
   locale: Locale
   isFirst: boolean
   isLast: boolean
+  /** Freshly picked (not seeded at open) — pops in on a spring. */
+  popIn?: boolean
   onRemove: () => void
   onMoveEarlier: () => void
   onMoveLater: () => void
@@ -1307,7 +1369,12 @@ function ImageTile({
   const LaterIcon = locale === 'ar' ? ChevronLeft : ChevronRight
 
   return (
-    <div className="relative aspect-square overflow-hidden rounded-md border border-white/10 bg-white/[0.04]">
+    <motion.div
+      initial={popIn ? { scale: 0.5, opacity: 0 } : false}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={popIn ? popSpring : undefined}
+      className="relative aspect-square overflow-hidden rounded-md border border-white/10 bg-white/[0.04]"
+    >
       {/* blob:/uploads previews — plain img keeps this config-free. */}
       <img
         src={src}
@@ -1352,7 +1419,7 @@ function ImageTile({
           </span>
         </button>
       </div>
-    </div>
+    </motion.div>
   )
 }
 

@@ -8,6 +8,9 @@
  * line totals, plus a sticky summary card (rental / deposit / grand
  * total). The hydration guard (useCartHydrated) prevents the SSR
  * localStorage flash; item removal animates out before the store updates.
+ * Task 44-c: rows stagger in; a removal collapses its height while
+ * sliding toward the reading edge; the empty-state medallion floats;
+ * "متابعة التسوق" became an ElasticLink that draws its underline.
  */
 
 import { useEffect, useRef, useState } from 'react'
@@ -18,6 +21,8 @@ import { useI18n } from '@/lib/i18n'
 import { useRouter } from '@/lib/router'
 import { localizedName, formatKwd } from '@/lib/products'
 import { useCart, cartTotals, isSafeCartItem, type CartItem } from '@/lib/cart-store'
+import { easeHouse, easeAccelerate } from '@/lib/motion'
+import { ElasticLink } from '@/components/fx/elastic-underline'
 import { Reveal } from '@/components/shared/reveal'
 import { QuantityStepper } from '@/components/shop/quantity-stepper'
 import { GrandTotalRow, TotalsBlock } from '@/components/shop/totals-block'
@@ -25,14 +30,14 @@ import { formatDate } from '@/components/shop/format'
 import { useCartHydrated } from '@/components/shop/use-cart-hydrated'
 import { Button } from '@/components/ui/button'
 
-const EXIT_DURATION_MS = 260
+const EXIT_DURATION_MS = 320
 
 /* The trust gate lives in lib/cart-store (single home, imported above);
    checkout imports it from the store directly since wave 5. */
 
 export default function CartPage() {
   const { t, locale } = useI18n()
-  const { navigate } = useRouter()
+  const { href, navigate } = useRouter()
   const { items, removeItem, updateQuantity } = useCart()
   const hydrated = useCartHydrated()
   /* Sanitized rows (original store indices kept) — poisoned localStorage
@@ -114,7 +119,9 @@ export default function CartPage() {
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-col items-center"
         >
-          <div className="mb-6 flex size-20 items-center justify-center rounded-full bg-primary/10">
+          {/* Task 44-c: the medallion levitates gently (reduced-motion
+              gated by the CSS kit). */}
+          <div className="lux-float-y-soft mb-6 flex size-20 items-center justify-center rounded-full bg-primary/10">
             <ShoppingCart className="size-10 text-primary" aria-hidden="true" />
           </div>
           <h1 className="mb-2 font-display text-3xl font-bold text-foreground">
@@ -155,10 +162,14 @@ export default function CartPage() {
               (productId + startDate + endDate is unique), so dropping the
               row index keeps following rows mounted during a removal
               (no remount/layout stutter). */}
-          {safeRows.map((row) => (
+          {/* Rows stagger in on arrival (Task 44-c): the delay rides the
+              mount animation only — the exit branch below carries its own
+              transition (target-scoped) so removal never waits. */}
+          {safeRows.map((row, position) => (
             <CartRow
               key={`${row.item.productId}-${row.item.startDate}-${row.item.endDate}`}
               item={row.item}
+              position={position}
               exiting={exitingIndex === row.index}
               onRemove={() => handleRemove(row.index)}
               onQuantity={(quantity) => updateQuantity(row.index, quantity)}
@@ -166,14 +177,27 @@ export default function CartPage() {
           ))}
 
           <Reveal className="pt-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/products')}
-              className="min-h-[44px] rounded-md"
+            {/* Task 44-c: "متابعة التسوق" — an ElasticLink dressed as the
+                outline button it replaces (real hash href + SPA navigate;
+                the hairline now DRAWS from the reading edge on hover). The
+                inner span owns the button skin because .lux-underline's
+                un-layered display:inline-block beats flex utilities
+                (the 44-b lesson). */}
+            <ElasticLink
+              href={href('/products')}
+              onClick={(e) => {
+                if (e.defaultPrevented) return
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+                e.preventDefault()
+                navigate('/products')
+              }}
+              className="rounded-md"
             >
-              <ArrowIcon className="me-2 size-4 rotate-180" aria-hidden="true" />
-              {t('cart.continueShopping')}
-            </Button>
+              <span className="inline-flex min-h-[44px] items-center gap-2 rounded-md border border-input bg-background px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
+                <ArrowIcon className="size-4 rotate-180" aria-hidden="true" />
+                {t('cart.continueShopping')}
+              </span>
+            </ElasticLink>
           </Reveal>
         </div>
 
@@ -229,11 +253,14 @@ export default function CartPage() {
 
 function CartRow({
   item,
+  position,
   exiting,
   onRemove,
   onQuantity,
 }: {
   item: CartItem
+  /** Visual position in the list (stagger ladder) — NOT the store index. */
+  position: number
   exiting: boolean
   onRemove: () => void
   onQuantity: (quantity: number) => void
@@ -248,16 +275,37 @@ function CartRow({
     days: item.days,
   })
 
+  /* Task 44-c — the removal exit: the row slides toward the READING
+     edge (RTL right / LTR left) while its box collapses (height → 0
+     together with padding and the space-y gap), so the rows below glide
+     up instead of jumping. The exit transition is target-scoped so the
+     mount stagger delay never delays a removal. */
+  const exitX = locale === 'ar' ? 56 : -56
+
   return (
     <motion.article
       layout
       initial={{ opacity: 0, y: 12 }}
       animate={
         exiting
-          ? { opacity: 0, x: locale === 'ar' ? 40 : -40, scale: 0.97 }
-          : { opacity: 1, x: 0, y: 0, scale: 1 }
+          ? {
+              opacity: 0,
+              x: exitX,
+              scale: 0.96,
+              height: 0,
+              paddingTop: 0,
+              paddingBottom: 0,
+              marginTop: 0,
+              transition: { duration: EXIT_DURATION_MS / 1000, ease: easeAccelerate },
+            }
+          : {
+              opacity: 1,
+              x: 0,
+              y: 0,
+              scale: 1,
+              transition: { duration: 0.45, ease: easeHouse, delay: position * 0.07 },
+            }
       }
-      transition={{ duration: EXIT_DURATION_MS / 1000, ease: [0.22, 1, 0.36, 1] }}
       className="flex gap-4 rounded-md border border-border bg-card p-4 shadow-sm"
     >
       {/* Image */}

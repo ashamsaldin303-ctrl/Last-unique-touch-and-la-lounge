@@ -34,7 +34,9 @@ import {
 import { PageHeader } from '@/components/shared/page-header'
 import { Reveal } from '@/components/shared/reveal'
 import { StaggerGroup } from '@/components/shared/upgrade'
-import { swapEnter, swapExit } from '@/lib/motion'
+import { swapEnter, swapExit, springSnappy } from '@/lib/motion'
+import { MorphNumber } from '@/components/fx/morph-number'
+import { PopOnMount } from '@/components/fx/badge-pop'
 import { ProductCard } from '@/components/shop/product-card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -174,6 +176,18 @@ export default function ProductsPage() {
   const totalPages = data?.totalPages ?? 1
   const showEmpty = !loading && !error && products.length === 0
 
+  /* Result-count node (Task 44-c): the figure rides MorphNumber — when a
+     filter changes, the count springs to the new total and every
+     intermediate frame is a grammatically-correct localized sentence
+     (resultCount truncates). The node stays mounted across re-fetches —
+     while a new load is in flight the PREVIOUS total is shown (no
+     loading flash), so the spring engages exactly when data lands. */
+  const countNode = error ? null : data === null ? (
+    t('common.loading')
+  ) : (
+    <MorphNumber value={data?.total ?? 0} format={(v) => resultCount(Math.round(v))} />
+  )
+
   return (
     <div className="relative mx-auto w-full max-w-7xl flex-1 px-4 pb-16 pt-24 sm:px-6 sm:pt-28">
       {/* Ambient gold backdrop (decorative) */}
@@ -202,7 +216,16 @@ export default function ProductsPage() {
                 />
               </div>
 
-              <div className="w-full sm:w-60">
+              {/* Task 44-c: the select pops on a snappy spring each time
+                  the sort changes (key-remount — the Select is
+                  value-controlled, so nothing else resets). */}
+              <motion.div
+                key={sort}
+                initial={{ scale: 0.97 }}
+                animate={{ scale: 1 }}
+                transition={springSnappy}
+                className="w-full sm:w-60"
+              >
                 <Select
                   value={sort}
                   onValueChange={(value) => {
@@ -224,7 +247,7 @@ export default function ProductsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </motion.div>
             </div>
 
             {/* Brand pills — storefront switcher (audit quick-win) */}
@@ -286,14 +309,14 @@ export default function ProductsPage() {
                       className="inline-block size-1.5 rotate-45 bg-gold/70"
                       aria-hidden="true"
                     />
-                    {loading ? t('common.loading') : resultCount(data?.total ?? 0)}
+                    {countNode}
                   </>
                 )}
               </span>
             </div>
             {/* Result count (mobile) */}
             <p className="mt-3 text-xs text-muted-foreground sm:hidden" aria-live="polite">
-              {error ? null : loading ? t('common.loading') : resultCount(data?.total ?? 0)}
+              {countNode}
             </p>
           </div>
         </Reveal>
@@ -402,7 +425,17 @@ function CategoryPill({
           aria-hidden="true"
         />
       )}
-      <span className="relative z-10">{label}</span>
+      {/* Task 44-c: the label pops on a snappy spring the moment its
+          pill activates (key-remount → the pop fires once per toggle). */}
+      <motion.span
+        key={active ? 'active' : 'idle'}
+        initial={{ scale: 0.82 }}
+        animate={{ scale: 1 }}
+        transition={springSnappy}
+        className="relative z-10"
+      >
+        {label}
+      </motion.span>
     </button>
   )
 }
@@ -445,8 +478,10 @@ function EmptyState({ onClear }: { onClear: () => void }) {
         aria-hidden="true"
         className="pointer-events-none absolute -top-8 left-1/2 h-48 w-72 -translate-x-1/2 rounded-full bg-gold/10 blur-3xl"
       />
-      <div className="relative mb-6 flex size-16 items-center justify-center rounded-full border border-gold/35 bg-gold/10">
-        <SearchX className="size-8 text-gold" aria-hidden="true" />
+      <div className="lux-float-y-soft relative mb-6 flex size-16 items-center justify-center rounded-full border border-gold/35 bg-gold/10">
+        <PopOnMount from={0.4}>
+          <SearchX className="size-8 text-gold" aria-hidden="true" />
+        </PopOnMount>
       </div>
       <h3 className="mb-2 font-display text-xl font-bold text-foreground">
         {t('products.empty.title')}

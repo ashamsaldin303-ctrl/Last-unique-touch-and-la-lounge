@@ -29,6 +29,8 @@ import { useRouter } from '@/lib/router'
 import { Reveal } from '@/components/shared/reveal'
 import { PageHeader } from '@/components/shared/page-header'
 import { SectionHeading, TiltCard, MagneticButton } from '@/components/shared/upgrade'
+import { BorderBeam } from '@/components/fx/border-beam'
+import { SpotlightCard } from '@/components/fx/spotlight-card'
 
 export default function LaLoungeEventPlanningPage() {
   const { t, locale, dir } = useI18n()
@@ -285,6 +287,16 @@ export default function LaLoungeEventPlanningPage() {
                         background: 'radial-gradient(circle at 70% 30%, rgba(230,0,126,0.38) 0%, transparent 55%)',
                       }}
                     />
+                    {/* BorderBeam (Task 44-d): a magenta beam orbits the
+                        "result" card's border ring every 8s — the after
+                        state literally reads as lit. Invisible on
+                        non-@property browsers and under reduced-motion. */}
+                    <BorderBeam
+                      duration={8}
+                      thickness={2.5}
+                      tint="rgba(230,0,126,0.95)"
+                      className="opacity-60"
+                    />
                     <div
                       aria-hidden="true"
                       className="absolute inset-0 opacity-20"
@@ -293,7 +305,15 @@ export default function LaLoungeEventPlanningPage() {
                           'repeating-linear-gradient(-25deg, rgba(230,0,126,0.5) 0, rgba(230,0,126,0.5) 1px, transparent 1px, transparent 26px)',
                       }}
                     />
-                    <div className="relative flex flex-col h-full">
+                    {/* SpotlightCard (Task 44-d): cursor-tracked magenta
+                        glow roams the content — the transformation's
+                        "aliveness". Not inside TiltCard (this card has
+                        none), so nothing double-paints. */}
+                    <SpotlightCard
+                      tint="rgba(230,0,126,0.12)"
+                      radius={300}
+                      className="relative flex flex-col h-full"
+                    >
                       <span
                         className={`inline-flex w-fit items-center rounded-full border border-primary/40 bg-primary/15 px-3 py-1 text-[0.65rem] font-medium text-primary mb-4${
                           locale === 'en' ? ' uppercase tracking-wider' : ''
@@ -303,7 +323,7 @@ export default function LaLoungeEventPlanningPage() {
                       </span>
                       <h3 className="font-display text-xl text-primary mb-2">{pair.afterName}</h3>
                       <p className="text-sm text-foreground/85 leading-relaxed">{pair.afterDesc}</p>
-                    </div>
+                    </SpotlightCard>
                   </article>
                 </div>
               </Reveal>

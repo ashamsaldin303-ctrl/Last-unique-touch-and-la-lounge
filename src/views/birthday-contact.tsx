@@ -22,6 +22,8 @@ import { useToast } from '@/hooks/use-toast'
 import { PageHeader } from '@/components/shared/page-header'
 import { Reveal } from '@/components/shared/reveal'
 import { TiltCard, MagneticButton } from '@/components/shared/upgrade'
+import { PopOnMount } from '@/components/fx/badge-pop'
+import { PulseDot } from '@/components/fx/pulse-dot'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -161,7 +163,9 @@ export default function BirthdayContactPage() {
     { icon: MapPin, label: t('contact.info.address'), value: t('contact.info.addressValue') },
     { icon: Phone, label: t('contact.info.phone'), value: t('contact.info.phoneValue'), ltr: true },
     { icon: Mail, label: t('contact.info.email'), value: t('contact.info.emailValue'), ltr: true },
-    { icon: Clock, label: t('contact.info.hours'), value: t('contact.info.hoursValue') },
+    /* hours = the availability row — Task 44-e gives it the live ping dot
+        (the maison is reachable during business hours). */
+    { icon: Clock, label: t('contact.info.hours'), value: t('contact.info.hoursValue'), live: true },
   ]
 
   return (
@@ -189,7 +193,10 @@ export default function BirthdayContactPage() {
               {submitted ? (
                 <div className="py-10 text-center">
                   <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-full border border-primary/30 bg-primary/15 text-primary">
-                    <CheckCircle2 className="size-10" />
+                    {/* Task 44-e: the success check pops in on a spring. */}
+                    <PopOnMount from={0.4}>
+                      <CheckCircle2 className="size-10" />
+                    </PopOnMount>
                   </div>
                   <h2 className="font-display mb-4 text-2xl text-foreground">
                     {t('contact.form.success')}
@@ -209,13 +216,17 @@ export default function BirthdayContactPage() {
                       role="alert"
                       className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
                     >
-                      <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                      {/* Task 44-e: the error icon pops in on a spring. */}
+                      <PopOnMount from={0.5}>
+                        <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                      </PopOnMount>
                       <span>{submitError}</span>
                     </div>
                   )}
 
-                  {/* name + email */}
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {/* name + email (Task 44-e: staggered field reveals) */}
+                  <Reveal delay={0.08}>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label htmlFor="bd-contact-name">{t('contact.form.name')}</Label>
                       <Input
@@ -270,9 +281,11 @@ export default function BirthdayContactPage() {
                       )}
                     </div>
                   </div>
+                  </Reveal>
 
-                  {/* phone + subject */}
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {/* phone + subject (staggered) */}
+                  <Reveal delay={0.16}>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label htmlFor="bd-contact-phone">{t('contact.form.phone')}</Label>
                       <Input
@@ -322,9 +335,11 @@ export default function BirthdayContactPage() {
                       )}
                     </div>
                   </div>
+                  </Reveal>
 
-                  {/* message */}
-                  <div className="space-y-1.5">
+                  {/* message (staggered) */}
+                  <Reveal delay={0.24}>
+                    <div className="space-y-1.5">
                     <Label htmlFor="bd-contact-message">{t('contact.form.message')}</Label>
                     <Textarea
                       id="bd-contact-message"
@@ -345,13 +360,16 @@ export default function BirthdayContactPage() {
                         {fieldErrors.message}
                       </p>
                     )}
-                  </div>
+                    </div>
+                  </Reveal>
 
                   {/* Upgrade: magnetic gold submit — fires requestSubmit so
                       validation + POST flow through the form's onSubmit.
                       disabled is the real attribute (a11y) — the magnetic
-                      styling ships its own disabled:opacity treatment. */}
-                  <MagneticButton
+                      styling ships its own disabled:opacity treatment.
+                      (Task 44-e: last rung of the field stagger ladder.) */}
+                  <Reveal delay={0.32}>
+                    <MagneticButton
                     onClick={() => formRef.current?.requestSubmit()}
                     disabled={submitting}
                     ariaLabel={t('contact.form.submit')}
@@ -369,6 +387,7 @@ export default function BirthdayContactPage() {
                       </>
                     )}
                   </MagneticButton>
+                  </Reveal>
                 </form>
               )}
             </div>
@@ -380,8 +399,19 @@ export default function BirthdayContactPage() {
               <Reveal key={card.label} delay={i * 0.08}>
                 <TiltCard className="rounded-2xl" max={5}>
                   <div className="lux-card glow-border card-lift flex items-center gap-4 rounded-2xl border border-border bg-card p-5">
-                    <span className="icon-ring flex size-12 shrink-0 items-center justify-center rounded-full border border-primary/35 bg-primary/10 text-primary">
+                    <span
+                      className={`icon-ring flex size-12 shrink-0 items-center justify-center rounded-full border border-primary/35 bg-primary/10 text-primary${
+                        card.live ? ' relative' : ''
+                      }`}
+                    >
                       <card.icon className="size-5" aria-hidden="true" />
+                      {card.live && (
+                        <PulseDot
+                          className="absolute -top-0.5 -end-0.5"
+                          tint="var(--color-gold)"
+                          size={7}
+                        />
+                      )}
                     </span>
                     <div className="min-w-0">
                       <p className="eyebrow mb-1 text-muted-foreground">{card.label}</p>

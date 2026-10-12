@@ -8,6 +8,8 @@
  * MAX_QUANTITY_PER_ITEM so the UI can never request what the store
  * would silently reject). A caller-supplied `max` (e.g. available
  * stock) is honoured but never allowed past the 100 hard cap.
+ * Task 44-c: the +/- buttons press in on tap (scale spring) — the
+ * odometer on the value is unchanged.
  */
 
 import { type KeyboardEvent, useState } from 'react'
@@ -85,15 +87,16 @@ export function QuantityStepper({
 
   return (
     <div className={cn('inline-flex items-center gap-1.5 sm:gap-2', className)}>
-      <button
+      <motion.button
         type="button"
         onClick={onDecrease}
         disabled={disabled || value <= min}
         aria-label={decreaseLabel}
+        whileTap={{ scale: 0.9 }}
         className={cn(btn, size)}
       >
         <Minus className={icon} aria-hidden="true" />
-      </button>
+      </motion.button>
       <span
         role="spinbutton"
         tabIndex={disabled ? -1 : 0}
@@ -125,15 +128,16 @@ export function QuantityStepper({
           </AnimatePresence>
         )}
       </span>
-      <button
+      <motion.button
         type="button"
         onClick={onIncrease}
         disabled={disabled || atMax}
         aria-label={increaseLabel}
+        whileTap={{ scale: 0.9 }}
         className={cn(btn, size)}
       >
         <Plus className={icon} aria-hidden="true" />
-      </button>
+      </motion.button>
     </div>
   )
 }

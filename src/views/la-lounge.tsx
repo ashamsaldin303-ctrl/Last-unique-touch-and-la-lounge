@@ -35,6 +35,12 @@ import {
 } from 'lucide-react'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { Reveal } from '@/components/shared/reveal'
+import { RotatingBadge } from '@/components/fx/rotating-badge'
+import { BorderBeam } from '@/components/fx/border-beam'
+import { ElasticLink } from '@/components/fx/elastic-underline'
+import { TextScramble } from '@/components/fx/text-scramble'
+import { ShimmerText } from '@/components/fx/shimmer-text'
+import { Diamond } from '@/components/fx/section-heading'
 import {
   SectionHeading,
   StatsBand,
@@ -68,7 +74,7 @@ const eyebrowTypo = (locale: Locale): CSSProperties =>
 
 export default function LaLoungePage() {
   const { t, locale } = useI18n()
-  const { navigate } = useRouter()
+  const { navigate, href } = useRouter()
 
   // Task 3: three La Lounge services, each linking to its own feature page.
   //   1. Custom Furniture Manufacturing   → /la-lounge/custom-furniture
@@ -165,7 +171,10 @@ export default function LaLoungePage() {
         <div className="relative z-10 flex flex-col items-center text-center px-4">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-primary text-xs" style={eyebrowTypo(locale)}>
-              {t('laLounge.eyebrow')}
+              {/* Task 44-d: the hero eyebrow DECODES (Latin) / blur-settles
+                  (Arabic); the typo style lives on the parent so
+                  letter-spacing inherits into the scramble span. */}
+              <TextScramble text={t('laLounge.eyebrow')} delay={0.2} />
             </span>
           </div>
 
@@ -243,14 +252,28 @@ export default function LaLoungePage() {
                           </li>
                         ))}
                       </ul>
-                      {/* Task 3a: "Learn More" button → service feature page */}
-                      <button
-                        onClick={() => navigate(service.href)}
-                        className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-5 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground cursor-pointer"
+                      {/* Task 3a + 44-d: "Learn More" is now an ElasticLink
+                          — the champagne hairline DRAWS from the reading
+                          edge on hover/focus. The router contract matches
+                          the navbar: plain left clicks are intercepted and
+                          routed; modified/middle clicks fall through to the
+                          native hash anchor. `inline-flex!` restores flex
+                          layout (lux-underline's un-layered
+                          display:inline-block would otherwise beat the
+                          layered utility and drop the gap/centering). */}
+                      <ElasticLink
+                        href={href(service.href)}
+                        onClick={(e) => {
+                          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)
+                            return
+                          e.preventDefault()
+                          navigate(service.href)
+                        }}
+                        className="mt-6 inline-flex! min-h-11 items-center justify-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-5 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
                       >
                         {t('laLounge.learnMore')}
                         <ArrowIcon className="size-3.5" aria-hidden="true" />
-                      </button>
+                      </ElasticLink>
                     </div>
                   </TiltCard>
                 </Reveal>
@@ -301,31 +324,67 @@ export default function LaLoungePage() {
       <section className="relative z-10 bg-background py-16 sm:py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <Reveal>
-            <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card p-8 sm:p-12 text-center card-lift glow-border">
+            {/* Relative stage (Task 44-d) — hosts the glass card AND lets
+                the maison seal breach the card's top edge: the card clips
+                overflow for its rounded corners, so the seal is a sibling,
+                never a child. */}
+            <div className="relative">
+              {/* La Lounge seal — ONE scroll-linked rotating ring per brand
+                  (Latin house text on a textPath, house Diamond at the
+                  center). Decorative (aria-hidden), hidden below sm, gentle
+                  float, never blocks the pointer. */}
               <div
                 aria-hidden="true"
-                className="absolute inset-0 opacity-[0.35]"
-                style={{
-                  background:
-                    'radial-gradient(ellipse 60% 80% at 20% 0%, color-mix(in srgb, var(--color-primary) 14%, transparent), transparent 70%), radial-gradient(ellipse 50% 70% at 90% 100%, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 70%)',
-                }}
-              />
-              <h2 className="relative font-display text-2xl sm:text-3xl text-foreground mb-3">
-                {t('laLounge.cta.title')}
-              </h2>
-              <p className="relative text-sm sm:text-base text-muted-foreground max-w-xl mx-auto mb-6">
-                {t('laLounge.cta.subtitle')}
-              </p>
-              <MagneticButton
-                onClick={() => navigate('/la-lounge/contact')}
-                className={`bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_4px_20px_rgba(230,0,126,0.35)] min-h-11${
-                  locale === 'en' ? ' tracking-wide' : ''
-                }`}
-                ariaLabel={t('laLounge.contactButton')}
+                className="lux-float-y-soft pointer-events-none absolute -top-10 end-6 z-20 hidden sm:block"
               >
-                {t('laLounge.contactButton')}
-                <ArrowIcon className="size-4" aria-hidden="true" />
-              </MagneticButton>
+                <RotatingBadge
+                  text="LA LOUNGE · MAISON ·"
+                  size={112}
+                  scrollLinked
+                  className="text-primary/70"
+                >
+                  <Diamond className="h-2.5 w-2.5" />
+                </RotatingBadge>
+              </div>
+              <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-card p-8 sm:p-12 text-center card-lift glow-border">
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 opacity-[0.35]"
+                  style={{
+                    background:
+                      'radial-gradient(ellipse 60% 80% at 20% 0%, color-mix(in srgb, var(--color-primary) 14%, transparent), transparent 70%), radial-gradient(ellipse 50% 70% at 90% 100%, color-mix(in srgb, var(--color-primary) 10%, transparent), transparent 70%)',
+                  }}
+                />
+                {/* BorderBeam (Task 44-d): a magenta beam orbits the card's
+                    border ring every 8s — the card reads as a lit vitrine.
+                    Degrades to invisible on non-@property browsers and
+                    under reduced-motion. */}
+                <BorderBeam
+                  duration={8}
+                  thickness={2.5}
+                  tint="rgba(230,0,126,0.95)"
+                  className="opacity-70"
+                />
+                <h2 className="relative font-display text-2xl sm:text-3xl text-foreground mb-3">
+                  {/* Task 44-d: the closing statement takes one champagne
+                      gloss sweep on view-entry (light over ink — joined
+                      Arabic glyphs untouched). */}
+                  <ShimmerText>{t('laLounge.cta.title')}</ShimmerText>
+                </h2>
+                <p className="relative text-sm sm:text-base text-muted-foreground max-w-xl mx-auto mb-6">
+                  {t('laLounge.cta.subtitle')}
+                </p>
+                <MagneticButton
+                  onClick={() => navigate('/la-lounge/contact')}
+                  className={`bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_4px_20px_rgba(230,0,126,0.35)] min-h-11${
+                    locale === 'en' ? ' tracking-wide' : ''
+                  }`}
+                  ariaLabel={t('laLounge.contactButton')}
+                >
+                  {t('laLounge.contactButton')}
+                  <ArrowIcon className="size-4" aria-hidden="true" />
+                </MagneticButton>
+              </div>
             </div>
           </Reveal>
         </div>

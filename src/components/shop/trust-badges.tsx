@@ -5,10 +5,15 @@
  * delivery, insurance, deposit refund, curated quality.
  * CATALOG LAYER: gold-edge glass cards that rise + draw their top
  * gold hairline on hover, with icon-ring pulses.
+ * Task 44-c: the icon rings pop in on a staggered snappy spring when
+ * the row scrolls into view (whileInView — a mount pop would fire
+ * below the fold and never be seen, the 44-a lesson).
  */
 
 import { Truck, ShieldCheck, RotateCcw, Award } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { useI18n } from '@/lib/i18n'
+import { springSnappy } from '@/lib/motion'
 import { Reveal } from '@/components/shared/reveal'
 
 export function TrustBadges() {
@@ -28,12 +33,16 @@ export function TrustBadges() {
         return (
           <Reveal key={badge.label} delay={idx * 0.07}>
             <div className="trust-edge group/trust glass-card flex h-full items-center gap-3 rounded-md p-4 transition-transform duration-300">
-              <div
+              <motion.div
+                initial={{ scale: 0.3, opacity: 0 }}
+                whileInView={{ scale: 1, opacity: 1 }}
+                viewport={{ once: true, amount: 0.6 }}
+                transition={{ ...springSnappy, delay: idx * 0.08 }}
                 className="icon-ring flex size-10 shrink-0 items-center justify-center rounded-full border border-gold/30 bg-gold/5 transition-colors duration-300 group-hover/trust:border-gold/50"
                 aria-hidden="true"
               >
                 <Icon className="size-5 text-gold" />
-              </div>
+              </motion.div>
               <span className="text-xs font-medium leading-tight text-foreground">
                 {badge.label}
               </span>

@@ -29,6 +29,13 @@ import { fetchProducts, formatKwd, localizedName, type ProductDTO } from '@/lib/
 import { BookingModal } from '@/components/birthday/booking-modal'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { Reveal } from '@/components/shared/reveal'
+import { KenBurns } from '@/components/fx/ken-burns'
+import { ClipReveal } from '@/components/fx/clip-reveal'
+import { RotatingBadge } from '@/components/fx/rotating-badge'
+import { BorderBeam } from '@/components/fx/border-beam'
+import { ShimmerText } from '@/components/fx/shimmer-text'
+import { TextScramble } from '@/components/fx/text-scramble'
+import { Diamond } from '@/components/fx/section-heading'
 import {
   TiltCard,
   MagneticButton,
@@ -287,6 +294,26 @@ export default function BirthdayPage() {
           {/* Gradient overlay */}
           <div className="absolute inset-0 z-1 bg-gradient-to-t from-transparent via-transparent to-transparent pointer-events-none" />
 
+          {/* Birthday seal (Task 44-e) — ONE scroll-linked rotating ring:
+              Latin house text on a textPath, house Diamond at the center.
+              Decorative (aria-hidden), hidden below sm so the mobile hero
+              stays a clean centered composition; floats gently and never
+              blocks the pointer. Sits INSIDE the hero bounds (the hero
+              clips overflow) above the 3D scene. */}
+          <div
+            aria-hidden="true"
+            className="lux-float-y-soft pointer-events-none absolute bottom-24 end-6 sm:end-12 z-10 hidden sm:block"
+          >
+            <RotatingBadge
+              text="YOUR BIRTHDAY · KUWAIT ·"
+              size={104}
+              scrollLinked
+              className="text-gold/70"
+            >
+              <Diamond className="h-2.5 w-2.5" />
+            </RotatingBadge>
+          </div>
+
           {/* Content */}
           <div className="relative z-10 max-w-4xl mx-auto px-4 text-center pointer-events-none">
             <div className="pointer-events-auto mt-16 md:mt-0">
@@ -299,7 +326,9 @@ export default function BirthdayPage() {
                   }`}
                   style={isRTL ? { wordSpacing: '0.3em' } : undefined}
                 >
-                  {t('yourBirthday.hero.tagline')}
+                  {/* Task 44-e: the tagline eyebrow DECODES (Latin) /
+                      blur-settles (Arabic) as the hero enters view. */}
+                  <TextScramble text={t('yourBirthday.hero.tagline')} delay={0.35} />
                 </span>
               </div>
 
@@ -629,21 +658,40 @@ export default function BirthdayPage() {
             />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {GALLERY.map((item) => {
+              {GALLERY.map((item, i) => {
                 const label = galleryItems[item.n - 1] ?? ''
                 return (
-                  <div
+                  /* Task 44-e: each plate enters via ClipReveal (the poster
+                     punches out of its crop) on a per-column stagger; the
+                     image itself breathes on KenBurns and keeps its
+                     group-hover zoom — separate elements, so the transforms
+                     multiply instead of fighting. */
+                  <ClipReveal
                     key={item.n}
-                    className="aspect-square rounded-lg overflow-hidden group relative border border-white/5 shadow-lg"
+                    delay={(i % 3) * 0.12}
+                    duration={0.95}
+                    className="aspect-square rounded-lg border border-white/5 shadow-lg group"
                   >
-                    {/* Product image */}
-                    <Image
-                      src={item.img}
-                      alt={label}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
+                    {/* Product image — ambient KenBurns (variant alternates
+                        so neighbouring plates drift in counter-phase) */}
+                    <KenBurns
+                      className="absolute inset-0"
+                      duration={26}
+                      scale={1.1}
+                      variant={i % 2 === 0 ? 'a' : 'b'}
+                    >
+                      {/* relative shim — keeps next/image's fill parent
+                          check quiet (dev console hygiene) */}
+                      <div className="relative h-full w-full">
+                        <Image
+                          src={item.img}
+                          alt={label}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                      </div>
+                    </KenBurns>
 
                     {/* Decorative gradient overlay */}
                     <div
@@ -666,7 +714,7 @@ export default function BirthdayPage() {
                     </div>
 
                     <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors" />
-                  </div>
+                  </ClipReveal>
                 )
               })}
             </div>
@@ -703,6 +751,16 @@ export default function BirthdayPage() {
                   'linear-gradient(135deg, rgba(245, 185, 20, 0.08), rgba(255, 209, 71, 0.08), rgba(201, 149, 14, 0.08))',
               }}
             >
+              {/* Task 44-e: a birthday-gold light beam endlessly orbits the
+                  CTA ring (inside the overflow-hidden card so the rounded
+                  corners clip it). */}
+              <BorderBeam
+                duration={8}
+                thickness={2.5}
+                tint="rgba(255, 204, 0, 0.9)"
+                className="opacity-70"
+              />
+
               {/* Pulsing neon circles in background */}
               <div className="absolute -start-20 -bottom-20 w-60 h-60 rounded-full bg-[var(--c-birthday-gold)] opacity-10 blur-[80px]" />
               <div className="absolute -end-20 -top-20 w-60 h-60 rounded-full bg-[var(--c-birthday-gold-light)] opacity-10 blur-[80px]" />
@@ -724,7 +782,11 @@ export default function BirthdayPage() {
                 {t('yourBirthday.cta.title')}
               </h2>
               <p className="text-white/75 mb-8 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-                {t('yourBirthday.cta.subtitle')}
+                {/* Task 44-e: the closing statement gets the champagne gloss
+                    (ShimmerText) — on the subtitle, because the h2's inline
+                    gradient + transparent text-fill would fight the shimmer's
+                    own background-clip (light over ink needs a plain ink). */}
+                <ShimmerText>{t('yourBirthday.cta.subtitle')}</ShimmerText>
               </p>
               <MagneticButton
                 onClick={() => openBooking(t('yourBirthday.booking.bookEvent'))}

@@ -37,6 +37,10 @@ import {
 import { LutArabesque } from '@/components/brand/lut-arabesque'
 import { ErrorBoundary } from '@/components/ui/error-boundary'
 import { Reveal } from '@/components/shared/reveal'
+import { KenBurns } from '@/components/fx/ken-burns'
+import { RotatingBadge } from '@/components/fx/rotating-badge'
+import { TextScramble } from '@/components/fx/text-scramble'
+import { Diamond } from '@/components/fx/section-heading'
 import {
   SectionHeading,
   StatsBand,
@@ -184,6 +188,26 @@ export default function LutPage() {
           className="pointer-events-none absolute inset-0 z-[2] h-full w-full opacity-60"
         />
 
+        {/* LUT seal (Task 44-d) — ONE scroll-linked rotating ring per
+            brand: Latin house text on a textPath, house Diamond at the
+            center. Decorative (aria-hidden), hidden below sm so the mobile
+            hero stays a clean centered composition; floats gently and
+            never blocks the pointer. Sits INSIDE the hero bounds (the hero
+            clips overflow) above the arabesque layer. */}
+        <div
+          aria-hidden="true"
+          className="lux-float-y-soft pointer-events-none absolute bottom-24 end-6 sm:end-12 z-10 hidden sm:block"
+        >
+          <RotatingBadge
+            text="LAST UNIQUE TOUCH · KUWAIT ·"
+            size={104}
+            scrollLinked
+            className="text-gold/70"
+          >
+            <Diamond className="h-2.5 w-2.5" />
+          </RotatingBadge>
+        </div>
+
         {/* Centered title */}
         <div className="relative z-10 flex flex-col items-center text-center px-4">
           <div
@@ -191,9 +215,13 @@ export default function LutPage() {
             style={{ animationDelay: '0.2s', textShadow: '0 1px 10px rgba(10,9,8,0.5)' }}
           >
             <span className="w-6 sm:w-8 h-px bg-gold/50" />
-            <span className="eyebrow text-gold/80 text-[10px] sm:text-xs">
-              {t('lut.eyebrow')}
-            </span>
+            {/* Task 44-d: the hero eyebrow DECODES (Latin) / blur-settles
+                (Arabic — TextScramble auto-detects joined script). */}
+            <TextScramble
+              text={t('lut.eyebrow')}
+              delay={0.35}
+              className="eyebrow text-gold/80 text-[10px] sm:text-xs"
+            />
             <span className="w-6 sm:w-8 h-px bg-gold/50" />
           </div>
 
@@ -260,8 +288,11 @@ export default function LutPage() {
               return (
                 <Reveal key={service.title} delay={i * 0.12}>
                   <TiltCard className="h-full rounded-lg">
-                    <div className="glow-border card-lift glass-panel h-full rounded-lg p-8 text-center">
-                      <div className="icon-ring w-14 h-14 rounded-full bg-gold/10 flex items-center justify-center mx-auto mb-5 transition-transform duration-500 hover:rotate-6 hover:scale-110">
+                    {/* `group` (Task 44-d): the icon ring reacts to a hover
+                        anywhere on the card, not just on the ring itself —
+                        the card reads as one surface. */}
+                    <div className="glow-border card-lift glass-panel group h-full rounded-lg p-8 text-center">
+                      <div className="icon-ring w-14 h-14 rounded-full bg-gold/10 flex items-center justify-center mx-auto mb-5 transition-transform duration-500 group-hover:rotate-6 group-hover:scale-110">
                         <Icon className="w-7 h-7 text-gold" strokeWidth={1.6} aria-hidden="true" />
                       </div>
                       <h3 className="font-display text-xl text-paper mb-3">{service.title}</h3>
@@ -338,7 +369,7 @@ export default function LutPage() {
           {collectionStatus === 'ready' && collection.length > 0 && (
             <>
               <StaggerGroup className="snap-strip" fullCells={false}>
-                {collection.map((product) => {
+                {collection.map((product, i) => {
                   const name = localizedName(product, locale)
                   const img = firstImage(product.images)
                   const outOfStock = product.stock === 0
@@ -352,13 +383,29 @@ export default function LutPage() {
                     >
                       <div className="relative aspect-[4/3] overflow-hidden bg-black/40">
                         {img ? (
-                          <Image
-                            src={img}
-                            alt={name}
-                            fill
-                            sizes="264px"
-                            className="object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
+                          /* Task 44-d: the strip imagery breathes — KenBurns
+                             ambient zoom+drift inside each card's mask
+                             (variants alternate so neighbors don't sync).
+                             The relative shim keeps next/image `fill`'s
+                             direct parent positioned; the img's own
+                             group-hover zoom is a nested CSS transform —
+                             they multiply instead of fighting. */
+                          <KenBurns
+                            className="absolute inset-0"
+                            duration={26}
+                            scale={1.1}
+                            variant={i % 2 === 0 ? 'a' : 'b'}
+                          >
+                            <div className="relative h-full w-full">
+                              <Image
+                                src={img}
+                                alt={name}
+                                fill
+                                sizes="264px"
+                                className="object-cover transition-transform duration-500 group-hover:scale-105"
+                              />
+                            </div>
+                          </KenBurns>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xs text-paper/40">
                             {t('common.noImage')}

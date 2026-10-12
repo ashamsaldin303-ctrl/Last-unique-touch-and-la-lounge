@@ -29,8 +29,12 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useI18n } from '@/lib/i18n'
+import { easeExpoOut } from '@/lib/motion'
 import { Reveal } from '@/components/shared/reveal'
 import { TiltCard, MagneticButton } from '@/components/shared/upgrade'
+import { PopOnMount } from '@/components/fx/badge-pop'
+import { PulseDot } from '@/components/fx/pulse-dot'
+import { TextScramble } from '@/components/fx/text-scramble'
 import { useToast } from '@/hooks/use-toast'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -175,7 +179,11 @@ export default function LaLoungeContactPage() {
           <Reveal className="mb-12">
             <div className="flex items-center gap-2 mb-4">
               <span className="h-px w-8 bg-primary/50" aria-hidden="true" />
-              <span className="eyebrow text-primary">{t('brandSelector.lalounge.name')}</span>
+              {/* Task 44-d: the brand eyebrow DECODES ("La Lounge" is
+                  Latin) / blur-settles for joined scripts. */}
+              <span className="eyebrow text-primary">
+                <TextScramble text={t('brandSelector.lalounge.name')} delay={0.2} />
+              </span>
               <span className="h-px w-8 bg-primary/50" aria-hidden="true" />
             </div>
             <h1 className="font-display text-4xl md:text-5xl font-bold text-foreground mb-4">
@@ -184,7 +192,18 @@ export default function LaLoungeContactPage() {
             <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
               {t('contact.subtitle')}
             </p>
-            <div className="gold-divider w-40 mt-8" aria-hidden="true" />
+            {/* Task 44-d: the gold rule (with its diamond) draws itself
+                outward from the center once in view — same treatment the
+                shared PageHeader gives every other page. */}
+            <motion.div
+              aria-hidden="true"
+              className="gold-divider w-40 mt-8"
+              initial={{ scaleX: 0, opacity: 0 }}
+              whileInView={{ scaleX: 1, opacity: 1 }}
+              viewport={{ once: true, margin: '-8% 0px' }}
+              transition={{ duration: 1, ease: easeExpoOut, delay: 0.5 }}
+              style={{ transformOrigin: 'center' }}
+            />
           </Reveal>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -198,7 +217,11 @@ export default function LaLoungeContactPage() {
                     transition={{ type: 'spring', stiffness: 220, damping: 15 }}
                     className="mx-auto mb-6 flex size-16 items-center justify-center rounded-full bg-primary/15 border border-primary/40 shadow-[0_10px_30px_-10px_rgba(230,0,126,0.6)]"
                   >
-                    <CheckCircle2 className="size-9 text-primary" aria-hidden="true" />
+                    {/* Task 44-d: the success check pops on mount (layered
+                        inside the medallion's own spring). */}
+                    <PopOnMount from={0.3}>
+                      <CheckCircle2 className="size-9 text-primary" aria-hidden="true" />
+                    </PopOnMount>
                   </motion.div>
                   <h2
                     ref={successRef}
@@ -222,13 +245,18 @@ export default function LaLoungeContactPage() {
                       role="alert"
                       className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-sm"
                     >
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                      {/* Task 44-d: the error state POPS in. */}
+                      <PopOnMount className="mt-0.5 shrink-0">
+                        <AlertCircle className="w-4 h-4" aria-hidden="true" />
+                      </PopOnMount>
                       <span>{submitError}</span>
                     </div>
                   )}
 
-                  {/* Name + Email */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Name + Email (Task 44-d: staggered field reveal —
+                      mirrors lut-contact) */}
+                  <Reveal delay={0.08}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="name">{t('contact.form.name')}</Label>
                       <Input
@@ -268,9 +296,11 @@ export default function LaLoungeContactPage() {
                       )}
                     </div>
                   </div>
+                  </Reveal>
 
-                  {/* Phone + Subject */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Phone + Subject (staggered) */}
+                  <Reveal delay={0.16}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="phone">{t('contact.form.phone')}</Label>
                       <Input
@@ -309,9 +339,11 @@ export default function LaLoungeContactPage() {
                       )}
                     </div>
                   </div>
+                  </Reveal>
 
-                  {/* Message */}
-                  <div className="space-y-1.5">
+                  {/* Message (staggered) */}
+                  <Reveal delay={0.24}>
+                    <div className="space-y-1.5">
                     <Label htmlFor="message">{t('contact.form.message')}</Label>
                     <Textarea
                       id="message"
@@ -329,25 +361,29 @@ export default function LaLoungeContactPage() {
                       </p>
                     )}
                   </div>
+                  </Reveal>
 
                   {/* Submit — magnetic button (type submit keeps the RHF
                       form flow: onClick is absent so the native form
-                      submission drives handleSubmit(onSubmit)). */}
-                  <MagneticButton
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full min-h-12 py-3 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_12px_40px_-8px_rgba(230,0,126,0.35)]"
-                    ariaLabel={t('contact.form.submit')}
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                        {t('contact.form.submitting')}
-                      </>
-                    ) : (
-                      t('contact.form.submit')
-                    )}
-                  </MagneticButton>
+                      submission drives handleSubmit(onSubmit)). Staggered
+                      in last (Task 44-d). */}
+                  <Reveal delay={0.32}>
+                    <MagneticButton
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full min-h-12 py-3 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_12px_40px_-8px_rgba(230,0,126,0.35)]"
+                      ariaLabel={t('contact.form.submit')}
+                    >
+                      {submitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                          {t('contact.form.submitting')}
+                        </>
+                      ) : (
+                        t('contact.form.submit')
+                      )}
+                    </MagneticButton>
+                  </Reveal>
                 </form>
               )}
             </Reveal>
@@ -393,9 +429,13 @@ export default function LaLoungeContactPage() {
                         rel="noopener noreferrer"
                         whileHover={{ y: -3, scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="flex size-11 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-foreground transition-colors hover:bg-primary hover:text-primary-foreground hover:border-primary no-underline"
+                        className="relative flex size-11 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-foreground transition-colors hover:bg-primary hover:text-primary-foreground hover:border-primary no-underline"
                         aria-label={t('contact.info.whatsapp')}
                       >
+                        {/* Task 44-d: WhatsApp is an always-online channel —
+                            the availability ping marks the button as
+                            "reachable now" (decorative, no new copy). */}
+                        <PulseDot tint="var(--color-primary)" size={8} className="absolute -top-0.5 -end-0.5" />
                         <MessageCircle className="size-5" aria-hidden="true" />
                       </motion.a>
                       <motion.a

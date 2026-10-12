@@ -30,6 +30,9 @@ import {
 import { useI18n } from '@/lib/i18n'
 import { Reveal } from '@/components/shared/reveal'
 import { PageHeader } from '@/components/shared/page-header'
+import { PopOnMount } from '@/components/fx/badge-pop'
+import { SpotlightCard } from '@/components/fx/spotlight-card'
+import { PulseDot } from '@/components/fx/pulse-dot'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -193,7 +196,10 @@ export default function ContactPage() {
                     className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary/70 to-transparent"
                   />
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-primary)_25%,transparent)]">
-                    <CheckCircle2 className="size-8 text-primary" aria-hidden="true" />
+                    {/* Task 44-e: the success check pops in on a spring. */}
+                    <PopOnMount from={0.4}>
+                      <CheckCircle2 className="size-8 text-primary" aria-hidden="true" />
+                    </PopOnMount>
                   </div>
                   <h2 className="font-display text-2xl sm:text-3xl text-foreground mb-5 leading-relaxed">
                     {t('contact.form.success')}
@@ -230,8 +236,9 @@ export default function ContactPage() {
                     </div>
                   )}
 
-                  {/* Name + Email */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Name + Email (Task 44-e: staggered field reveals) */}
+                  <Reveal delay={0.08}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="name" className="text-sm font-medium">
                         {t('contact.form.name')}
@@ -285,9 +292,11 @@ export default function ContactPage() {
                       )}
                     </div>
                   </div>
+                  </Reveal>
 
-                  {/* Phone + Subject */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Phone + Subject (staggered) */}
+                  <Reveal delay={0.16}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <Label htmlFor="phone" className="text-sm font-medium">
                         {t('contact.form.phone')}
@@ -334,9 +343,11 @@ export default function ContactPage() {
                       )}
                     </div>
                   </div>
+                  </Reveal>
 
-                  {/* Message */}
-                  <div className="space-y-1.5">
+                  {/* Message (staggered) */}
+                  <Reveal delay={0.24}>
+                    <div className="space-y-1.5">
                     <Label htmlFor="message" className="text-sm font-medium">
                       {t('contact.form.message')}
                     </Label>
@@ -361,22 +372,25 @@ export default function ContactPage() {
                       </p>
                     )}
                   </div>
+                  </Reveal>
 
-                  {/* Submit */}
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="btn-lux w-full h-12 text-base font-semibold rounded-xl disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="size-4 me-2 animate-spin" aria-hidden="true" />
-                        {t('contact.form.submitting')}
-                      </>
-                    ) : (
-                      t('contact.form.submit')
-                    )}
-                  </Button>
+                  {/* Submit (last rung of the stagger ladder) */}
+                  <Reveal delay={0.32}>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="btn-lux w-full h-12 text-base font-semibold rounded-xl disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="size-4 me-2 animate-spin" aria-hidden="true" />
+                          {t('contact.form.submitting')}
+                        </>
+                      ) : (
+                        t('contact.form.submit')
+                      )}
+                    </Button>
+                  </Reveal>
                 </form>
               </Reveal>
             )}
@@ -388,7 +402,9 @@ export default function ContactPage() {
               const Icon = info.icon
               return (
                 <Reveal key={info.label} delay={idx * 0.08}>
-                  <div className="glass-card lux-card rounded-2xl p-5 flex items-start gap-4">
+                  {/* Task 44-e: the champagne spotlight roams each info
+                      card, tracking the cursor (hover-only, touch-safe). */}
+                  <SpotlightCard className="glass-card lux-card rounded-2xl p-5 flex items-start gap-4">
                     <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-primary)_25%,transparent)]">
                       <Icon className="size-5 text-gold" aria-hidden="true" />
                     </div>
@@ -398,7 +414,7 @@ export default function ContactPage() {
                         {info.value}
                       </p>
                     </div>
-                  </div>
+                  </SpotlightCard>
                 </Reveal>
               )
             })}
@@ -423,10 +439,17 @@ export default function ContactPage() {
                     className="group flex items-center gap-3.5 rounded-xl border border-transparent p-2.5 transition-colors duration-300 hover:border-gold/25 hover:bg-gold/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span
-                      className="flex w-11 h-11 shrink-0 items-center justify-center rounded-full text-white transition-transform duration-300 group-hover:scale-110"
+                      className="relative flex w-11 h-11 shrink-0 items-center justify-center rounded-full text-white transition-transform duration-300 group-hover:scale-110"
                       style={{ backgroundColor: '#25D366', boxShadow: '0 8px 20px -6px rgba(37, 211, 102, 0.45)' }}
                     >
                       <MessageCircle className="size-5" aria-hidden="true" />
+                      {/* Task 44-e: WhatsApp = always-online channel — the
+                          gold ping dot marks the row live. */}
+                      <PulseDot
+                        className="absolute -top-0.5 -end-0.5"
+                        tint="var(--color-gold)"
+                        size={7}
+                      />
                     </span>
                     <span className="flex flex-col items-start gap-0.5">
                       <span className="text-sm font-semibold text-foreground transition-colors group-hover:text-gold">

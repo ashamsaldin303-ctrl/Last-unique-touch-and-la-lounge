@@ -19,6 +19,7 @@ import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import { routeVariants } from '@/lib/motion'
 import { BootCurtain } from '@/components/fx/boot-curtain'
 import { BloomProvider } from '@/components/fx/bloom-zoom'
+import { Grain } from '@/components/fx/grain'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useI18n } from '@/lib/i18n'
 import { useCart } from '@/lib/cart-store'
@@ -268,6 +269,7 @@ function AppShell() {
       <BackToTop />
       <CursorGlow />
       <SpotlightField />
+      <Grain />
       <BootCurtain />
       </BloomProvider>
     </div>

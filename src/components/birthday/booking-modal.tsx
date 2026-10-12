@@ -13,8 +13,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
+import { motion } from 'framer-motion'
 import { useI18n } from '@/lib/i18n'
 import { useToast } from '@/hooks/use-toast'
+import { springGentle, easeExpoOut } from '@/lib/motion'
+import { PopOnMount } from '@/components/fx/badge-pop'
 import {
   Dialog,
   DialogClose,
@@ -105,6 +108,14 @@ const KNOWN_ERROR_CODES = [
   'duplicate_request',
   'internal_error',
 ] as const
+
+/* Task 44-e: inner-content stagger — each block of the dialog body rises
+   in 0.05s apart behind the card's spring entrance. */
+const staggerItem = (delay: number) => ({
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.45, ease: easeExpoOut, delay },
+})
 
 export function BookingModal({ open, onOpenChange, selectedPackage = null }: BookingModalProps) {
   const { t } = useI18n()
@@ -240,10 +251,17 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-md gap-0 overflow-y-auto max-h-[90dvh] border-primary/30 bg-card p-6 sm:p-8"
+        className="max-w-md gap-0 overflow-y-auto max-h-[90dvh] border-primary/30 bg-card p-6 sm:p-8 data-[state=open]:duration-0"
         showCloseButton={false}
         dir="auto"
       >
+        {/* Task 44-e — dialog entrance upgrade: the shared Radix shell keeps
+            ALL its a11y (focus trap, aria-modal, Escape — native to
+            DialogPrimitive) and its exit animation; `data-[state=open]:duration-0`
+            neutralizes only the OPEN-side CSS zoom/slide (it runs for 0ms) so
+            the framer spring below owns the entrance: scale .96→1 + y 24→0 on
+            springGentle. The backdrop fade (DialogOverlay, 300ms) is
+            untouched. */}
         {/* Localized close button — the shared DialogContent fallback label
             is hardcoded English (Arabic-first app); same position/styling as
             the default one it replaces. */}
@@ -264,9 +282,18 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
         />
 
         {success ? (
-          <div className="relative space-y-4 py-8 text-center">
+          <motion.div
+            initial={{ scale: 0.96, y: 24, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            transition={springGentle}
+            className="relative space-y-4 py-8 text-center"
+          >
             <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary/15 border border-primary/30 text-primary">
-              <CheckCircle2 className="size-10 animate-pulse" />
+              {/* Task 44-e: the success medallion pops in on a spring,
+                  layered inside the existing pulse. */}
+              <PopOnMount from={0.4}>
+                <CheckCircle2 className="size-10 animate-pulse" />
+              </PopOnMount>
             </div>
             <DialogHeader className="space-y-2">
               <DialogTitle className="font-display text-2xl text-foreground">
@@ -276,9 +303,17 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
                 {t('yourBirthday.booking.success.body')}
               </DialogDescription>
             </DialogHeader>
-          </div>
+          </motion.div>
         ) : (
-          <form onSubmit={handleSubmit} className="relative space-y-5" noValidate>
+          <motion.form
+            onSubmit={handleSubmit}
+            className="relative space-y-5"
+            noValidate
+            initial={{ scale: 0.96, y: 24, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            transition={springGentle}
+          >
+            <motion.div {...staggerItem(0.05)}>
             <DialogHeader className="space-y-1 text-start">
               <DialogTitle className="flex items-center gap-3 text-start leading-snug">
                 <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/15 border border-primary/40 text-primary">
@@ -298,8 +333,9 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
                 </DialogDescription>
               )}
             </DialogHeader>
+            </motion.div>
 
-            <div className="space-y-4">
+            <motion.div className="space-y-4" {...staggerItem(0.1)}>
               {/* Name */}
               <div className="space-y-1.5">
                 <Label htmlFor="birthday-booking-name" className="text-foreground">
@@ -411,10 +447,19 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
                   {t('yourBirthday.booking.form.eventDate')}
                 </Label>
                 <div className="relative">
-                  <CalendarDays
-                    aria-hidden="true"
-                    className="pointer-events-none absolute top-1/2 -translate-y-1/2 start-3 size-4 text-muted-foreground"
-                  />
+                  {/* Task 44-e: the calendar glyph pops on every date
+                      selection (the field's "chip") — keyed by value so each
+                      pick re-fires the spring; the wrapper keeps the
+                      absolute + translate positioning framer would
+                      otherwise overwrite. */}
+                  <span className="pointer-events-none absolute top-1/2 -translate-y-1/2 start-3 flex items-center justify-center">
+                    <PopOnMount key={form.eventDate || 'empty'} from={0.55}>
+                      <CalendarDays
+                        aria-hidden="true"
+                        className="size-4 text-muted-foreground"
+                      />
+                    </PopOnMount>
+                  </span>
                   <Input
                     id="birthday-booking-date"
                     type="date"
@@ -487,8 +532,9 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
                   className="bg-background min-h-11"
                 />
               </div>
-            </div>
+            </motion.div>
 
+            <motion.div {...staggerItem(0.15)}>
             <Button
               type="submit"
               disabled={submitting}
@@ -503,12 +549,16 @@ export function BookingModal({ open, onOpenChange, selectedPackage = null }: Boo
                 t('yourBirthday.booking.submit')
               )}
             </Button>
+            </motion.div>
 
-            <p className="flex items-center justify-center gap-1.5 text-[0.7rem] text-muted-foreground">
+            <motion.p
+              {...staggerItem(0.2)}
+              className="flex items-center justify-center gap-1.5 text-[0.7rem] text-muted-foreground"
+            >
               <AlertCircle aria-hidden="true" className="size-3" />
               {t('yourBirthday.booking.form.phone')} · {t('yourBirthday.booking.form.location')}
-            </p>
-          </form>
+            </motion.p>
+          </motion.form>
         )}
       </DialogContent>
     </Dialog>

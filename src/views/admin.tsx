@@ -33,6 +33,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   Armchair,
   ArrowLeft,
@@ -52,11 +53,14 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs'
 import { LiquidTabsList } from '@/components/fx/liquid-tabs'
+import { SpotlightCard } from '@/components/fx/spotlight-card'
+import { RippleLayer } from '@/components/fx/ink-ripple'
 import { Reveal } from '@/components/shared/reveal'
 import { AnimatedCounter } from '@/components/shared/upgrade/animated-counter'
 import { useI18n } from '@/lib/i18n'
 import { useRouter } from '@/lib/router'
 import { cn } from '@/lib/utils'
+import { springSnappy, swapEnter, swapExit } from '@/lib/motion'
 import dynamic from 'next/dynamic'
 import { useAdminSession } from '@/components/admin/use-admin-session'
 import { AdminGate } from '@/components/admin/admin-gate'
@@ -159,42 +163,45 @@ function KpiCard({
 }: KpiCardProps) {
   return (
     <Reveal delay={delay} className="h-full">
-      <Card className="lux-card h-full gap-0 overflow-hidden rounded-xl border-border/60 py-0">
-        <CardContent className="flex items-start justify-between gap-3 p-5 sm:p-6">
-          <div className="flex min-w-0 flex-col items-start">
-            <span className="eyebrow text-[10px] text-muted-foreground sm:text-[11px]">{label}</span>
-            <div className="mt-3 font-display text-3xl leading-none sm:text-4xl" dir="ltr">
-              {format === 'kwd' ? (
-                <span className={cn('tabular-nums', kpiToneNumber[tone])}>
-                  {value.toLocaleString('en-US', {
-                    minimumFractionDigits: 3,
-                    maximumFractionDigits: 3,
-                  })}
-                  {currencyLabel ? (
-                    <span className="ms-1.5 text-sm font-normal text-muted-foreground">{currencyLabel}</span>
-                  ) : null}
+      {/* Task 44-f: cursor-tracked champagne glow (subtle, hover-only). */}
+      <SpotlightCard className="h-full rounded-xl">
+        <Card className="lux-card h-full gap-0 overflow-hidden rounded-xl border-border/60 py-0">
+          <CardContent className="flex items-start justify-between gap-3 p-5 sm:p-6">
+            <div className="flex min-w-0 flex-col items-start">
+              <span className="eyebrow text-[10px] text-muted-foreground sm:text-[11px]">{label}</span>
+              <div className="mt-3 font-display text-3xl leading-none sm:text-4xl" dir="ltr">
+                {format === 'kwd' ? (
+                  <span className={cn('tabular-nums', kpiToneNumber[tone])}>
+                    {value.toLocaleString('en-US', {
+                      minimumFractionDigits: 3,
+                      maximumFractionDigits: 3,
+                    })}
+                    {currencyLabel ? (
+                      <span className="ms-1.5 text-sm font-normal text-muted-foreground">{currencyLabel}</span>
+                    ) : null}
+                  </span>
+                ) : (
+                  <AnimatedCounter value={value} className={kpiToneNumber[tone]} />
+                )}
+              </div>
+              {badge ? (
+                <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-400/35 bg-amber-400/10 px-2.5 py-1 text-[11px] text-amber-300">
+                  <span className="size-1.5 rounded-full bg-amber-400" aria-hidden="true" />
+                  {badge}
                 </span>
-              ) : (
-                <AnimatedCounter value={value} className={kpiToneNumber[tone]} />
-              )}
+              ) : null}
             </div>
-            {badge ? (
-              <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-400/35 bg-amber-400/10 px-2.5 py-1 text-[11px] text-amber-300">
-                <span className="size-1.5 rounded-full bg-amber-400" aria-hidden="true" />
-                {badge}
-              </span>
-            ) : null}
-          </div>
-          <div
-            className={cn(
-              'flex size-11 shrink-0 items-center justify-center rounded-lg border',
-              kpiToneIcon[tone]
-            )}
-          >
-            <Icon className="size-5" aria-hidden="true" />
-          </div>
-        </CardContent>
-      </Card>
+            <div
+              className={cn(
+                'flex size-11 shrink-0 items-center justify-center rounded-lg border',
+                kpiToneIcon[tone]
+              )}
+            >
+              <Icon className="size-5" aria-hidden="true" />
+            </div>
+          </CardContent>
+        </Card>
+      </SpotlightCard>
     </Reveal>
   )
 }
@@ -387,11 +394,29 @@ export default function AdminPage() {
       {/* ---------- 1. Login gate ---------- */}
       {phase === 'checking' ? <CheckingState label={t('admin.common.loading')} /> : null}
 
-      {phase === 'gate' ? <AdminGate onLogin={login} sessionExpired={sessionExpired} /> : null}
+      {/* Task 44-f: the unlock moment — the gate dissolves out (swapExit)
+          and the dashboard dissolves in (swapEnter), the house content-swap
+          language. mode="wait" keeps the flow layout stable during the
+          handoff. The phase machine / auth flow / stats loading are
+          untouched (loadStats fires the moment phase flips, in parallel
+          with the 0.18s exit). */}
+      <AnimatePresence mode="wait" initial={false}>
+        {phase === 'gate' ? (
+          <motion.div key="admin-gate" className="flex flex-1 flex-col" variants={swapExit}>
+            <AdminGate onLogin={login} sessionExpired={sessionExpired} />
+          </motion.div>
+        ) : null}
 
-      {/* ---------- 2. Dashboard ---------- */}
-      {phase === 'ready' ? (
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-10 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:px-8">
+        {/* ---------- 2. Dashboard ---------- */}
+        {phase === 'ready' ? (
+          <motion.div
+            key="admin-dashboard"
+            className="flex flex-1 flex-col"
+            initial="initial"
+            animate="animate"
+            variants={swapEnter}
+          >
+            <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-10 pt-24 sm:px-6 sm:pb-10 sm:pt-28 lg:px-8">
           {/* House header */}
           <header className="flex flex-wrap items-end justify-between gap-4">
             <div className="flex flex-col gap-1">
@@ -415,8 +440,9 @@ export default function AdminPage() {
               <Button
                 variant="outline"
                 onClick={() => void logout()}
-                className="min-h-11 rounded-md border-primary/30 px-4 text-primary hover:bg-primary/10 hover:text-primary"
+                className="relative min-h-11 overflow-hidden rounded-md border-primary/30 px-4 text-primary hover:bg-primary/10 hover:text-primary"
               >
+                <RippleLayer duration={600} />
                 <LogOut aria-hidden="true" />
                 {t('admin.logout')}
               </Button>
@@ -429,19 +455,26 @@ export default function AdminPage() {
               <h2 className="font-display text-xl text-foreground sm:text-2xl">
                 {t('admin.stats.sectionTitle')}
               </h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => void loadStats()}
-                disabled={statsPhase === 'loading'}
-                aria-label={t('admin.common.refresh')}
-                className="size-11 rounded-lg text-muted-foreground hover:text-primary"
+              <motion.span
+                whileHover={{ scale: 1.08 }}
+                transition={springSnappy}
+                className="inline-flex"
               >
-                <RefreshCw
-                  className={cn('size-4', statsPhase === 'loading' && 'animate-spin')}
-                  aria-hidden="true"
-                />
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => void loadStats()}
+                  disabled={statsPhase === 'loading'}
+                  aria-label={t('admin.common.refresh')}
+                  className="relative size-11 overflow-hidden rounded-lg text-muted-foreground hover:text-primary"
+                >
+                  <RippleLayer />
+                  <RefreshCw
+                    className={cn('size-4', statsPhase === 'loading' && 'animate-spin')}
+                    aria-hidden="true"
+                  />
+                </Button>
+              </motion.span>
             </div>
 
             {statsPhase === 'error' ? (
@@ -588,8 +621,10 @@ export default function AdminPage() {
               <ProductsPanel />
             </TabsContent>
           </Tabs>
-        </div>
-      ) : null}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }

@@ -40,6 +40,9 @@ import { useI18n } from '@/lib/i18n'
 import { PageHeader } from '@/components/shared/page-header'
 import { Reveal } from '@/components/shared/reveal'
 import { TiltCard, MagneticButton } from '@/components/shared/upgrade'
+import { PopOnMount } from '@/components/fx/badge-pop'
+import { PulseDot } from '@/components/fx/pulse-dot'
+import { TextScramble } from '@/components/fx/text-scramble'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -236,7 +239,11 @@ export default function LutContactPage() {
                       transition={{ delay: 0.15, type: 'spring', stiffness: 220, damping: 14 }}
                       className="animate-pulse-ring mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary"
                     >
-                      <CheckCircle2 className="h-10 w-10" aria-hidden="true" />
+                      {/* Task 44-d: the success check pops on mount (nested
+                          inside the medallion's own spring — a layered pop). */}
+                      <PopOnMount from={0.3}>
+                        <CheckCircle2 className="h-10 w-10" aria-hidden="true" />
+                      </PopOnMount>
                     </motion.div>
                     <h2
                       ref={successRef}
@@ -271,7 +278,10 @@ export default function LutContactPage() {
                         role="alert"
                         className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
                       >
-                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                        {/* Task 44-d: the error state POPS in. */}
+                        <PopOnMount className="mt-0.5 shrink-0">
+                          <AlertCircle className="h-4 w-4" aria-hidden="true" />
+                        </PopOnMount>
                         <span>{submitError}</span>
                       </div>
                     )}
@@ -475,7 +485,12 @@ export default function LutContactPage() {
                 {/* WhatsApp + Instagram */}
                 <div className="relative border-t border-border pt-5">
                   <p className="eyebrow mb-4 text-[9px] text-muted-foreground">
-                    {t('contact.info.whatsapp')} · {t('contact.info.instagram')}
+                    {/* Task 44-d: the label DECODES (Latin) / settles
+                        (Arabic) on view-entry. */}
+                    <TextScramble
+                      text={`${t('contact.info.whatsapp')} · ${t('contact.info.instagram')}`}
+                      delay={0.2}
+                    />
                   </p>
                   <div className="grid grid-cols-1 gap-3">
                     <motion.a
@@ -490,6 +505,10 @@ export default function LutContactPage() {
                         'text-sm font-medium text-foreground transition-colors hover:border-primary/50 hover:bg-primary/5'
                       )}
                     >
+                      {/* Task 44-d: WhatsApp is an always-online channel —
+                          the availability ping marks the row as "reachable
+                          now" (decorative, no new copy). */}
+                      <PulseDot tint="var(--color-gold)" size={7} />
                       <MessageCircle className="h-5 w-5 text-primary" aria-hidden="true" />
                       <span>{t('contact.info.whatsapp')}</span>
                     </motion.a>

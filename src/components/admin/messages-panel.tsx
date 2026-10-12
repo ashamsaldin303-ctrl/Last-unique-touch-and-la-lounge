@@ -18,11 +18,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { motion } from 'framer-motion'
 import { AlertCircle, ChevronLeft, ChevronRight, Inbox, KeyRound, Mail, MailOpen, Phone, RotateCw, Trash2 } from 'lucide-react'
 import { useI18n, type Locale } from '@/lib/i18n'
 import { useAdminApi } from '@/components/admin/use-admin-api'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { adminListVariants, adminRowVariants } from '@/components/admin/admin-kit'
+import { PulseDot } from '@/components/fx/pulse-dot'
+import { RippleLayer } from '@/components/fx/ink-ripple'
+import { PopOnMount } from '@/components/fx/badge-pop'
+import { springSnappy, swapEnter } from '@/lib/motion'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -231,7 +237,10 @@ export default function MessagesPanel() {
 
   /* ---- Render ---- */
   return (
-    <section
+    <motion.section
+      initial="initial"
+      animate="animate"
+      variants={swapEnter}
       aria-labelledby="admin-messages-title"
       className="lux-card relative overflow-hidden rounded-xl border border-[#C9A25E]/20 bg-[#14110B]/95 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.55)] backdrop-blur-md"
     >
@@ -271,8 +280,9 @@ export default function MessagesPanel() {
             onClick={reload}
             disabled={loading}
             aria-label={t('admin.common.refresh')}
-            className="min-h-11 border-white/15 bg-white/[0.03] text-[#E5D9BE] hover:bg-white/[0.07] hover:text-[#F2EDE3] disabled:opacity-50"
+            className="relative min-h-11 overflow-hidden border-white/15 bg-white/[0.03] text-[#E5D9BE] hover:bg-white/[0.07] hover:text-[#F2EDE3] disabled:opacity-50"
           >
+            <RippleLayer duration={600} />
             <RotateCw
               className={cn('me-2 size-4', loading && 'animate-spin')}
               aria-hidden="true"
@@ -328,7 +338,12 @@ export default function MessagesPanel() {
         ) : items.length === 0 ? (
           <EmptyMessages label={t('admin.messages.noMessages')} />
         ) : (
-          <div className="max-h-[34rem] space-y-2.5 overflow-y-auto overscroll-contain pe-1">
+          <motion.div
+            variants={adminListVariants}
+            initial="hidden"
+            animate="visible"
+            className="max-h-[34rem] space-y-2.5 overflow-y-auto overscroll-contain pe-1"
+          >
             {items.map((m) => (
               <MessageCard
                 key={m.id}
@@ -342,7 +357,7 @@ export default function MessagesPanel() {
                 onDelete={() => setDeleteTarget(m)}
               />
             ))}
-          </div>
+          </motion.div>
         )}
 
         {/* ---- Pagination (only when the list overflows a page) ---- */}
@@ -390,7 +405,7 @@ export default function MessagesPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </section>
+    </motion.section>
   )
 }
 
@@ -438,7 +453,8 @@ function MessageCard({
   }, [m.message, expanded])
 
   return (
-    <article
+    <motion.article
+      variants={adminRowVariants}
       className={cn(
         'rounded-lg border p-3.5 transition-colors sm:p-4',
         m.read
@@ -449,12 +465,7 @@ function MessageCard({
       {/* Sender line */}
       <header className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          {!m.read && (
-            <span
-              className="mt-1 inline-block size-2 shrink-0 rounded-full bg-[#E5C878]"
-              aria-hidden="true"
-            />
-          )}
+          {!m.read && <PulseDot className="mt-1" tint="#E5C878" size={8} />}
           <h3 className="font-display text-base font-bold text-[#F2EDE3]">{m.name}</h3>
           <a
             dir="ltr"
@@ -531,8 +542,9 @@ function MessageCard({
             onClick={onToggleRead}
             disabled={busy}
             aria-label={`${toggleReadLabel}: ${m.subject}`}
-            className="min-h-11 border-white/15 bg-white/[0.03] text-[#E5D9BE] hover:bg-white/[0.07] hover:text-[#F2EDE3] disabled:opacity-50"
+            className="relative min-h-11 overflow-hidden border-white/15 bg-white/[0.03] text-[#E5D9BE] hover:bg-white/[0.07] hover:text-[#F2EDE3] disabled:opacity-50"
           >
+            <RippleLayer duration={600} />
             {m.read ? (
               <MailOpen className="me-2 size-4" aria-hidden="true" />
             ) : (
@@ -540,20 +552,27 @@ function MessageCard({
             )}
             {toggleReadLabel}
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={onDelete}
-            disabled={busy}
-            aria-label={deleteLabel}
-            className="size-11 text-[#F87171] hover:bg-[#dc2626]/10 hover:text-[#FCA5A5] disabled:opacity-50"
+          <motion.span
+            whileHover={{ scale: 1.08 }}
+            transition={springSnappy}
+            className="inline-flex"
           >
-            <Trash2 className="size-4" aria-hidden="true" />
-          </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              disabled={busy}
+              aria-label={deleteLabel}
+              className="relative size-11 overflow-hidden text-[#F87171] hover:bg-[#dc2626]/10 hover:text-[#FCA5A5] disabled:opacity-50"
+            >
+              <RippleLayer tint="rgba(248,113,113,0.30)" duration={600} />
+              <Trash2 className="size-4" aria-hidden="true" />
+            </Button>
+          </motion.span>
         </div>
       </footer>
-    </article>
+    </motion.article>
   )
 }
 
@@ -587,9 +606,11 @@ function EmptyMessages({ label }: { label: string }) {
       role="status"
       className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center"
     >
-      <div className="flex size-14 items-center justify-center rounded-full border border-[#C9A25E]/30 bg-[#C9A25E]/10">
-        <Inbox className="size-6 text-[#C9A25E]" aria-hidden="true" />
-      </div>
+      <PopOnMount from={0.5}>
+        <div className="flex size-14 items-center justify-center rounded-full border border-[#C9A25E]/30 bg-[#C9A25E]/10">
+          <Inbox className="size-6 text-[#C9A25E]" aria-hidden="true" />
+        </div>
+      </PopOnMount>
       <p className="text-sm text-[#B6AD9C]">{label}</p>
     </div>
   )
@@ -609,16 +630,19 @@ function ErrorNotice({
       role="alert"
       className="flex flex-col items-center justify-center gap-4 px-6 py-16 text-center"
     >
-      <div className="flex size-14 items-center justify-center rounded-full border border-[#dc2626]/40 bg-[#dc2626]/10">
-        <AlertCircle className="size-6 text-[#F87171]" aria-hidden="true" />
-      </div>
+      <PopOnMount from={0.5}>
+        <div className="flex size-14 items-center justify-center rounded-full border border-[#dc2626]/40 bg-[#dc2626]/10">
+          <AlertCircle className="size-6 text-[#F87171]" aria-hidden="true" />
+        </div>
+      </PopOnMount>
       <p className="text-sm text-[#B6AD9C]">{message}</p>
       <Button
         type="button"
         variant="outline"
         onClick={onRetry}
-        className="min-h-11 border-white/15 bg-white/[0.03] text-[#E5D9BE] hover:bg-white/[0.07] hover:text-[#F2EDE3]"
+        className="relative min-h-11 overflow-hidden border-white/15 bg-white/[0.03] text-[#E5D9BE] hover:bg-white/[0.07] hover:text-[#F2EDE3]"
       >
+        <RippleLayer duration={600} />
         <RotateCw className="me-2 size-4" aria-hidden="true" />
         {retryLabel}
       </Button>
@@ -632,9 +656,11 @@ function UnauthorizedNotice({ label }: { label: string }) {
       role="alert"
       className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center"
     >
-      <div className="flex size-14 items-center justify-center rounded-full border border-[#C9A25E]/40 bg-[#C9A25E]/10">
-        <KeyRound className="size-6 text-[#C9A25E]" aria-hidden="true" />
-      </div>
+      <PopOnMount from={0.5}>
+        <div className="flex size-14 items-center justify-center rounded-full border border-[#C9A25E]/40 bg-[#C9A25E]/10">
+          <KeyRound className="size-6 text-[#C9A25E]" aria-hidden="true" />
+        </div>
+      </PopOnMount>
       <p className="font-display text-base font-bold text-[#E5C878]">{label}</p>
     </div>
   )

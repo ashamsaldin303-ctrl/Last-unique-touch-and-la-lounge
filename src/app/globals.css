@@ -3331,3 +3331,252 @@ html.lux-boot-pending::after {
   }
 }
 /* rebuild-trigger: task-43 power pack */
+
+/* ================================================================== */
+/* TASK 44 — GRAND MOTION SWEEP: fx kit CSS (classes are the public    */
+/* API; see the worklog FX cheat-sheet. Everything below is gated for  */
+/* prefers-reduced-motion at the end of this block.)                   */
+/* ================================================================== */
+
+/* -- KenBurns: ambient breathing zoom ------------------------------ */
+.lux-kenburns {
+  animation: lux-kenburns-a var(--kb-duration, 22s) ease-in-out infinite alternate;
+  will-change: transform;
+}
+.lux-kenburns[data-variant='b'] {
+  animation-name: lux-kenburns-b;
+}
+@keyframes lux-kenburns-a {
+  from { transform: scale(1) translate3d(0, 0, 0); }
+  to { transform: scale(var(--kb-scale, 1.12)) translate3d(0, -2.5%, 0); }
+}
+@keyframes lux-kenburns-b {
+  from { transform: scale(var(--kb-scale, 1.12)) translate3d(1.5%, 1%, 0); }
+  to { transform: scale(1) translate3d(0, 0, 0); }
+}
+
+/* -- SpotlightCard: cursor-tracked champagne glow ------------------- */
+.lux-spotlight { position: relative; }
+.lux-spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    var(--spot-radius, 320px) circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    var(--spot-tint, rgba(232, 207, 143, 0.13)),
+    transparent 65%
+  );
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+.lux-spotlight:hover::before { opacity: 1; }
+@media (hover: none) {
+  .lux-spotlight::before { display: none; }
+}
+
+/* -- InkRipple: press confirms itself ------------------------------ */
+.lux-ripple {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 0;
+  animation: lux-ripple 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes lux-ripple {
+  from { transform: scale(0); opacity: 1; }
+  to { transform: scale(28); opacity: 0; }
+}
+
+/* -- BorderBeam: orbiting champagne ring ---------------------------- */
+@property --beam-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+.lux-beam {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: var(--beam-thickness, 1.5px);
+  background: conic-gradient(
+    from var(--beam-angle),
+    transparent 0 calc(var(--beam-size, 88%) - 10%),
+    var(--beam-tint, rgba(232, 207, 143, 0.95)) var(--beam-size, 88%),
+    transparent calc(var(--beam-size, 88%) + 10%)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: lux-beam-spin 5s linear infinite;
+}
+@keyframes lux-beam-spin {
+  to { --beam-angle: 360deg; }
+}
+@supports not (background: conic-gradient(from var(--beam-angle), red, blue)) {
+  .lux-beam { display: none; }
+}
+
+/* -- RotatingBadge: slow revolution -------------------------------- */
+.lux-rotate-slow {
+  animation: lux-rotate var(--kb-duration, 26s) linear infinite;
+  will-change: transform;
+}
+@keyframes lux-rotate {
+  to { transform: rotate(360deg); }
+}
+
+/* -- ElasticLink: the drawn underline ------------------------------ */
+.lux-underline {
+  position: relative;
+  display: inline-block;
+}
+.lux-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  inset-inline: 0;
+  height: 1.5px;
+  border-radius: 1px;
+  background: linear-gradient(
+    to left,
+    rgba(232, 207, 143, 0.95),
+    rgba(232, 207, 143, 0.55)
+  );
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[dir='ltr'] .lux-underline::after {
+  transform-origin: left;
+}
+.lux-underline:hover::after,
+.lux-underline:focus-visible::after,
+.lux-underline-active::after {
+  transform: scaleX(1);
+}
+
+/* -- ShimmerText: light moving over ink ---------------------------- */
+.lux-shimmer {
+  background-image: linear-gradient(
+    110deg,
+    currentColor 0%,
+    currentColor 36%,
+    rgba(255, 236, 189, 0.96) 50%,
+    currentColor 64%,
+    currentColor 100%
+  );
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  /* text-fill (not color) so currentColor in the gradient stays the real ink */
+  -webkit-text-fill-color: transparent;
+  transition: background-position 1.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[dir='ltr'] .lux-shimmer { background-position: -100% 0; }
+.lux-shimmer:hover,
+.lux-shimmer-lit {
+  background-position: 0% 0;
+}
+[dir='ltr'] .lux-shimmer:hover,
+[dir='ltr'] .lux-shimmer-lit {
+  background-position: 0% 0;
+}
+
+/* -- PulseDot: availability ping ----------------------------------- */
+.lux-pulse-dot {
+  position: relative;
+  border-radius: 999px;
+  background: var(--dot-tint, #34d399);
+}
+.lux-pulse-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  animation: lux-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes lux-ping {
+  75%, 100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* -- Grain: analog film whisper ------------------------------------ */
+.lux-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  animation: lux-grain 0.9s steps(4) infinite;
+}
+@keyframes lux-grain {
+  0% { background-position: 0 0; }
+  25% { background-position: -28px 18px; }
+  50% { background-position: 16px -34px; }
+  75% { background-position: -22px -18px; }
+  100% { background-position: 0 0; }
+}
+
+/* -- Ambient levitation & breathing (decorative utility classes) ---- */
+.lux-float-y {
+  animation: lux-float-y 6.5s ease-in-out infinite;
+}
+@keyframes lux-float-y {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -9px, 0); }
+}
+.lux-float-y-soft {
+  animation: lux-float-y 9s ease-in-out infinite;
+}
+.lux-breathe {
+  animation: lux-breathe 3.2s ease-in-out infinite;
+}
+@keyframes lux-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+.lux-pan-bg {
+  background-size: 220% 220%;
+  animation: lux-pan-bg 14s ease-in-out infinite alternate;
+}
+@keyframes lux-pan-bg {
+  from { background-position: 0% 0%; }
+  to { background-position: 100% 100%; }
+}
+
+/* -- Reduced motion: the whole kit stands down --------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .lux-kenburns,
+  .lux-ripple,
+  .lux-beam,
+  .lux-rotate-slow,
+  .lux-pulse-dot::after,
+  .lux-grain,
+  .lux-float-y,
+  .lux-float-y-soft,
+  .lux-breathe,
+  .lux-pan-bg {
+    animation: none;
+  }
+  .lux-ripple { display: none; }
+  .lux-beam { opacity: 0; }
+  .lux-shimmer,
+  .lux-shimmer:hover,
+  .lux-shimmer-lit {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+    background-position: 0% 0;
+  }
+  .lux-underline::after {
+    transition: none;
+  }
+}
+/* rebuild-trigger: task-44 grand motion sweep kit */

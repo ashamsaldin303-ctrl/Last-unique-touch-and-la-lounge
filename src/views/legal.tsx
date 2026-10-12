@@ -31,10 +31,19 @@ const markdownComponents: Components = {
   // The markdown document's leading `# Title` duplicates the PageHeader's
   // visible h1 — drop it instead of rendering a second (sr-only) h1.
   h1: () => null,
+  // Task 44-e — restrained document motion: section headings rise in on a
+  // 0.06s ladder as they enter the viewport (h3 follows its h2; the body
+  // text stays static — a legal document must not accordion-ize or dance).
   h2: ({ children }) => (
-    <h2 className="font-display text-2xl sm:text-3xl text-primary mt-8 mb-3">{children}</h2>
+    <Reveal direction="up">
+      <h2 className="font-display text-2xl sm:text-3xl text-primary mt-8 mb-3">{children}</h2>
+    </Reveal>
   ),
-  h3: ({ children }) => <h3 className="text-lg font-semibold text-foreground mt-6 mb-2">{children}</h3>,
+  h3: ({ children }) => (
+    <Reveal direction="up" delay={0.06}>
+      <h3 className="text-lg font-semibold text-foreground mt-6 mb-2">{children}</h3>
+    </Reveal>
+  ),
   p: ({ children }) => <p className="text-sm sm:text-base leading-8 text-foreground/80 mb-4">{children}</p>,
   ul: ({ children }) => <ul className="list-disc ps-6 space-y-1 mb-4">{children}</ul>,
   ol: ({ children }) => <ol className="list-decimal ps-6 space-y-1 mb-4">{children}</ol>,
@@ -164,8 +173,9 @@ export default function LegalPage({ doc }: { doc: LegalDoc }) {
 
       {/* ============ Document card ============ */}
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16">
-        {/* Last-updated chip */}
-        <Reveal className="flex justify-center mb-6">
+        {/* Last-updated chip — Task 44-e: draws in from the reading edge
+            (reveal-start is direction-aware, so RTL slides from the right) */}
+        <Reveal direction="start" className="flex justify-center mb-6">
           <span className="glass-card inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs text-muted-foreground">
             <span className="inline-block size-1.5 rounded-full bg-primary" aria-hidden="true" />
             {t(cfg.updatedKey)}

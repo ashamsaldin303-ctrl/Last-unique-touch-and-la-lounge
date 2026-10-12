@@ -17,10 +17,12 @@
  */
 
 import { ShieldCheck } from 'lucide-react'
+import type { Variants } from 'framer-motion'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Toaster } from '@/components/ui/sonner'
 import { Particles } from '@/components/shared/particles'
 import { useI18n } from '@/lib/i18n'
+import { springSoft } from '@/lib/motion'
 
 /* ============================================================
    Backdrop — warm dark maison gradients + drifting gold dust
@@ -80,6 +82,29 @@ export function CheckingState({ label }: { label: string }) {
       </div>
     </div>
   )
+}
+
+/* ============================================================
+   Row stagger (Task 44-f) — shared list/row variants for the admin
+   tables and card lists (orders · messages · products).
+
+   Deliberately blur-free: NEVER animate `filter` on table rows or
+   near fixed chrome (the r3 containing-block trap). Rows rise 12px
+   on a 30ms ladder and settle on springSoft — fast, functional,
+   readable at 10–12 rows. MotionConfig reducedMotion="user" at the
+   app root converts these to opacity-only for reduced-motion users.
+   ============================================================ */
+
+/** Parent list: orchestrates the ladder (one row every 30ms). */
+export const adminListVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.03, delayChildren: 0.04 } },
+}
+
+/** Child row: y 12 + opacity only — no filter, no scale (table-safe). */
+export const adminRowVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: springSoft },
 }
 
 /* ============================================================

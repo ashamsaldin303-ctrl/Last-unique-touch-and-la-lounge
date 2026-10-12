@@ -4,7 +4,11 @@
  * Footer v2 — mirrors the original repo's footer.tsx (tagline, quick links,
  * sister brands, contact info, legal links) with the legendary polish layer:
  * flowing gold hairline on the top edge, columns that rise in sequence when
- * the footer enters the viewport, and link-slide/link-shift micro-interactions.
+ * the footer enters the viewport (Reveal stagger, 0.08s), ElasticLink
+ * hairlines on the router link columns (draw from the reading edge), a
+ * live Kuwait clock with a pulsing availability dot ("we are here, now"),
+ * a one-time champagne gloss over the closing rights line (ShimmerText),
+ * and link-slide/link-shift micro-interactions on the contact rows.
  * Sticky to the bottom via the shell's flex layout.
  */
 
@@ -14,6 +18,10 @@ import { useI18n } from '@/lib/i18n'
 import { resolveBrandFromPath } from '@/lib/brand'
 import { Phone, Mail, MapPin } from 'lucide-react'
 import { Reveal } from '@/components/shared/reveal'
+import { ElasticLink } from '@/components/fx/elastic-underline'
+import { LiveClock } from '@/components/fx/live-clock'
+import { PulseDot } from '@/components/fx/pulse-dot'
+import { ShimmerText } from '@/components/fx/shimmer-text'
 
 /* SSR-safe layout effect: useEffect on the server, useLayoutEffect on the
    client — flips post-hydration state before the first paint. */
@@ -35,6 +43,16 @@ export function Footer() {
   const path = mounted ? routerPath : '/'
   const brand = resolveBrandFromPath(path)
   const year = new Date().getFullYear()
+
+  // Router-aware anchor click (real anchors for middle/modified clicks,
+  // plain left clicks through the client hash router).
+  const routerClick =
+    (target: string) =>
+    (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      e.preventDefault()
+      navigate(target)
+    }
 
   const brandHomeHref =
     brand === 'neutral'
@@ -89,33 +107,32 @@ export function Footer() {
             <p className="text-xs text-paper/60">{t('footer.craftedIn')}</p>
           </Reveal>
 
-          {/* Quick links */}
+          {/* Quick links — ElasticLink hairlines that draw from the reading
+              edge (leading-[44px] keeps the touch target + vertical rhythm
+              the old flex rows had; link-shift keeps the hover nudge). */}
           <Reveal direction="up" delay={0.08}>
             <nav aria-label={t('footer.quickLinks')}>
               <h4 className="eyebrow text-paper/50 mb-4">{t('footer.quickLinks')}</h4>
               <ul className="space-y-2.5 list-none p-0 m-0">
                 {quickLinks.map((link) => (
                   <li key={link.path}>
-                    <a
+                    <ElasticLink
                       href={`#/${locale}${link.path === '/' ? '' : link.path}`}
-                      onClick={(e) => {
-                        // Real anchor (middle/ctrl+click opens the hash URL);
-                        // plain left clicks go through the client router.
-                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-                        e.preventDefault()
-                        navigate(link.path)
-                      }}
-                      className="link-slide link-shift flex min-h-[44px] items-center text-sm text-paper/70 hover:text-gold transition-colors duration-300 no-underline"
+                      onClick={routerClick(link.path)}
+                      active={path === link.path}
+                      className="link-shift min-h-[44px] leading-[44px] text-sm text-paper/70 hover:text-gold transition-colors duration-300 no-underline"
                     >
                       {link.label}
-                    </a>
+                    </ElasticLink>
                   </li>
                 ))}
               </ul>
             </nav>
           </Reveal>
 
-          {/* Sister brands */}
+          {/* Sister brands (bespoke two-line rows keep their label-level
+              link-slide treatment — the elastic hairline is reserved for
+              the single-line link columns). */}
           <Reveal direction="up" delay={0.16}>
             <nav aria-label={t('footer.sisterBrands')}>
               <h4 className="eyebrow text-paper/50 mb-4">{t('footer.sisterBrands')}</h4>
@@ -124,13 +141,7 @@ export function Footer() {
                   <li key={brandLink.path}>
                     <a
                       href={`#/${locale}${brandLink.path}`}
-                      onClick={(e) => {
-                        // Real anchor (middle/ctrl+click opens the hash URL);
-                        // plain left clicks go through the client router.
-                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-                        e.preventDefault()
-                        navigate(brandLink.path)
-                      }}
+                      onClick={routerClick(brandLink.path)}
                       className="group flex flex-col justify-center min-h-11 py-1 no-underline"
                     >
                       <span className="link-slide inline-block text-sm text-paper/80 group-hover:text-gold transition-colors duration-300">
@@ -180,6 +191,18 @@ export function Footer() {
                   </span>
                   <span>{t('footer.address')}</span>
                 </li>
+                {/* Live maison clock — "we are here, now" (Kuwait time,
+                    ticking, with the pulsing availability dot). */}
+                <li className="group flex min-h-[44px] items-center gap-3 text-sm text-paper/70">
+                  <span className="icon-ring flex items-center justify-center w-8 h-8 rounded-full border border-gold/20 text-gold transition-colors duration-300 group-hover:border-gold/50">
+                    <PulseDot size={8} tint="var(--color-gold)" />
+                  </span>
+                  <LiveClock
+                    locale={locale}
+                    label={t('brand.kuwait')}
+                    className="tracking-wide"
+                  />
+                </li>
               </ul>
             </div>
           </Reveal>
@@ -188,23 +211,21 @@ export function Footer() {
         {/* Legal bottom bar */}
         <div className="mt-12 pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Catalog-driven copyright (footer.rights carries the {year} placeholder in both locales) */}
-          <p className="text-xs text-paper/60 order-2 sm:order-1">{t('footer.rights', { year })}</p>
+          <p className="text-xs text-paper/60 order-2 sm:order-1">
+            {/* One-time champagne gloss over the closing line (ShimmerText). */}
+            <ShimmerText>{t('footer.rights', { year })}</ShimmerText>
+          </p>
           <nav className="order-1 sm:order-2 flex items-center gap-5" aria-label={t('footer.legal')}>
             {legalLinks.map((link) => (
-              <a
+              <ElasticLink
                 key={link.path}
                 href={`#/${locale}${link.path}`}
-                onClick={(e) => {
-                  // Real anchor (middle/ctrl+click opens the hash URL);
-                  // plain left clicks go through the client router.
-                  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-                  e.preventDefault()
-                  navigate(link.path)
-                }}
-                className="link-slide flex min-h-[44px] items-center text-xs text-paper/50 hover:text-gold transition-colors no-underline px-0"
+                onClick={routerClick(link.path)}
+                active={path === link.path}
+                className="min-h-[44px] leading-[44px] text-xs text-paper/50 hover:text-gold transition-colors no-underline px-0"
               >
                 {link.label}
-              </a>
+              </ElasticLink>
             ))}
           </nav>
         </div>

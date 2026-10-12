@@ -1,4 +1,8 @@
+'use client'
+
 import { useId } from 'react'
+import { motion } from 'framer-motion'
+import { easeExpoOut } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 
 type Variant = 'divider' | 'corner' | 'bg'
@@ -21,6 +25,18 @@ export function LutArabesque({ variant, className }: { variant: Variant; classNa
   const patternId = `arabesque-pattern-${useId().replace(/\W/g, '')}`
 
   if (variant === 'divider') {
+    /* Task 44-d — the "drawn ornament": each stroke of the divider draws
+       itself (pathLength 0 → 1) on scroll-into-view, staggered outward
+       from the center motif, on the house expo-out curve (~1.2s).
+       Reduced-motion users get the fully drawn ornament instantly via
+       MotionConfig (framer converts to opacity-only/no-op). Decorative —
+       the svg stays aria-hidden. */
+    const draw = (delay: number) => ({
+      initial: { pathLength: 0 },
+      whileInView: { pathLength: 1 },
+      viewport: { once: true, margin: '-10% 0px' },
+      transition: { duration: 1.2, ease: easeExpoOut, delay },
+    })
     return (
       <svg
         className={cn('text-brass/40', className)}
@@ -29,16 +45,17 @@ export function LutArabesque({ variant, className }: { variant: Variant; classNa
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
-        <line x1="0" y1="12" x2="90" y2="12" stroke="currentColor" strokeWidth="0.5" />
-        <line x1="150" y1="12" x2="240" y2="12" stroke="currentColor" strokeWidth="0.5" />
+        <motion.line x1="0" y1="12" x2="90" y2="12" stroke="currentColor" strokeWidth="0.5" {...draw(0.35)} />
+        <motion.line x1="150" y1="12" x2="240" y2="12" stroke="currentColor" strokeWidth="0.5" {...draw(0.35)} />
         <g transform="translate(120, 12)">
-          <circle r="6" stroke="currentColor" strokeWidth="0.5" fill="none" />
-          <circle r="3" stroke="currentColor" strokeWidth="0.5" fill="none" />
-          <path
+          <motion.circle r="6" stroke="currentColor" strokeWidth="0.5" fill="none" {...draw(0)} />
+          <motion.circle r="3" stroke="currentColor" strokeWidth="0.5" fill="none" {...draw(0.15)} />
+          <motion.path
             d="M-12,0 Q-6,-6 0,0 Q6,6 12,0 Q6,-6 0,0 Q-6,6 -12,0"
             stroke="currentColor"
             strokeWidth="0.5"
             fill="none"
+            {...draw(0.45)}
           />
         </g>
       </svg>

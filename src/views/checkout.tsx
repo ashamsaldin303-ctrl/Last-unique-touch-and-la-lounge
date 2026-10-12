@@ -10,6 +10,8 @@
  * are sent); on success the cart is cleared, the last order is stored in
  * sessionStorage('lut_last_order') and the user is routed to the success
  * page. Server error codes map to checkout.errors.* (snake keys).
+ * Task 44-c: the form fields stagger in on arrival, labels draw in from
+ * the reading edge a beat later, and the summary items stagger.
  */
 
 import { useMemo, useRef, useState } from 'react'
@@ -22,7 +24,8 @@ import { useRouter } from '@/lib/router'
 import { localizedName, formatKwd } from '@/lib/products'
 import { useCart, cartTotals, isSafeCartItem, type CartItem } from '@/lib/cart-store'
 import { useToast } from '@/hooks/use-toast'
-import { motion } from 'framer-motion'
+import { motion, type Variants } from 'framer-motion'
+import { easeHouse } from '@/lib/motion'
 import { Reveal } from '@/components/shared/reveal'
 import { GrandTotalRow, TotalsBlock } from '@/components/shop/totals-block'
 import { formatDate } from '@/components/shop/format'
@@ -34,6 +37,17 @@ import { Textarea } from '@/components/ui/textarea'
 import Image from 'next/image'
 
 const LAST_ORDER_KEY = 'lut_last_order'
+
+/* Task 44-c — form entrance choreography: the form staggers its field
+   blocks in; every block rises already moving (expo/house ease). */
+const formVariants: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06, delayChildren: 0.08 } },
+}
+const fieldVariants: Variants = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeHouse } },
+}
 
 /** Translator signature accepted by the schema factory (narrower than the
  *  full i18n t so the factory stays dependency-free). */
@@ -303,7 +317,7 @@ export default function CheckoutPage() {
         {/* ---- Customer form ---- */}
         <div className="lg:col-span-2">
           <Reveal>
-            <form
+            <motion.form
               // RHF's handleSubmit only invokes the valid-callback from the
               // DOM submit event (after async validation) — never during
               // render. The same-tick double-submit guard reads/writes
@@ -313,9 +327,12 @@ export default function CheckoutPage() {
               // eslint-disable-next-line react-hooks/refs
               onSubmit={handleSubmit(onSubmit)}
               noValidate
+              initial="hidden"
+              animate="show"
+              variants={formVariants}
               className="space-y-5 rounded-md border border-border bg-card p-5 shadow-lg shadow-primary/5 sm:p-6"
             >
-              <div className="space-y-1">
+              <motion.div variants={fieldVariants} className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="h-px w-6 bg-primary/50" aria-hidden="true" />
                   <span className="eyebrow text-[0.625rem] text-primary/90">
@@ -325,21 +342,24 @@ export default function CheckoutPage() {
                 <h2 className="font-display text-lg font-bold text-foreground">
                   {t('checkout.form.customerInfo')}
                 </h2>
-              </div>
+              </motion.div>
 
               {errorMessage && (
-                <div
+                <motion.div
+                  variants={fieldVariants}
                   role="alert"
                   className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
                 >
                   <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
                   <span>{errorMessage}</span>
-                </div>
+                </motion.div>
               )}
 
               {/* Name */}
-              <div className="space-y-1.5">
-                <Label htmlFor="customerName">{t('checkout.form.name')}</Label>
+              <motion.div variants={fieldVariants} className="space-y-1.5">
+                <DrawLabel htmlFor="customerName" delay={0.26}>
+                  {t('checkout.form.name')}
+                </DrawLabel>
                 <Input
                   id="customerName"
                   autoComplete="name"
@@ -362,12 +382,14 @@ export default function CheckoutPage() {
                     </span>
                   </p>
                 )}
-              </div>
+              </motion.div>
 
               {/* Phone + Email */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <motion.div variants={fieldVariants} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="customerPhone">{t('checkout.form.phone')}</Label>
+                  <DrawLabel htmlFor="customerPhone" delay={0.32}>
+                    {t('checkout.form.phone')}
+                  </DrawLabel>
                   <Input
                     id="customerPhone"
                     type="tel"
@@ -388,7 +410,9 @@ export default function CheckoutPage() {
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="customerEmail">{t('checkout.form.email')}</Label>
+                  <DrawLabel htmlFor="customerEmail" delay={0.32}>
+                    {t('checkout.form.email')}
+                  </DrawLabel>
                   <Input
                     id="customerEmail"
                     type="email"
@@ -414,11 +438,13 @@ export default function CheckoutPage() {
                     </p>
                   )}
                 </div>
-              </div>
+              </motion.div>
 
               {/* Address */}
-              <div className="space-y-1.5">
-                <Label htmlFor="address">{t('checkout.form.address')}</Label>
+              <motion.div variants={fieldVariants} className="space-y-1.5">
+                <DrawLabel htmlFor="address" delay={0.38}>
+                  {t('checkout.form.address')}
+                </DrawLabel>
                 <Textarea
                   id="address"
                   rows={2}
@@ -442,11 +468,13 @@ export default function CheckoutPage() {
                     </span>
                   </p>
                 )}
-              </div>
+              </motion.div>
 
               {/* City */}
-              <div className="space-y-1.5">
-                <Label htmlFor="city">{t('checkout.form.city')}</Label>
+              <motion.div variants={fieldVariants} className="space-y-1.5">
+                <DrawLabel htmlFor="city" delay={0.44}>
+                  {t('checkout.form.city')}
+                </DrawLabel>
                 <Input
                   id="city"
                   autoComplete="address-level2"
@@ -469,13 +497,15 @@ export default function CheckoutPage() {
                     </span>
                   </p>
                 )}
-              </div>
+              </motion.div>
 
               {/* Notes — maxLength makes the 2000-cap un-triggerable by
                   typing; the error row below is the safety net for
                   autofill/programmatic overflow (previously silent). */}
-              <div className="space-y-1.5">
-                <Label htmlFor="notes">{t('checkout.form.notes')}</Label>
+              <motion.div variants={fieldVariants} className="space-y-1.5">
+                <DrawLabel htmlFor="notes" delay={0.5}>
+                  {t('checkout.form.notes')}
+                </DrawLabel>
                 <Textarea
                   id="notes"
                   rows={3}
@@ -491,10 +521,10 @@ export default function CheckoutPage() {
                     <span>{errors.notes.message ?? t('checkout.form.errors.notesMaxLength')}</span>
                   </p>
                 )}
-              </div>
+              </motion.div>
 
               {/* Terms */}
-              <div className="flex items-start gap-3">
+              <motion.div variants={fieldVariants} className="flex items-start gap-3">
                 <input
                   id="terms"
                   type="checkbox"
@@ -518,7 +548,7 @@ export default function CheckoutPage() {
                     {t('checkout.form.termsLink')}
                   </button>
                 </label>
-              </div>
+              </motion.div>
               {termsError && (
                 <p
                   id="terms-error"
@@ -532,22 +562,26 @@ export default function CheckoutPage() {
 
               {/* Submit — disabled ONLY while submitting: the terms gate is
                   enforced by validation above so it never silently blocks
-                  the click (field errors become visible on empty submit). */}
-              <Button
-                type="submit"
-                disabled={submitting}
-                className="btn-lux w-full min-h-[44px] rounded-md py-3 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="me-2 size-4 animate-spin" aria-hidden="true" />
-                    {t('checkout.form.submitting')}
-                  </>
-                ) : (
-                  t('checkout.form.submit')
-                )}
-              </Button>
-            </form>
+                  the click (field errors become visible on empty submit).
+                  (44-c audit: this is a plain btn-lux Button, NOT a
+                  MagneticButton — nothing to double-wrap, left as is.) */}
+              <motion.div variants={fieldVariants}>
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-lux w-full min-h-[44px] rounded-md py-3 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="me-2 size-4 animate-spin" aria-hidden="true" />
+                      {t('checkout.form.submitting')}
+                    </>
+                  ) : (
+                    t('checkout.form.submit')
+                  )}
+                </Button>
+              </motion.div>
+            </motion.form>
           </Reveal>
         </div>
 
@@ -568,12 +602,18 @@ export default function CheckoutPage() {
                 {t('checkout.summary.title')}
               </h2>
 
-              {/* Condensed items */}
+              {/* Condensed items — Task 44-c: each line staggers in. */}
               <div className="max-h-64 space-y-3 overflow-y-auto border-b border-border pb-4">
                 {safeItems.map((item, index) => {
                   const productName = localizedName(item, locale)
                   return (
-                    <div key={index} className="flex gap-3">
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, ease: easeHouse, delay: 0.12 + index * 0.06 }}
+                      className="flex gap-3"
+                    >
                       <div className="relative size-14 shrink-0 overflow-hidden rounded-md bg-muted">
                         {item.image ? (
                           <Image
@@ -603,7 +643,7 @@ export default function CheckoutPage() {
                       <p className="shrink-0 text-sm font-medium tabular-nums text-foreground">
                         {formatKwd(item.total)} {t('common.currency')}
                       </p>
-                    </div>
+                    </motion.div>
                   )
                 })}
               </div>
@@ -638,5 +678,32 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/* ================= Task 44-c helpers ================= */
+
+/** DrawLabel — a form label that draws in from the reading edge (RTL:
+ *  slides from the right, LTR: from the left) a beat after its field
+ *  block has risen in the form's stagger. Locale-aware micro-motion. */
+function DrawLabel({
+  htmlFor,
+  delay,
+  children,
+}: {
+  htmlFor: string
+  delay: number
+  children: React.ReactNode
+}) {
+  const { locale } = useI18n()
+  return (
+    <motion.span
+      initial={{ opacity: 0, x: locale === 'ar' ? 8 : -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4, ease: easeHouse, delay }}
+      className="block"
+    >
+      <Label htmlFor={htmlFor}>{children}</Label>
+    </motion.span>
   )
 }

@@ -12,6 +12,9 @@
  * Task 43: the main gallery image punches out of its frame on arrival
  * (ClipReveal — "a poster breaking out of its own frame") and the
  * product title rises through a kinetic mask (KineticLine).
+ * Task 44-c: the poster breathes (KenBurns ambient zoom inside the
+ * clip), thumbnails stagger-pop with a shared spring selection ring,
+ * and the price carries a ShimmerText champagne gloss.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -32,6 +35,9 @@ import { Reveal } from '@/components/shared/reveal'
 import { StaggerGroup } from '@/components/shared/upgrade'
 import { ClipReveal } from '@/components/fx/clip-reveal'
 import { KineticLine } from '@/components/fx/kinetic-heading'
+import { KenBurns } from '@/components/fx/ken-burns'
+import { ShimmerText } from '@/components/fx/shimmer-text'
+import { springSnappy } from '@/lib/motion'
 import { ProductCard } from '@/components/shop/product-card'
 import { RentalPicker } from '@/components/shop/rental-picker'
 import { TrustBadges } from '@/components/shop/trust-badges'
@@ -212,7 +218,15 @@ export default function ProductDetailPage({ slug }: { slug: string }) {
                 {/* Price display */}
                 <div className="space-y-2.5">
                   <p className="price-display flex items-baseline gap-2 text-4xl sm:text-5xl">
-                    <span className="price-pop tabular-nums">{formatKwd(product.rentalPricePerDay)}</span>
+                    {/* Task 44-c: champagne gloss sweeps the figure once on
+                        view-entry and again on hover — light over ink, so the
+                        KWD 3-decimal string renders untouched (never a
+                        per-glyph effect on a money figure). */}
+                    <ShimmerText>
+                      <span className="price-pop tabular-nums">
+                        {formatKwd(product.rentalPricePerDay)}
+                      </span>
+                    </ShimmerText>
                     <span className="text-sm font-normal tracking-wide text-muted-foreground">
                       {t('product.perDay')}
                     </span>
@@ -415,34 +429,47 @@ function Gallery({
               as the poster's own mount. No filter and no fixed-position
               descendant live under this wrapper. */}
           <ClipReveal className="absolute inset-0" delay={0.15}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={current ?? 'empty'}
-                initial={{ opacity: 0, scale: 1.02 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="absolute inset-0"
-              >
-                {current && current !== failedSrc ? (
-                  <Image
-                    src={current}
-                    alt={productName}
-                    fill
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                    onLoad={() => setImgLoaded(true)}
-                    onError={() => setFailedSrc(current)}
-                    className="img-shimmer object-cover transition-transform duration-[1200ms] ease-out group-hover/gallery:scale-[1.03]"
-                    data-loaded={imgLoaded ? 'true' : 'false'}
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-                    {t('common.noImage')}
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
+            {/* Task 44-c — KenBurns: the poster BREATHES (30s per breath,
+                scale 1.08, variant 'a') inside the clip reveal. Its CSS
+                transform lives on its own inner layer, so it multiplies
+                with the counter-zoom (framer, on the ClipReveal layer),
+                the per-frame swap fade (framer, on the keyed layer) and
+                the hover zoom (CSS `scale` property, on the <Image>
+                itself) — four independent layers, never fighting. The
+                relative shim keeps the absolutely-positioned children
+                (and next/image fill) anchored. */}
+            <KenBurns className="absolute inset-0" duration={30} scale={1.08} variant="a">
+              <div className="relative h-full w-full">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={current ?? 'empty'}
+                    initial={{ opacity: 0, scale: 1.02 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0"
+                  >
+                    {current && current !== failedSrc ? (
+                      <Image
+                        src={current}
+                        alt={productName}
+                        fill
+                        priority
+                        sizes="(max-width: 1024px) 100vw, 50vw"
+                        onLoad={() => setImgLoaded(true)}
+                        onError={() => setFailedSrc(current)}
+                        className="img-shimmer object-cover transition-transform duration-[1200ms] ease-out group-hover/gallery:scale-[1.03]"
+                        data-loaded={imgLoaded ? 'true' : 'false'}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                        {t('common.noImage')}
+                      </div>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </KenBurns>
           </ClipReveal>
 
           {/* Cursor-follow spotlight veil */}
@@ -505,6 +532,7 @@ function Gallery({
             <GalleryThumb
               key={`${img}-${idx}`}
               img={img}
+              index={idx}
               label={`${productName} — ${idx + 1}`}
               active={selected === idx}
               onClick={() => selectImage(idx)}
@@ -517,14 +545,19 @@ function Gallery({
 }
 
 /** Single thumbnail with a broken-src fallback (matches the ProductCard
- *  no-image placeholder pattern). */
+ *  no-image placeholder pattern). Task 44-c: thumbnails stagger-pop on
+ *  arrival (scale 0.9 → spring) and the ACTIVE frame is marked by a
+ *  single shared gold ring (layoutId) that springs between thumbs
+ *  instead of hard-swapping. */
 function GalleryThumb({
   img,
+  index,
   label,
   active,
   onClick,
 }: {
   img: string
+  index: number
   label: string
   active: boolean
   onClick: () => void
@@ -532,15 +565,29 @@ function GalleryThumb({
   const { t } = useI18n()
   const [failed, setFailed] = useState(false)
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
       aria-current={active}
       aria-label={label}
-      className={`thumb-frame relative aspect-square overflow-hidden rounded-md border-2 ${
-        active ? 'border-gold opacity-100' : 'border-border opacity-75 hover:opacity-100'
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ ...springSnappy, delay: index * 0.05 }}
+      whileTap={{ scale: 0.93 }}
+      className={`thumb-frame relative aspect-square overflow-hidden rounded-md border-2 border-border ${
+        active ? 'opacity-100' : 'opacity-75 hover:opacity-100'
       }`}
     >
+      {/* Shared selection ring — one physical element that travels between
+          thumbnails on a spring (same pattern as the catalog pill). */}
+      {active && (
+        <motion.span
+          layoutId="gallery-thumb-ring"
+          transition={springSnappy}
+          className="pointer-events-none absolute inset-0 rounded-md border-2 border-gold"
+          aria-hidden="true"
+        />
+      )}
       {failed ? (
         <span className="flex h-full w-full items-center justify-center bg-muted px-1 text-center text-[0.5625rem] leading-tight text-muted-foreground">
           {t('common.noImage')}
@@ -555,7 +602,7 @@ function GalleryThumb({
           className="object-cover"
         />
       )}
-    </button>
+    </motion.button>
   )
 }
 

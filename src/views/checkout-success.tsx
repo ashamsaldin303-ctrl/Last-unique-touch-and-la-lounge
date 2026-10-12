@@ -7,6 +7,8 @@
  * SVG (circle + check stroke draw), the order id read from
  * sessionStorage('lut_last_order'), the five next-steps and the two CTAs
  * (home / browse more products).
+ * Task 44-c: gold dust rains over the confirmation once on mount, the
+ * order number's digits stagger in, and both CTAs roll their labels.
  */
 
 import { useEffect, useState } from 'react'
@@ -24,6 +26,9 @@ import {
 import { useI18n } from '@/lib/i18n'
 import { useRouter } from '@/lib/router'
 import { formatKwd } from '@/lib/products'
+import { springSnappy } from '@/lib/motion'
+import { GoldDust } from '@/components/fx/gold-dust'
+import { RollLabel } from '@/components/fx/roll-label'
 import { Reveal } from '@/components/shared/reveal'
 import { Button } from '@/components/ui/button'
 
@@ -68,6 +73,14 @@ export default function CheckoutSuccessPage() {
     { icon: CalendarPlus, label: t('checkout.success.nextSteps.step5') },
   ]
 
+  /* Task 44-c: split the localized "order #" sentence around the id so
+     the id's ASCII characters can stagger in individually (per-glyph
+     motion is only safe for non-Arabic runs — the sentence itself is
+     never split). */
+  const idTail = orderId ? orderId.slice(-8) : ''
+  const idSentence = orderId ? t('checkout.success.orderId', { id: idTail }) : ''
+  const idParts = idSentence.split(idTail)
+
   return (
     <div className="relative mx-auto w-full max-w-2xl px-4 py-16 text-center sm:px-6 sm:py-20">
       {/* Soft gold radial glow */}
@@ -75,6 +88,10 @@ export default function CheckoutSuccessPage() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-64 max-w-md rounded-full bg-primary/10 blur-3xl"
       />
+
+      {/* Task 44-c: a one-time gold-dust atmosphere over the confirmation
+          (canvas — pauses when the tab hides, pointer-events-none). */}
+      <GoldDust density={90} />
 
       {/* Animated success mark — circle + check stroke draw */}
       <motion.div
@@ -125,7 +142,27 @@ export default function CheckoutSuccessPage() {
       {orderId && (
         <Reveal delay={0.2}>
           <p className="mb-2 text-sm font-medium tabular-nums text-muted-foreground">
-            {t('checkout.success.orderId', { id: orderId.slice(-8) })}
+            {idParts.length === 2 ? (
+              <>
+                {idParts[0]}
+                <span dir="ltr" className="inline-block">
+                  {idTail.split('').map((ch, i) => (
+                    <motion.span
+                      key={`${i}-${ch}`}
+                      initial={{ opacity: 0, y: 10, scale: 0.6 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ ...springSnappy, delay: 0.4 + i * 0.05 }}
+                      className="inline-block"
+                    >
+                      {ch}
+                    </motion.span>
+                  ))}
+                </span>
+                {idParts[1]}
+              </>
+            ) : (
+              idSentence
+            )}
           </p>
         </Reveal>
       )}
@@ -175,23 +212,23 @@ export default function CheckoutSuccessPage() {
         </div>
       </Reveal>
 
-      {/* CTAs */}
+      {/* CTAs — Task 44-c: labels roll to their twins on hover. */}
       <Reveal delay={0.35}>
         <div className="flex flex-col justify-center gap-3 sm:flex-row">
           <Button
             onClick={() => navigate('/')}
-            className="btn-lux min-h-[44px] rounded-md px-8 py-3 text-base font-semibold"
+            className="btn-lux group min-h-[44px] rounded-md px-8 py-3 text-base font-semibold"
           >
             <ArrowIcon className="me-2 size-4" aria-hidden="true" />
-            {t('checkout.success.goHome')}
+            <RollLabel text={t('checkout.success.goHome')} />
           </Button>
           <Button
             variant="outline"
             onClick={() => navigate('/products')}
-            className="min-h-[44px] rounded-md px-8 py-3 text-base font-semibold"
+            className="group min-h-[44px] rounded-md px-8 py-3 text-base font-semibold"
           >
             <CheckCheck className="me-2 size-4" aria-hidden="true" />
-            {t('checkout.success.browseMore')}
+            <RollLabel text={t('checkout.success.browseMore')} />
           </Button>
         </div>
       </Reveal>
